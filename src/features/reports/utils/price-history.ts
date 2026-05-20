@@ -52,7 +52,7 @@ export function effectivePriceAt(
     const toman = Number(asset.price_toman);
     const usd = Number(asset.price_usd);
     if (!Number.isFinite(toman) || toman <= 0) return null;
-    if (!Number.isFinite(usd) || usd < 0) return null;
+    if (!Number.isFinite(usd) || usd <= 0) return null;
     return {
       priceToman: toman,
       priceUsd: usd,
@@ -71,8 +71,8 @@ export function effectivePriceAt(
 
   const toman = Number(best.price_toman);
   const usd = Number(best.price_usd);
-  if (!Number.isFinite(toman) || toman < 0) return null;
-  if (!Number.isFinite(usd) || usd < 0) return null;
+  if (!Number.isFinite(toman) || toman <= 0) return null;
+  if (!Number.isFinite(usd) || usd <= 0) return null;
 
   return {
     priceToman: toman,

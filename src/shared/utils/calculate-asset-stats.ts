@@ -1,6 +1,27 @@
 import type { Asset, AssetStats, CurrencyMode, Transaction } from '@/shared/types/domain';
 import { parseDateToNumber } from '@/shared/utils/parse-date';
 
+function resolvePriceUsd(
+  tx: Transaction,
+  amount: number,
+  priceToman: number,
+  usdRate: number
+): number {
+  const txUsdRate = Number(tx.usd_rate);
+  if (Number.isFinite(txUsdRate) && txUsdRate > 0) {
+    return priceToman / txUsdRate;
+  }
+
+  // Prefer point-in-time USD snapshot when available. This keeps USD P/L
+  // independent from today’s FX drift on legacy/missing-rate rows.
+  const snapshotUsd = Number(tx.amount_usd_at_time);
+  if (Number.isFinite(snapshotUsd) && snapshotUsd > 0 && amount > 0) {
+    return snapshotUsd / amount;
+  }
+
+  return usdRate > 0 ? priceToman / usdRate : 0;
+}
+
 export function calculateAssetStats(
   asset: Asset,
   transactions: Transaction[],
@@ -61,8 +82,7 @@ export function calculateAssetStats(
     const priceToman = Number(tx.price_toman);
     if (!Number.isFinite(amount) || amount <= 0) return;
     if (!Number.isFinite(priceToman) || priceToman <= 0) return;
-    const txUsdRate = Number(tx.usd_rate) || usdRate;
-    const priceUsd = priceToman / txUsdRate;
+    const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate);
 
     if (isAcquire) {
       totalAmount += amount;
@@ -95,6 +115,7 @@ export function calculateAssetStats(
   });
 
   const avgBuyPriceToman = totalAmount > 0 ? totalCostToman / totalAmount : 0;
+  const avgBuyPriceUsd = totalAmount > 0 ? totalCostUsd / totalAmount : 0;
   const currentPriceToman = asset.price_toman || 0;
   const currentPriceUsd =
     asset.price_usd || (usdRate > 0 ? currentPriceToman / usdRate : 0);
@@ -121,7 +142,9 @@ export function calculateAssetStats(
   return {
     totalAmount,
     totalCostToman,
+    totalCostUsd,
     avgBuyPriceToman,
+    avgBuyPriceUsd,
     currentValueToman,
     currentValueUsd,
     profitLossToman: includePnl ? profitLossToman : 0,

@@ -39,6 +39,16 @@ const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const;
 const toFaDigits = (value: number | string) =>
   String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
 
+function loanAmountToToman(
+  amount: number,
+  loanCurrency: Loan['currency'],
+  currencyRates: ReturnType<typeof useData>['currencyRates']
+): number {
+  const rate = tomanPerUnit(loanCurrency, currencyRates);
+  if (!(rate > 0)) return 0;
+  return amount * rate;
+}
+
 export function LoansHubView() {
   const router = useRouter();
   const toast = useToast();
@@ -125,12 +135,16 @@ export function LoansHubView() {
 
   const displayAmount = useCallback(
     (row: InstallmentRow) => {
-      const loanRate = tomanPerUnit(row.loan.currency, currencyRates);
-      if (!(loanRate > 0)) return row.installment.amount;
+      const toman = loanAmountToToman(
+        row.installment.amount,
+        row.loan.currency,
+        currencyRates
+      );
+      if (!(toman > 0)) return row.installment.amount;
       if (currencyMode === 'USD' && usdRate > 0) {
-        return (row.installment.amount * loanRate) / usdRate;
+        return toman / usdRate;
       }
-      return row.installment.amount;
+      return toman;
     },
     [currencyMode, currencyRates, usdRate]
   );
@@ -486,6 +500,24 @@ export function LoansHubView() {
                 : null;
               const totalDisplay =
                 loan.total_amount ?? (loan.installment_amount * loan.repeat_count);
+              const installmentToman = loanAmountToToman(
+                loan.installment_amount,
+                loan.currency,
+                currencyRates
+              );
+              const totalToman = loanAmountToToman(
+                totalDisplay,
+                loan.currency,
+                currencyRates
+              );
+              const installmentDisplay =
+                currencyMode === 'USD' && usdRate > 0
+                  ? installmentToman / usdRate
+                  : installmentToman;
+              const totalDisplayConverted =
+                currencyMode === 'USD' && usdRate > 0
+                  ? totalToman / usdRate
+                  : totalToman;
               const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
               return (
                 <div
@@ -522,13 +554,13 @@ export function LoansHubView() {
                     <div className="bg-white/3 rounded-xl p-2.5">
                       <p className="text-slate-500">مبلغ هر قسط</p>
                       <p className="text-slate-200 mt-1" dir="ltr">
-                        {formatCurrency(loan.installment_amount, currencyMode)}
+                        {formatCurrency(installmentDisplay, currencyMode)}
                       </p>
                     </div>
                     <div className="bg-white/3 rounded-xl p-2.5">
                       <p className="text-slate-500">جمع کل</p>
                       <p className="text-slate-200 mt-1" dir="ltr">
-                        {formatCurrency(totalDisplay, currencyMode)}
+                        {formatCurrency(totalDisplayConverted, currencyMode)}
                       </p>
                     </div>
                   </div>

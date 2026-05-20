@@ -188,7 +188,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             label="میانگین خرید"
             value={formatCurrency(
               currencyMode === 'USD'
-                ? stats.avgBuyPriceToman / usdRate
+                ? stats.avgBuyPriceUsd
                 : stats.avgBuyPriceToman,
               currencyMode
             )}
@@ -197,7 +197,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             label="ارزش خرید کل"
             value={formatCurrency(
               currencyMode === 'USD'
-                ? stats.totalCostToman / usdRate
+                ? stats.totalCostUsd
                 : stats.totalCostToman,
               currencyMode
             )}

@@ -197,7 +197,9 @@ export interface LoanInstallment {
 export interface AssetStats {
   totalAmount: number;
   totalCostToman: number;
+  totalCostUsd: number;
   avgBuyPriceToman: number;
+  avgBuyPriceUsd: number;
   currentValueToman: number;
   currentValueUsd: number;
   profitLossToman: number;

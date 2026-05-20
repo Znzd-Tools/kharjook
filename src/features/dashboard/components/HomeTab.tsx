@@ -95,8 +95,11 @@ export function HomeTab() {
     let yearProfitUsd = 0;
     let yearUnrealizedMissingCount = 0;
     let monthIncomeToman = 0;
+    let monthIncomeUsd = 0;
     let monthExpenseToman = 0;
+    let monthExpenseUsd = 0;
     const monthExpenseByCategory = new Map<string, number>();
+    const monthExpenseByCategoryUsd = new Map<string, number>();
     const categoryById = new Map(categories.map((c) => [c.id, c]));
     const walletsById = new Map(wallets.map((w) => [w.id, w]));
     const mainDistributionMap = new Map<string, number>();
@@ -116,15 +119,43 @@ export function HomeTab() {
         tx.date_string <= formatJalaali(monthPeriod.end);
       if (!inMonth) continue;
       if (tx.type === 'INCOME') {
-        const toman = tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id);
+        const toman =
+          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id);
+        const usd =
+          tx.amount_usd_at_time ??
+          (() => {
+            const t = Number(tx.amount_toman_at_time);
+            const r = Number(tx.usd_rate);
+            if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
+            return 0;
+          })();
         monthIncomeToman += Number(toman) || 0;
+        monthIncomeUsd += Number(usd) || 0;
       }
       if (tx.type === 'EXPENSE') {
-        const toman = tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id);
-        const value = Number(toman) || 0;
-        monthExpenseToman += value;
+        const toman =
+          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id);
+        const usd =
+          tx.amount_usd_at_time ??
+          (() => {
+            const t = Number(tx.amount_toman_at_time);
+            const r = Number(tx.usd_rate);
+            if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
+            return 0;
+          })();
+        const valueToman = Number(toman) || 0;
+        const valueUsd = Number(usd) || 0;
+        monthExpenseToman += valueToman;
+        monthExpenseUsd += valueUsd;
         const cat = tx.category_id ?? '__uncat__';
-        monthExpenseByCategory.set(cat, (monthExpenseByCategory.get(cat) ?? 0) + value);
+        monthExpenseByCategory.set(
+          cat,
+          (monthExpenseByCategory.get(cat) ?? 0) + valueToman
+        );
+        monthExpenseByCategoryUsd.set(
+          cat,
+          (monthExpenseByCategoryUsd.get(cat) ?? 0) + valueUsd
+        );
       }
     }
 
@@ -199,18 +230,17 @@ export function HomeTab() {
 
     subDistribution.sort((a, b) => b.valueToman - a.valueToman);
 
-    const maxExpenseEntry = Array.from(monthExpenseByCategory.entries()).sort(
-      (a, b) => b[1] - a[1]
-    )[0];
-    const maxExpense = maxExpenseEntry
-      ? {
-          name:
-            maxExpenseEntry[0] === '__uncat__'
-              ? 'بدون دسته'
-              : (categoryById.get(maxExpenseEntry[0])?.name ?? 'بدون دسته'),
-          valueToman: maxExpenseEntry[1],
-        }
-      : null;
+    const buildMaxExpense = (byCategory: Map<string, number>) => {
+      const maxEntry = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])[0];
+      if (!maxEntry) return null;
+      return {
+        name:
+          maxEntry[0] === '__uncat__'
+            ? 'بدون دسته'
+            : (categoryById.get(maxEntry[0])?.name ?? 'بدون دسته'),
+        value: maxEntry[1],
+      };
+    };
 
     return {
       totalPortfolioToman,
@@ -219,9 +249,13 @@ export function HomeTab() {
       yearProfitUsd,
       yearUnrealizedMissingCount,
       monthIncomeToman,
+      monthIncomeUsd,
       monthExpenseToman,
+      monthExpenseUsd,
       monthBalanceToman: monthIncomeToman - monthExpenseToman,
-      maxExpense,
+      monthBalanceUsd: monthIncomeUsd - monthExpenseUsd,
+      maxExpenseToman: buildMaxExpense(monthExpenseByCategory),
+      maxExpenseUsd: buildMaxExpense(monthExpenseByCategoryUsd),
       mainDistribution,
       subDistribution,
     };
@@ -258,21 +292,14 @@ export function HomeTab() {
       ? stats.yearProfitUsd
       : stats.yearProfitToman;
   const displayMonthIncome =
-    currencyMode === 'USD' && usdRate > 0
-      ? stats.monthIncomeToman / usdRate
-      : stats.monthIncomeToman;
+    currencyMode === 'USD' ? stats.monthIncomeUsd : stats.monthIncomeToman;
   const displayMonthExpense =
-    currencyMode === 'USD' && usdRate > 0
-      ? stats.monthExpenseToman / usdRate
-      : stats.monthExpenseToman;
+    currencyMode === 'USD' ? stats.monthExpenseUsd : stats.monthExpenseToman;
   const displayMonthBalance =
-    currencyMode === 'USD' && usdRate > 0
-      ? stats.monthBalanceToman / usdRate
-      : stats.monthBalanceToman;
-  const displayMaxExpense =
-    stats.maxExpense && currencyMode === 'USD' && usdRate > 0
-      ? stats.maxExpense.valueToman / usdRate
-      : (stats.maxExpense?.valueToman ?? 0);
+    currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
+  const activeMaxExpense =
+    currencyMode === 'USD' ? stats.maxExpenseUsd : stats.maxExpenseToman;
+  const displayMaxExpense = activeMaxExpense?.value ?? 0;
 
   const convertDistribution = (valueToman: number) =>
     currencyMode === 'USD' && usdRate > 0
@@ -369,8 +396,8 @@ export function HomeTab() {
         />
         <MetricCard
           title="بیشترین هزینه ماه"
-          value={stats.maxExpense ? formatCurrency(displayMaxExpense, currencyMode) : '—'}
-          subtitle={stats.maxExpense?.name ?? 'بدون داده'}
+          value={activeMaxExpense ? formatCurrency(displayMaxExpense, currencyMode) : '—'}
+          subtitle={activeMaxExpense?.name ?? 'بدون داده'}
           tone="danger"
         />
       </div>

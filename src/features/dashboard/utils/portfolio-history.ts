@@ -23,23 +23,51 @@ import {
 } from '@/shared/utils/jalali';
 import type { Period } from '@/shared/utils/period';
 
-/** Net on-hand quantity for `assetId` after all BUY/SELL/INCOME/EXPENSE through date (inclusive). */
+/** Net on-hand quantity for `assetId` after all asset-touching txs through date (inclusive). */
 export function assetNetAmountThroughDate(
   assetId: string,
   transactions: Transaction[],
   throughDateStr: string
 ): number {
   const limit = parseDateToNumber(throughDateStr);
-  const assetTxs = transactions.filter((tx) => tx.asset_id === assetId);
-  const isAcquireType = (t: Transaction['type']) => t === 'BUY' || t === 'INCOME';
-  const isDisposeType = (t: Transaction['type']) => t === 'SELL' || t === 'EXPENSE';
+  const isAcquire = (tx: Transaction) => {
+    if (tx.type === 'BUY' || tx.type === 'INCOME') {
+      return tx.asset_id === assetId || tx.target_asset_id === assetId;
+    }
+    if (tx.type === 'TRANSFER') {
+      return tx.target_asset_id === assetId;
+    }
+    return false;
+  };
+  const isDispose = (tx: Transaction) => {
+    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
+      return tx.asset_id === assetId || tx.source_asset_id === assetId;
+    }
+    if (tx.type === 'TRANSFER') {
+      return tx.source_asset_id === assetId;
+    }
+    return false;
+  };
+  const assetTxs = transactions.filter((tx) => isAcquire(tx) || isDispose(tx));
+
+  const txAmountForAsset = (tx: Transaction): number => {
+    if (tx.type === 'BUY' || tx.type === 'INCOME') {
+      return Number(tx.target_amount ?? tx.amount);
+    }
+    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
+      return Number(tx.source_amount ?? tx.amount);
+    }
+    // TRANSFER: acquire side uses target amount, dispose side uses source amount.
+    if (isAcquire(tx)) return Number(tx.target_amount ?? tx.amount);
+    return Number(tx.source_amount ?? tx.amount);
+  };
 
   const sortedTxs = [...assetTxs].sort((a, b) => {
     const dateA = parseDateToNumber(a.date_string);
     const dateB = parseDateToNumber(b.date_string);
     if (dateA !== dateB) return dateA - dateB;
-    const ra = isAcquireType(a.type) ? 0 : 1;
-    const rb = isAcquireType(b.type) ? 0 : 1;
+    const ra = isAcquire(a) ? 0 : 1;
+    const rb = isAcquire(b) ? 0 : 1;
     if (ra !== rb) return ra - rb;
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
@@ -47,10 +75,12 @@ export function assetNetAmountThroughDate(
   let totalAmount = 0;
   for (const tx of sortedTxs) {
     if (parseDateToNumber(tx.date_string) > limit) continue;
-    if (!isAcquireType(tx.type) && !isDisposeType(tx.type)) continue;
-    const amount = Number(tx.amount);
+    const acquiring = isAcquire(tx);
+    const disposing = isDispose(tx);
+    if (!acquiring && !disposing) continue;
+    const amount = txAmountForAsset(tx);
     if (!Number.isFinite(amount) || amount <= 0) continue;
-    if (isAcquireType(tx.type)) {
+    if (acquiring) {
       totalAmount += amount;
     } else {
       totalAmount -= amount;
@@ -102,7 +132,6 @@ export function portfolioCashTomanAtDate(
   let cash = 0;
   for (const w of wallets) {
     const balance = walletBalanceThroughDate(w, transactions, asOfDateStr);
-    if (balance <= 0) continue;
     cash += balance * tomanPerUnit(w.currency, currencyRates);
   }
   return cash;
