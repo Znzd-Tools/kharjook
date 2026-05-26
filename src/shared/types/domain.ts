@@ -18,6 +18,8 @@ export type TransactionType =
 export type CategoryKind = 'asset' | 'income' | 'expense';
 export type LoanType = 'expense' | 'loan';
 export type LoanIntervalPeriod = 'day' | 'week' | 'month' | 'year';
+export type GoalScope = 'asset' | 'asset_group';
+export type GoalTargetKind = 'quantity' | 'allocation_percent';
 
 export interface Category {
   id: string;
@@ -111,6 +113,19 @@ export interface DailyPrice {
   price_toman: number;
   price_usd: number;
   source: DailyPriceSource;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  scope: GoalScope;
+  asset_id: string | null;
+  category_id: string | null;
+  target_kind: GoalTargetKind;
+  target_quantity: number | null;
+  target_percent: number | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -30,6 +30,7 @@ import type {
   CurrencyMode,
   CurrencyRate,
   DailyPrice,
+  Goal,
   Person,
   Transaction,
   Wallet,
@@ -55,6 +56,7 @@ interface DataValue {
    * P/L at a past period's end. See `DailyPrice` for the write-priority rules.
    */
   dailyPrices: DailyPrice[];
+  goals: Goal[];
   isLoadingData: boolean;
   setCategories: Dispatch<SetStateAction<Category[]>>;
   setAssets: Dispatch<SetStateAction<Asset[]>>;
@@ -63,6 +65,7 @@ interface DataValue {
   setCurrencyRates: Dispatch<SetStateAction<CurrencyRate[]>>;
   setPersons: Dispatch<SetStateAction<Person[]>>;
   setDailyPrices: Dispatch<SetStateAction<DailyPrice[]>>;
+  setGoals: Dispatch<SetStateAction<Goal[]>>;
   refresh: () => Promise<void>;
   refreshAll: () => Promise<void>;
 }
@@ -106,6 +109,7 @@ export function PortfolioProvider({
   const [currencyRates, setCurrencyRates] = useState<CurrencyRate[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
   const [dailyPrices, setDailyPrices] = useState<DailyPrice[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('TOMAN');
@@ -118,7 +122,7 @@ export function PortfolioProvider({
     const seq = ++fetchSeq.current;
     setIsLoadingData(true);
     try {
-      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes] = await Promise.all([
+      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes] = await Promise.all([
         supabase
           .from('categories')
           .select('*')
@@ -149,6 +153,10 @@ export function PortfolioProvider({
           .from('daily_prices')
           .select('*')
           .order('date_string', { ascending: false }),
+        supabase
+          .from('goals')
+          .select('*')
+          .order('created_at', { ascending: true }),
       ]);
 
       if (seq !== fetchSeq.current) return;
@@ -160,6 +168,7 @@ export function PortfolioProvider({
       if (rateRes.error) throw rateRes.error;
       if (perRes.error) throw perRes.error;
       if (dpRes.error) throw dpRes.error;
+      if (goalRes.error) throw goalRes.error;
 
       const nextCategories = (catRes.data as Category[]) || [];
       let nextAssets = (astRes.data as Asset[]) || [];
@@ -168,6 +177,7 @@ export function PortfolioProvider({
       let nextCurrencyRates = (rateRes.data as CurrencyRate[]) || [];
       const nextPersons = (perRes.data as Person[]) || [];
       let nextDailyPrices = (dpRes.data as DailyPrice[]) || [];
+      const nextGoals = (goalRes.data as Goal[]) || [];
 
       if (includeExternal) {
         try {
@@ -231,6 +241,7 @@ export function PortfolioProvider({
       setCurrencyRates(nextCurrencyRates);
       setPersons(nextPersons);
       setDailyPrices(nextDailyPrices);
+      setGoals(nextGoals);
     } catch (error) {
       if (seq !== fetchSeq.current) return;
       console.error('Error fetching data:', error);
@@ -277,6 +288,7 @@ export function PortfolioProvider({
       setCurrencyRates([]);
       setPersons([]);
       setDailyPrices([]);
+      setGoals([]);
     }
   }, [user, refresh]);
 
@@ -304,6 +316,7 @@ export function PortfolioProvider({
       currencyRates,
       persons,
       dailyPrices,
+      goals,
       isLoadingData,
       setCategories,
       setAssets,
@@ -312,6 +325,7 @@ export function PortfolioProvider({
       setCurrencyRates,
       setPersons,
       setDailyPrices,
+      setGoals,
       refresh,
       refreshAll,
     }),
@@ -323,6 +337,7 @@ export function PortfolioProvider({
       currencyRates,
       persons,
       dailyPrices,
+      goals,
       isLoadingData,
       refresh,
       refreshAll,

@@ -9,6 +9,7 @@ import {
   Coins,
   LogOut,
   Tag,
+  Target,
   TrendingUp,
   User as UserIcon,
   Wallet as WalletIcon,
@@ -97,6 +98,24 @@ export function SettingsTab() {
               <span className="font-medium text-slate-200">
                 مدیریت دسته‌بندی‌ها
               </span>
+            </div>
+            <ChevronLeft size={20} className="text-slate-600" />
+          </button>
+
+          <button
+            onClick={() => router.push('/manage/goals')}
+            className="w-full bg-[#1A1B26] hover:bg-[#222436] border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                <Target size={20} />
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-slate-200">هدف‌ها</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  درصد سبد و مقدار هر دارایی
+                </p>
+              </div>
             </div>
             <ChevronLeft size={20} className="text-slate-600" />
           </button>

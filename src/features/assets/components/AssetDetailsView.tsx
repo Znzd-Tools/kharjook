@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, ArrowRight, Edit3, Plus, Trash2 } from 'lucide-react';
+import { Activity, ArrowRight, Edit3, Plus, Target, Trash2 } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -13,6 +13,11 @@ import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-am
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { sortTransactionsNewestFirst } from '@/shared/utils/sort-transactions';
 import { DetailCard } from '@/features/assets/components/DetailCard';
+import {
+  buildAssetSnapshots,
+  calculateAssetGoalProgress,
+  totalSnapshotValueToman,
+} from '@/features/goals/utils/goal-progress';
 import {
   TransactionHistoryTypeFilter,
   type TxHistoryTypeFilter,
@@ -33,7 +38,7 @@ export interface AssetDetailsViewProps {
 export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
   const toast = useToast();
-  const { assets, categories, transactions, setTransactions } = useData();
+  const { assets, categories, transactions, goals, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
 
@@ -53,6 +58,16 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
     if (txTypeFilter === 'ALL') return assetTxsSorted;
     return assetTxsSorted.filter((tx) => tx.type === txTypeFilter);
   }, [assetTxsSorted, txTypeFilter]);
+
+  const snapshots = useMemo(
+    () => buildAssetSnapshots(assets, transactions, currencyMode, usdRate),
+    [assets, transactions, currencyMode, usdRate]
+  );
+  const totalValueToman = useMemo(() => totalSnapshotValueToman(snapshots), [snapshots]);
+  const assetGoals = useMemo(
+    () => goals.filter((goal) => goal.scope === 'asset' && goal.asset_id === assetId),
+    [goals, assetId]
+  );
 
   if (!asset) {
     return (
@@ -178,6 +193,25 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             </p>
           </div>
         </div>
+
+        {assetGoals.length > 0 && (
+          <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3">
+            <div className="flex items-center gap-2 text-purple-300">
+              <Target size={16} />
+              <h3 className="text-sm font-semibold">پیشرفت هدف</h3>
+            </div>
+            <div className="space-y-3">
+              {assetGoals.map((goal) => (
+                <AssetGoalProgressRow
+                  key={goal.id}
+                  label={goal.target_kind === 'quantity' ? 'هدف مقداری' : 'هدف درصد سبد'}
+                  currentUnit={goal.target_kind === 'quantity' ? asset.unit : '%'}
+                  progress={calculateAssetGoalProgress(goal, snapshots, totalValueToman)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <DetailCard
@@ -315,6 +349,43 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         <Plus size={20} />
         ثبت عملیات جدید
       </button>
+    </div>
+  );
+}
+
+function AssetGoalProgressRow({
+  label,
+  currentUnit,
+  progress,
+}: {
+  label: string;
+  currentUnit: string;
+  progress: { current: number; target: number; percentComplete: number; remaining: number } | null;
+}) {
+  const width = Math.min(100, progress?.percentComplete ?? 0);
+  const formatValue = (value: number) =>
+    currentUnit === '%'
+      ? `${value.toFixed(1)}%`
+      : `${value.toLocaleString('en-US')} ${currentUnit}`;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-slate-400">{label}</span>
+        <span className="text-xs text-slate-300" dir="ltr">
+          {formatValue(progress?.current ?? 0)} / {formatValue(progress?.target ?? 0)}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-linear-to-r from-purple-500 to-cyan-400"
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-slate-500" dir="ltr">
+        <span>{(progress?.percentComplete ?? 0).toFixed(1)}%</span>
+        <span>{formatValue(progress?.remaining ?? 0)} remaining</span>
+      </div>
     </div>
   );
 }

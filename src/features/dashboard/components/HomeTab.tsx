@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   CalendarClock,
   DollarSign,
+  PieChart,
   RefreshCw,
   Sparkles,
+  Target,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -38,6 +41,7 @@ export function HomeTab() {
     wallets,
     currencyRates,
     dailyPrices,
+    goals,
     isLoadingData,
     refreshAll,
   } = useData();
@@ -84,10 +88,10 @@ export function HomeTab() {
     };
   }, [user]);
 
-  const today = todayJalaali();
-  const todayStr = formatJalaali(today);
-  const monthPeriod = clampPeriodToToday(currentPeriod('month'));
-  const yearPeriod = clampPeriodToToday(currentPeriod('year'));
+  const today = useMemo(() => todayJalaali(), []);
+  const todayStr = useMemo(() => formatJalaali(today), [today]);
+  const monthPeriod = useMemo(() => clampPeriodToToday(currentPeriod('month')), []);
+  const yearPeriod = useMemo(() => clampPeriodToToday(currentPeriod('year')), []);
 
   const stats = useMemo(() => {
     let assetsValueToman = 0;
@@ -104,6 +108,7 @@ export function HomeTab() {
     const walletsById = new Map(wallets.map((w) => [w.id, w]));
     const mainDistributionMap = new Map<string, number>();
     const subDistribution: { id: string; name: string; valueToman: number }[] = [];
+    const assetValueById = new Map<string, number>();
 
     const txToToman = (txAmount: number | null | undefined, walletId: string | null | undefined) => {
       const amount = Number(txAmount ?? 0);
@@ -175,6 +180,7 @@ export function HomeTab() {
           name: asset.name,
           valueToman: stats.currentValueToman,
         });
+        assetValueById.set(asset.id, stats.currentValueToman);
         const catId = asset.category_id ?? '__uncat__';
         mainDistributionMap.set(
           catId,
@@ -230,6 +236,45 @@ export function HomeTab() {
 
     subDistribution.sort((a, b) => b.valueToman - a.valueToman);
 
+    const goalComparison = goals
+      .filter((goal) => goal.target_kind === 'allocation_percent')
+      .map((goal) => {
+        const targetPercent = Number(goal.target_percent ?? 0);
+        if (!Number.isFinite(targetPercent) || targetPercent <= 0) return null;
+        if (goal.scope === 'asset') {
+          const asset = goal.asset_id ? assets.find((a) => a.id === goal.asset_id) : null;
+          if (!asset) return null;
+          const currentValue = assetValueById.get(asset.id) ?? 0;
+          return {
+            id: goal.id,
+            name: asset.name,
+            kindLabel: 'دارایی',
+            currentPercent:
+              assetsValueToman > 0 ? (currentValue / assetsValueToman) * 100 : 0,
+            targetPercent,
+          };
+        }
+        const category = goal.category_id ? categoryById.get(goal.category_id) : null;
+        if (!category) return null;
+        const currentValue = mainDistributionMap.get(category.id) ?? 0;
+        return {
+          id: goal.id,
+          name: category.name,
+          kindLabel: 'گروه',
+          currentPercent:
+            assetsValueToman > 0 ? (currentValue / assetsValueToman) * 100 : 0,
+          targetPercent,
+        };
+      })
+      .filter((row): row is {
+        id: string;
+        name: string;
+        kindLabel: string;
+        currentPercent: number;
+        targetPercent: number;
+      } => row !== null)
+      .sort((a, b) => b.targetPercent - a.targetPercent);
+
     const buildMaxExpense = (byCategory: Map<string, number>) => {
       const maxEntry = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])[0];
       if (!maxEntry) return null;
@@ -258,6 +303,7 @@ export function HomeTab() {
       maxExpenseUsd: buildMaxExpense(monthExpenseByCategoryUsd),
       mainDistribution,
       subDistribution,
+      goalComparison,
     };
   }, [
     assets,
@@ -266,12 +312,12 @@ export function HomeTab() {
     wallets,
     currencyRates,
     dailyPrices,
+    goals,
+    currencyMode,
     usdRate,
     todayStr,
-    monthPeriod.end,
-    monthPeriod.start,
-    yearPeriod.end,
-    yearPeriod.start,
+    monthPeriod,
+    yearPeriod,
   ]);
 
   const usdRateRow = useMemo(
@@ -287,6 +333,17 @@ export function HomeTab() {
     currencyMode === 'USD'
       ? (usdRate > 0 ? stats.cashToman / usdRate : 0)
       : stats.cashToman;
+  const assetsToman = Math.max(0, stats.totalPortfolioToman - stats.cashToman);
+  const displayAssets =
+    currencyMode === 'USD' && usdRate > 0 ? assetsToman / usdRate : assetsToman;
+  const assetShare =
+    stats.totalPortfolioToman > 0
+      ? (assetsToman / stats.totalPortfolioToman) * 100
+      : 0;
+  const cashShare =
+    stats.totalPortfolioToman > 0
+      ? (stats.cashToman / stats.totalPortfolioToman) * 100
+      : 0;
   const displayYearProfit =
     currencyMode === 'USD'
       ? stats.yearProfitUsd
@@ -358,47 +415,56 @@ export function HomeTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-linear-to-br from-emerald-500/15 via-teal-500/10 to-cyan-500/10 border border-emerald-400/20 rounded-3xl p-5 relative overflow-hidden">
-          <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-emerald-400/10 blur-2xl" />
-          <div className="flex items-center gap-2 text-emerald-300 mb-2">
-            <DollarSign size={16} />
-            <span className="text-sm font-medium">قیمت دلار</span>
-          </div>
-          <p className="text-2xl font-bold text-white" dir="ltr">
-            {usdRateRow ? `${Number(usdRateRow.toman_per_unit).toLocaleString('fa-IR')} تومان` : '—'}
-          </p>
-          <p className="text-[11px] text-slate-500 mt-2">
-            آخرین به‌روزرسانی:{' '}
-            {usdRateRow?.updated_at
-              ? new Date(usdRateRow.updated_at).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' })
-              : '—'}
-          </p>
-        </div>
-        <div className="bg-linear-to-br from-purple-500/15 via-fuchsia-500/10 to-transparent border border-white/5 rounded-3xl p-5">
-          <div className="flex items-center gap-2 text-purple-300 mb-2">
-            <Sparkles size={16} />
-            <span className="text-sm font-medium">ارزش کل پورتفو</span>
-          </div>
-          <p className="text-3xl font-bold text-white" dir="ltr">
-            {formatCurrency(displayPortfolio, currencyMode)}
-          </p>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.8fr] gap-3">
+        <PortfolioHeroCard
+          totalLabel={formatCurrency(displayPortfolio, currencyMode)}
+          assetsLabel={formatCurrency(displayAssets, currencyMode)}
+          cashLabel={formatCurrency(displayCash, currencyMode)}
+          assetShare={assetShare}
+          cashShare={cashShare}
+        />
+        <ExchangeRateCard
+          rateLabel={
+            usdRateRow
+              ? `${Number(usdRateRow.toman_per_unit).toLocaleString('fa-IR')} تومان`
+              : '—'
+          }
+          updatedLabel={
+            usdRateRow?.updated_at
+              ? new Date(usdRateRow.updated_at).toLocaleString('fa-IR', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })
+              : '—'
+          }
+        />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard title="درآمد ماه" value={formatCurrency(displayMonthIncome, currencyMode)} tone="neutral" />
-        <MetricCard title="هزینه‌های ماه" value={formatCurrency(displayMonthExpense, currencyMode)} tone="danger" />
+        <MetricCard
+          title="درآمد ماه"
+          value={formatCurrency(displayMonthIncome, currencyMode)}
+          tone="success"
+          icon={<TrendingUp size={14} />}
+        />
+        <MetricCard
+          title="هزینه‌های ماه"
+          value={formatCurrency(displayMonthExpense, currencyMode)}
+          tone="danger"
+          icon={<Wallet size={14} />}
+        />
         <MetricCard
           title="بالانس ماه"
           value={`${displayMonthBalance >= 0 ? '+' : ''}${formatCurrency(displayMonthBalance, currencyMode)}`}
           tone={displayMonthBalance >= 0 ? 'success' : 'danger'}
+          icon={<Sparkles size={14} />}
         />
         <MetricCard
           title="بیشترین هزینه ماه"
           value={activeMaxExpense ? formatCurrency(displayMaxExpense, currencyMode) : '—'}
           subtitle={activeMaxExpense?.name ?? 'بدون داده'}
           tone="danger"
+          icon={<PieChart size={14} />}
         />
       </div>
 
@@ -406,17 +472,30 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/deadlines')}
-          className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 text-right hover:bg-[#222436] transition-colors"
+          className="group relative overflow-hidden rounded-[1.75rem] border border-amber-300/10 bg-[#1A1B26] p-4 text-right transition hover:border-amber-300/20 hover:bg-[#222436]"
         >
-          <div className="flex items-center gap-2 text-slate-300">
-            <CalendarClock size={16} />
-            <span className="text-sm font-medium">سررسید</span>
+          <div className="absolute -left-12 -top-12 h-28 w-28 rounded-full bg-amber-400/10 blur-2xl transition group-hover:bg-amber-400/15" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
+                <CalendarClock size={16} />
+              </span>
+              <div>
+                <span className="text-sm font-semibold">سررسید</span>
+                <p className="text-[11px] text-slate-500">پرداخت‌های نزدیک همین ماه</p>
+              </div>
+            </div>
+            {currentMonthDeadlineSummary.rows.length > 0 && (
+              <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-[10px] text-amber-200">
+                {currentMonthDeadlineSummary.rows.length.toLocaleString('fa-IR')} مورد
+              </span>
+            )}
           </div>
           {currentMonthDeadlineSummary.rows.length === 0 ? (
-            <p className="text-xs text-slate-500 mt-2">سررسید پرداخت‌نشده‌ای وجود ندارد</p>
+            <p className="relative mt-3 text-xs text-slate-500">سررسید پرداخت‌نشده‌ای وجود ندارد</p>
           ) : (
-            <div className="mt-3 space-y-2">
-              <div className="rounded-xl bg-white/5 px-3 py-2.5 space-y-2">
+            <div className="relative mt-3 space-y-2">
+              <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-slate-200 font-semibold">{currentMonthDeadlineSummary.label}</p>
                   <span className="text-[11px] text-amber-300 shrink-0" dir="ltr">
@@ -442,9 +521,11 @@ export function HomeTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <GoalComparisonChartCard rows={stats.goalComparison.slice(0, 8)} />
         <DistributionChartCard
           title="توزیع دارایی اصلی"
+          subtitle="گروه‌های بزرگ‌تر در سبد"
           rows={stats.mainDistribution.slice(0, 6).map((r) => ({
             name: r.name,
             value: convertDistribution(r.valueToman),
@@ -453,6 +534,7 @@ export function HomeTab() {
         />
         <DistributionChartCard
           title="توزیع دارایی فرعی"
+          subtitle="دارایی‌های غالب"
           rows={stats.subDistribution.slice(0, 6).map((r) => ({
             name: r.name,
             value: convertDistribution(r.valueToman),
@@ -462,23 +544,167 @@ export function HomeTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4">
-          <p className="text-xs text-slate-400 mb-1">نقدی</p>
-          <p className="text-xl font-semibold text-white" dir="ltr">
-            {formatCurrency(displayCash, currencyMode)}
-          </p>
-        </div>
-        <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4">
-          <p className="text-xs text-slate-400 mb-1">سود سال جاری</p>
-          <p className={`text-xl font-semibold ${displayYearProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} dir="ltr">
-            {displayYearProfit >= 0 ? '+' : ''}
-            {formatCurrency(displayYearProfit, currencyMode)}
-          </p>
+        <SummaryInsightCard
+          title="نقدی"
+          value={formatCurrency(displayCash, currencyMode)}
+          subtitle={`${cashShare.toFixed(1)}% از پورتفو`}
+          tone="cyan"
+          icon={<Wallet size={16} />}
+        />
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+          <div className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
+            displayYearProfit >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
+          }`} />
+          <div className="relative flex items-start gap-3">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+              displayYearProfit >= 0
+                ? 'bg-emerald-400/10 text-emerald-300'
+                : 'bg-rose-400/10 text-rose-300'
+            }`}>
+              <TrendingUp size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-slate-400 mb-1">سود سال جاری</p>
+              <p className={`truncate text-xl font-black ${displayYearProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'}`} dir="ltr">
+                {displayYearProfit >= 0 ? '+' : ''}
+                {formatCurrency(displayYearProfit, currencyMode)}
+              </p>
+            </div>
+          </div>
           {stats.yearUnrealizedMissingCount > 0 && (
-            <p className="text-[10px] text-amber-400/80 mt-1">
+            <p className="relative text-[10px] text-amber-400/80 mt-3">
               {stats.yearUnrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی؛ عدد کل ناقص است.
             </p>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PortfolioHeroCard({
+  totalLabel,
+  assetsLabel,
+  cashLabel,
+  assetShare,
+  cashShare,
+}: {
+  totalLabel: string;
+  assetsLabel: string;
+  cashLabel: string;
+  assetShare: number;
+  cashShare: number;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-4xl border border-purple-400/20 bg-[#1A1B26] p-5 shadow-2xl shadow-purple-950/20">
+      <div className="absolute -top-20 -left-16 h-48 w-48 rounded-full bg-purple-500/20 blur-3xl" />
+      <div className="absolute -bottom-24 right-8 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="relative flex flex-col gap-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-purple-200">
+              <Sparkles size={13} />
+              نمای کلی سبد
+            </div>
+            <p className="text-sm text-slate-400">ارزش کل پورتفو</p>
+            <p className="mt-1 text-3xl font-black tracking-tight text-white sm:text-4xl" dir="ltr">
+              {totalLabel}
+            </p>
+          </div>
+          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0F1015]/80 ring-1 ring-white/10">
+            <div
+              className="absolute inset-2 rounded-full"
+              style={{
+                background: `conic-gradient(#8b5cf6 0 ${assetShare}%, #06b6d4 ${assetShare}% ${Math.min(100, assetShare + cashShare)}%, rgba(255,255,255,0.08) 0)`,
+              }}
+            />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[#151622] text-center">
+              <span className="text-lg font-bold text-white" dir="ltr">
+                {assetShare.toFixed(0)}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <PortfolioSplitPill
+            label="دارایی‌ها"
+            value={assetsLabel}
+            percent={assetShare}
+            color="#8b5cf6"
+          />
+          <PortfolioSplitPill
+            label="نقدی"
+            value={cashLabel}
+            percent={cashShare}
+            color="#06b6d4"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PortfolioSplitPill({
+  label,
+  value,
+  percent,
+  color,
+}: {
+  label: string;
+  value: string;
+  percent: number;
+  color: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/4 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-xs text-slate-400">{label}</span>
+        <span className="text-[11px] text-slate-500" dir="ltr">
+          {percent.toFixed(1)}%
+        </span>
+      </div>
+      <p className="truncate text-sm font-semibold text-white" dir="ltr">
+        {value}
+      </p>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.min(100, percent)}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ExchangeRateCard({
+  rateLabel,
+  updatedLabel,
+}: {
+  rateLabel: string;
+  updatedLabel: string;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-4xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/15 via-teal-500/10 to-[#1A1B26] p-5">
+      <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-emerald-400/15 blur-2xl" />
+      <div className="relative">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-emerald-300">
+            <DollarSign size={17} />
+            <span className="text-sm font-semibold">قیمت دلار</span>
+          </div>
+          <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] text-emerald-200">
+            نرخ پایه
+          </span>
+        </div>
+        <p className="text-3xl font-black text-white" dir="ltr">
+          {rateLabel}
+        </p>
+        <div className="mt-5 rounded-2xl border border-white/5 bg-[#0F1015]/50 px-3 py-2">
+          <p className="text-[11px] text-slate-500">آخرین به‌روزرسانی</p>
+          <p className="mt-1 text-xs text-slate-300" dir="ltr">
+            {updatedLabel}
+          </p>
         </div>
       </div>
     </div>
@@ -490,84 +716,273 @@ function MetricCard({
   value,
   subtitle,
   tone,
+  icon,
 }: {
   title: string;
   value: string;
   subtitle?: string;
   tone: 'neutral' | 'success' | 'danger';
+  icon?: ReactNode;
+}) {
+  const toneClass = {
+    neutral: 'text-slate-200',
+    success: 'text-emerald-300',
+    danger: 'text-rose-300',
+  }[tone];
+  const iconClass = {
+    neutral: 'bg-slate-400/10 text-slate-300',
+    success: 'bg-emerald-400/10 text-emerald-300',
+    danger: 'bg-rose-400/10 text-rose-300',
+  }[tone];
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#1A1B26] p-4 transition hover:border-white/10 hover:bg-[#202234]">
+      <div className="absolute -left-8 -top-8 h-16 w-16 rounded-full bg-white/5 blur-xl opacity-0 transition group-hover:opacity-100" />
+      <div className="relative flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="mb-1 text-xs text-slate-400">{title}</p>
+          <p className={`truncate text-sm font-bold ${toneClass}`} dir="ltr">
+            {value}
+          </p>
+        </div>
+        {icon && (
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+            {icon}
+          </span>
+        )}
+      </div>
+      {subtitle && <p className="text-[11px] text-slate-500 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function SummaryInsightCard({
+  title,
+  value,
+  subtitle,
+  tone,
+  icon,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+  tone: 'cyan' | 'purple';
+  icon: ReactNode;
 }) {
   const toneClass =
-    tone === 'success'
-      ? 'text-emerald-400'
-      : tone === 'danger'
-        ? 'text-rose-400'
-        : 'text-slate-200';
+    tone === 'cyan'
+      ? 'bg-cyan-400/10 text-cyan-300'
+      : 'bg-purple-400/10 text-purple-300';
+  const glowClass = tone === 'cyan' ? 'bg-cyan-400/10' : 'bg-purple-400/10';
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4">
-      <p className="text-xs text-slate-400 mb-1">{title}</p>
-      <p className={`text-sm font-semibold ${toneClass}`} dir="ltr">
-        {value}
-      </p>
-      {subtitle && <p className="text-[11px] text-slate-500 mt-1">{subtitle}</p>}
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+      <div className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${glowClass}`} />
+      <div className="relative flex items-start gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <p className="mb-1 text-xs text-slate-400">{title}</p>
+          <p className="truncate text-xl font-black text-white" dir="ltr">
+            {value}
+          </p>
+          <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GoalComparisonChartCard({
+  rows,
+}: {
+  rows: Array<{
+    id: string;
+    name: string;
+    kindLabel: string;
+    currentPercent: number;
+    targetPercent: number;
+  }>;
+}) {
+  const averageCompletion =
+    rows.length > 0
+      ? rows.reduce((sum, row) => {
+          return sum + (row.targetPercent > 0 ? row.currentPercent / row.targetPercent : 0);
+        }, 0) / rows.length
+      : 0;
+  return (
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4 xl:col-span-1">
+      <div className="absolute -right-12 top-8 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl" />
+      <div className="relative mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-purple-300">
+            <Target size={16} />
+            <p className="text-sm font-bold">هدف‌ها</p>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">فعلی در برابر هدف درصدی</p>
+        </div>
+        <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2 text-left">
+          <p className="text-[10px] text-slate-500">میانگین</p>
+          <p className="text-sm font-black text-white" dir="ltr">
+            {(averageCompletion * 100).toFixed(0)}%
+          </p>
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div className="relative flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 text-xs text-slate-500">
+          <AlertCircle size={12} />
+          <span className="mt-2">هدف درصدی ثبت نشده</span>
+        </div>
+      ) : (
+        <div className="relative space-y-4">
+          {rows.map((row) => {
+            const scaleMax = Math.max(100, row.currentPercent, row.targetPercent);
+            const currentWidth = Math.min(100, (row.currentPercent / scaleMax) * 100);
+            const targetLeft = Math.min(100, (row.targetPercent / scaleMax) * 100);
+            const delta = row.currentPercent - row.targetPercent;
+            const isAhead = delta >= 0;
+            return (
+              <div key={row.id} className="rounded-2xl border border-white/5 bg-[#0F1015]/45 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-200">{row.name}</p>
+                    <p className="text-[10px] text-slate-500">{row.kindLabel}</p>
+                  </div>
+                  <div className="text-left shrink-0" dir="ltr">
+                    <p className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      isAhead
+                        ? 'bg-emerald-400/10 text-emerald-300'
+                        : 'bg-amber-400/10 text-amber-300'
+                    }`}>
+                      {delta >= 0 ? '+' : ''}
+                      {delta.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="relative h-4 rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-linear-to-l from-cyan-300 to-purple-500 shadow-lg shadow-purple-500/20"
+                      style={{ width: `${currentWidth}%` }}
+                    />
+                    <div
+                      className="absolute top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.65)]"
+                      style={{ left: `${targetLeft}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500" dir="ltr">
+                    <span>{row.currentPercent.toFixed(1)}% فعلی</span>
+                    <span>{row.targetPercent.toFixed(1)}% هدف</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex items-center gap-4 rounded-full bg-white/3 px-3 py-2 text-[10px] text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-linear-to-l from-cyan-300 to-purple-500" />
+              فعلی
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-3 w-0.5 rounded-full bg-white" />
+              هدف
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function DistributionChartCard({
   title,
+  subtitle,
   rows,
 }: {
   title: string;
+  subtitle: string;
   rows: Array<{ name: string; value: number; label: string }>;
 }) {
   const palette = ['#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'];
   const total = rows.reduce((sum, row) => sum + row.value, 0);
+  let cursor = 0;
+  const donutStops =
+    total > 0
+      ? rows
+          .map((row, index) => {
+            const start = cursor;
+            const size = (row.value / total) * 100;
+            cursor += size;
+            return `${palette[index % palette.length]} ${start}% ${cursor}%`;
+          })
+          .join(', ')
+      : 'rgba(255,255,255,0.08) 0 100%';
+  const topRow = rows[0] ?? null;
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 overflow-hidden">
-      <p className="text-xs text-slate-400 mb-2">{title}</p>
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+      <div className="absolute -left-14 bottom-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="relative mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-slate-200">
+            <PieChart size={16} className="text-cyan-300" />
+            <p className="text-sm font-bold">{title}</p>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
+        </div>
+        {topRow && (
+          <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2 text-left">
+            <p className="text-[10px] text-slate-500">بیشترین</p>
+            <p className="max-w-24 truncate text-xs font-semibold text-white">{topRow.name}</p>
+          </div>
+        )}
+      </div>
       {rows.length === 0 ? (
-        <div className="text-xs text-slate-500 inline-flex items-center gap-1">
+        <div className="relative flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 text-xs text-slate-500">
           <AlertCircle size={12} />
-          بدون داده
+          <span className="mt-2">بدون داده</span>
         </div>
       ) : (
-        <>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/5 mb-4">
-            {rows.map((row, index) => (
-              <div
-                key={row.name}
-                className="h-full transition-all duration-500"
-                style={{
-                  width: `${total > 0 ? (row.value / total) * 100 : 0}%`,
-                  backgroundColor: palette[index % palette.length],
-                }}
-              />
-            ))}
+        <div className="relative grid grid-cols-[112px_1fr] items-center gap-4">
+          <div className="relative h-28 w-28 shrink-0 rounded-full p-3">
+            <div
+              className="absolute inset-0 rounded-full shadow-2xl shadow-purple-950/30"
+              style={{ background: `conic-gradient(${donutStops})` }}
+            />
+            <div className="absolute inset-4 rounded-full bg-[#1A1B26] ring-1 ring-white/10" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] text-slate-500">کل</span>
+              <span className="text-lg font-black text-white">{rows.length.toLocaleString('fa-IR')}</span>
+            </div>
           </div>
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {rows.map((row, index) => {
               const percent = total > 0 ? (row.value / total) * 100 : 0;
               return (
-                <div key={row.name} className="space-y-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
+                <div key={row.name} className="group">
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_14px_rgba(255,255,255,0.16)]"
                         style={{ backgroundColor: palette[index % palette.length] }}
                       />
-                      <span className="text-sm text-slate-300 truncate">{row.name}</span>
+                      <span className="truncate text-sm text-slate-300 group-hover:text-white">
+                        {row.name}
+                      </span>
                     </div>
-                    <div className="text-left shrink-0">
-                      <div className="text-xs text-slate-300" dir="ltr">{row.label}</div>
-                      <div className="text-[10px] text-slate-500" dir="ltr">{percent.toFixed(1)}%</div>
+                    <div className="shrink-0 text-left">
+                      <div className="text-[11px] text-slate-300" dir="ltr">
+                        {row.label}
+                      </div>
+                      <div className="text-[10px] text-slate-500" dir="ltr">
+                        {percent.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full transition-all duration-500 group-hover:brightness-125"
                       style={{
                         width: `${percent}%`,
-                        background: `linear-gradient(90deg, ${palette[index % palette.length]}, rgba(255,255,255,0.85))`,
+                        background: `linear-gradient(90deg, ${palette[index % palette.length]}, rgba(255,255,255,0.7))`,
                       }}
                     />
                   </div>
@@ -575,7 +990,7 @@ function DistributionChartCard({
               );
             })}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

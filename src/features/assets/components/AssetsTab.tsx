@@ -2,17 +2,23 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Plus } from 'lucide-react';
+import { Activity, Plus, Target } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import type { Asset, Category } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
+import {
+  buildAssetSnapshots,
+  calculateAssetGoalProgress,
+  calculateGroupGoalProgress,
+  totalSnapshotValueToman,
+} from '@/features/goals/utils/goal-progress';
 
 export function AssetsTab() {
   const router = useRouter();
-  const { assets, categories, transactions, isLoadingData } = useData();
+  const { assets, categories, transactions, goals, isLoadingData } = useData();
   const { currencyMode, usdRate } = useUI();
 
   const groupedAssets = useMemo(() => {
@@ -44,6 +50,33 @@ export function AssetsTab() {
     return Array.from(map.values()).filter((g) => g.assets.length > 0);
   }, [assets, categories]);
 
+  const snapshots = useMemo(
+    () => buildAssetSnapshots(assets, transactions, currencyMode, usdRate),
+    [assets, transactions, currencyMode, usdRate]
+  );
+  const totalValueToman = useMemo(() => totalSnapshotValueToman(snapshots), [snapshots]);
+
+  const assetGoalsByAsset = useMemo(() => {
+    const map = new Map<string, typeof goals>();
+    goals
+      .filter((goal) => goal.scope === 'asset')
+      .forEach((goal) => {
+        if (!goal.asset_id) return;
+        map.set(goal.asset_id, [...(map.get(goal.asset_id) ?? []), goal]);
+      });
+    return map;
+  }, [goals]);
+
+  const groupGoalByCategory = useMemo(() => {
+    const map = new Map<string, (typeof goals)[number]>();
+    goals
+      .filter((goal) => goal.scope === 'asset_group' && goal.target_kind === 'allocation_percent')
+      .forEach((goal) => {
+        if (goal.category_id) map.set(goal.category_id, goal);
+      });
+    return map;
+  }, [goals]);
+
   return (
     <div className="p-6 animate-in fade-in duration-300 space-y-6">
       <div className="flex justify-between items-center">
@@ -74,14 +107,26 @@ export function AssetsTab() {
         <div className="space-y-8">
           {groupedAssets.map((group) => (
             <div key={group.id} className="space-y-3">
-              <div className="flex items-center gap-2 mb-2 px-1">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: group.color }}
-                ></div>
-                <h3 className="text-sm font-medium text-slate-400">
-                  {group.name}
-                </h3>
+              <div className="space-y-2 mb-2 px-1">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: group.color }}
+                  ></div>
+                  <h3 className="text-sm font-medium text-slate-400">
+                    {group.name}
+                  </h3>
+                </div>
+                {group.id !== 'uncategorized' && groupGoalByCategory.has(group.id) && (
+                  <GoalMiniProgress
+                    label="هدف گروه"
+                    progress={calculateGroupGoalProgress(
+                      groupGoalByCategory.get(group.id)!,
+                      snapshots,
+                      totalValueToman
+                    )}
+                  />
+                )}
               </div>
 
               {group.assets.map((asset) => {
@@ -101,6 +146,7 @@ export function AssetsTab() {
                     : stats.profitLossToman;
                 const isProfit = displayProfit >= 0;
                 const decimals = assetDecimals(asset);
+                const assetGoals = assetGoalsByAsset.get(asset.id) ?? [];
 
                 return (
                   <div
@@ -133,6 +179,25 @@ export function AssetsTab() {
                             خارج از سود/زیان
                           </p>
                         )}
+                        {assetGoals.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {assetGoals.slice(0, 2).map((goal) => (
+                              <GoalMiniProgress
+                                key={goal.id}
+                                label={
+                                  goal.target_kind === 'quantity'
+                                    ? 'هدف مقدار'
+                                    : 'هدف درصد سبد'
+                                }
+                                progress={calculateAssetGoalProgress(
+                                  goal,
+                                  snapshots,
+                                  totalValueToman
+                                )}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -155,6 +220,35 @@ export function AssetsTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function GoalMiniProgress({
+  label,
+  progress,
+}: {
+  label: string;
+  progress: { percentComplete: number; current: number; target: number } | null;
+}) {
+  const width = Math.min(100, progress?.percentComplete ?? 0);
+  return (
+    <div className="min-w-36 space-y-1">
+      <div className="flex items-center justify-between gap-2 text-[10px]">
+        <span className="inline-flex items-center gap-1 text-purple-300">
+          <Target size={10} />
+          {label}
+        </span>
+        <span className="text-slate-500" dir="ltr">
+          {(progress?.percentComplete ?? 0).toFixed(0)}%
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-linear-to-l from-purple-500 to-cyan-400"
+          style={{ width: `${width}%` }}
+        />
+      </div>
     </div>
   );
 }
