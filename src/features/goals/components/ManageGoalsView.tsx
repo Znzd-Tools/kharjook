@@ -112,8 +112,7 @@ export function ManageGoalsView() {
     });
   }, [goals]);
 
-  if (!user) return null;
-
+  const userId = user?.id ?? '';
   const selectedAsset = form.assetId ? assetById.get(form.assetId) ?? null : null;
   const selectedCategory = form.categoryId ? categoryById.get(form.categoryId) ?? null : null;
   const effectiveTargetKind =
@@ -124,7 +123,103 @@ export function ManageGoalsView() {
   const quantityInvalid = effectiveTargetKind === 'quantity' && targetNumber <= 0;
   const targetInvalid = percentInvalid || quantityInvalid;
   const targetMissing = form.scope === 'asset' ? !form.assetId : !form.categoryId;
-  const canSubmit = !isSubmitting && !targetMissing && !targetInvalid;
+  const budgetValidation = useMemo(() => {
+    const nextGoals = goals.filter((goal) => goal.id !== form.editingId);
+    const shouldIncludeDraft =
+      !!userId &&
+      !targetMissing &&
+      !targetInvalid &&
+      effectiveTargetKind === 'allocation_percent';
+    if (shouldIncludeDraft) {
+      nextGoals.push({
+        id: form.editingId ?? '__draft__',
+        user_id: userId,
+        scope: form.scope,
+        asset_id: form.scope === 'asset' ? form.assetId : null,
+        category_id: form.scope === 'asset_group' ? form.categoryId : null,
+        target_kind: 'allocation_percent',
+        target_quantity: null,
+        target_percent: targetNumber,
+        created_at: undefined,
+        updated_at: undefined,
+      });
+    }
+
+    const parentGoals = nextGoals.filter(
+      (goal) => goal.scope === 'asset_group' && goal.target_kind === 'allocation_percent'
+    );
+    const childGoals = nextGoals.filter(
+      (goal) => goal.scope === 'asset' && goal.target_kind === 'allocation_percent'
+    );
+
+    const parentSum = parentGoals.reduce(
+      (sum, goal) => sum + Number(goal.target_percent ?? 0),
+      0
+    );
+    const childSum = childGoals.reduce(
+      (sum, goal) => sum + Number(goal.target_percent ?? 0),
+      0
+    );
+
+    const childSumByCategory = new Map<string, number>();
+    childGoals.forEach((goal) => {
+      const categoryId = goal.asset_id ? assetById.get(goal.asset_id)?.category_id : null;
+      if (!categoryId) return;
+      childSumByCategory.set(
+        categoryId,
+        (childSumByCategory.get(categoryId) ?? 0) + Number(goal.target_percent ?? 0)
+      );
+    });
+
+    const parentByCategory = new Map<string, number>();
+    parentGoals.forEach((goal) => {
+      if (!goal.category_id) return;
+      parentByCategory.set(goal.category_id, Number(goal.target_percent ?? 0));
+    });
+
+    const issues: string[] = [];
+    if (parentSum > 100.0001) {
+      issues.push(
+        `جمع درصد هدف‌های گروهی ${parentSum.toFixed(1)}% است و نباید از 100% بیشتر شود.`
+      );
+    }
+    if (childSum > 100.0001) {
+      issues.push(
+        `جمع درصد هدف‌های دارایی ${childSum.toFixed(1)}% است و نباید از 100% بیشتر شود.`
+      );
+    }
+    childSumByCategory.forEach((sum, categoryId) => {
+      const parentTarget = parentByCategory.get(categoryId);
+      if (parentTarget == null) return;
+      if (sum > parentTarget + 0.0001) {
+        const categoryName = categoryById.get(categoryId)?.name ?? 'گروه';
+        issues.push(
+          `در گروه «${categoryName}»، مجموع درصد فرزندها ${sum.toFixed(1)}% از هدف گروه (${parentTarget.toFixed(1)}%) بیشتر است.`
+        );
+      }
+    });
+
+    return {
+      blocking: issues.length > 0,
+      issues,
+    };
+  }, [
+    goals,
+    form,
+    targetMissing,
+    targetInvalid,
+    effectiveTargetKind,
+    targetNumber,
+    userId,
+    assetById,
+    categoryById,
+  ]);
+
+  const canSubmit =
+    !isSubmitting &&
+    !targetMissing &&
+    !targetInvalid &&
+    !budgetValidation.blocking;
 
   const switchScope = (scope: GoalScope) => {
     setForm({
@@ -148,7 +243,12 @@ export function ManageGoalsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     if (!canSubmit) return;
+    if (budgetValidation.blocking) {
+      toast.error(budgetValidation.issues[0] ?? 'ترکیب هدف‌ها معتبر نیست.');
+      return;
+    }
     if (duplicateGoal()) {
       toast.error('برای این مورد قبلا هدفی با همین نوع ثبت شده است.');
       return;
@@ -265,6 +365,7 @@ export function ManageGoalsView() {
   };
 
   const handleDelete = async (goal: Goal) => {
+    if (!user) return;
     if (!window.confirm('این هدف حذف شود؟')) return;
     const execute = async () => {
       const snapshot = goals;
@@ -305,6 +406,8 @@ export function ManageGoalsView() {
       });
     }
   };
+
+  if (!user) return null;
 
   return (
     <div className="bg-[#0F1015] min-h-full pb-10 animate-in slide-in-from-right-8 duration-300">
@@ -427,6 +530,16 @@ export function ManageGoalsView() {
               <span className="text-[11px] text-rose-300">درصد باید بین ۰ و ۱۰۰ باشد.</span>
             )}
           </label>
+
+          {budgetValidation.issues.length > 0 && (
+            <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 space-y-1">
+              {budgetValidation.issues.map((issue) => (
+                <p key={issue} className="text-[11px] text-rose-200">
+                  {issue}
+                </p>
+              ))}
+            </div>
+          )}
 
           <button
             type="submit"

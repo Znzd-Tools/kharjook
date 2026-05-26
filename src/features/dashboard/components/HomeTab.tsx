@@ -73,7 +73,10 @@ export function HomeTab() {
         .in('id', loanIds);
       if (!mounted) return;
       const loanMap = new Map(
-        ((loansData ?? []) as Pick<Loan, 'id' | 'title' | 'currency'>[]).map((loan) => [loan.id, loan])
+        ((loansData ?? []) as Pick<Loan, 'id' | 'title' | 'currency'>[]).map((loan) => [
+          loan.id,
+          loan,
+        ])
       );
       setUpcomingDeadlines(
         installments.map((item) => ({
@@ -110,7 +113,10 @@ export function HomeTab() {
     const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
 
-    const txToToman = (txAmount: number | null | undefined, walletId: string | null | undefined) => {
+    const txToToman = (
+      txAmount: number | null | undefined,
+      walletId: string | null | undefined
+    ) => {
       const amount = Number(txAmount ?? 0);
       if (!Number.isFinite(amount)) return 0;
       const wallet = walletId ? walletsById.get(walletId) : null;
@@ -165,26 +171,21 @@ export function HomeTab() {
     }
 
     assets.forEach((asset) => {
-      const stats = calculateAssetStats(
-        asset,
-        transactions,
-        currencyMode,
-        usdRate
-      );
+      const s = calculateAssetStats(asset, transactions, currencyMode, usdRate);
       if (asset.include_in_balance !== false) {
-        assetsValueToman += stats.currentValueToman;
+        assetsValueToman += s.currentValueToman;
       }
-      if (stats.currentValueToman > 0 && asset.include_in_balance !== false) {
+      if (s.currentValueToman > 0 && asset.include_in_balance !== false) {
         subDistribution.push({
           id: asset.id,
           name: asset.name,
-          valueToman: stats.currentValueToman,
+          valueToman: s.currentValueToman,
         });
-        assetValueById.set(asset.id, stats.currentValueToman);
+        assetValueById.set(asset.id, s.currentValueToman);
         const catId = asset.category_id ?? '__uncat__';
         mainDistributionMap.set(
           catId,
-          (mainDistributionMap.get(catId) ?? 0) + stats.currentValueToman
+          (mainDistributionMap.get(catId) ?? 0) + s.currentValueToman
         );
       }
     });
@@ -200,12 +201,7 @@ export function HomeTab() {
 
     for (const asset of assets) {
       if (asset.include_in_profit_loss === false) continue;
-      const periodEndPrice = effectivePriceAt(
-        asset,
-        yearEnd,
-        dailyPrices,
-        todayStr
-      );
+      const periodEndPrice = effectivePriceAt(asset, yearEnd, dailyPrices, todayStr);
       const periodStats = calculateAssetPeriodStats(
         asset,
         transactions,
@@ -266,13 +262,15 @@ export function HomeTab() {
           targetPercent,
         };
       })
-      .filter((row): row is {
-        id: string;
-        name: string;
-        kindLabel: string;
-        currentPercent: number;
-        targetPercent: number;
-      } => row !== null)
+      .filter(
+        (row): row is {
+          id: string;
+          name: string;
+          kindLabel: string;
+          currentPercent: number;
+          targetPercent: number;
+        } => row !== null
+      )
       .sort((a, b) => b.targetPercent - a.targetPercent);
 
     const buildMaxExpense = (byCategory: Map<string, number>) => {
@@ -330,9 +328,7 @@ export function HomeTab() {
       ? (usdRate > 0 ? stats.totalPortfolioToman / usdRate : 0)
       : stats.totalPortfolioToman;
   const displayCash =
-    currencyMode === 'USD'
-      ? (usdRate > 0 ? stats.cashToman / usdRate : 0)
-      : stats.cashToman;
+    currencyMode === 'USD' ? (usdRate > 0 ? stats.cashToman / usdRate : 0) : stats.cashToman;
   const assetsToman = Math.max(0, stats.totalPortfolioToman - stats.cashToman);
   const displayAssets =
     currencyMode === 'USD' && usdRate > 0 ? assetsToman / usdRate : assetsToman;
@@ -345,9 +341,7 @@ export function HomeTab() {
       ? (stats.cashToman / stats.totalPortfolioToman) * 100
       : 0;
   const displayYearProfit =
-    currencyMode === 'USD'
-      ? stats.yearProfitUsd
-      : stats.yearProfitToman;
+    currencyMode === 'USD' ? stats.yearProfitUsd : stats.yearProfitToman;
   const displayMonthIncome =
     currencyMode === 'USD' ? stats.monthIncomeUsd : stats.monthIncomeToman;
   const displayMonthExpense =
@@ -359,19 +353,20 @@ export function HomeTab() {
   const displayMaxExpense = activeMaxExpense?.value ?? 0;
 
   const convertDistribution = (valueToman: number) =>
-    currencyMode === 'USD' && usdRate > 0
-      ? valueToman / usdRate
-      : valueToman;
+    currencyMode === 'USD' && usdRate > 0 ? valueToman / usdRate : valueToman;
 
   const currentMonthDeadlineSummary = useMemo(() => {
     const currentMonthKey = `${today.jy}/${String(today.jm).padStart(2, '0')}/`;
-    const currentMonthLabel = `${JALALI_MONTHS[today.jm - 1]} ${String(today.jy).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!)}`;
-    const toDisplayAmount = (item: LoanInstallment & { loanCurrency?: Loan['currency'] }) => {
+    const currentMonthLabel = `${JALALI_MONTHS[today.jm - 1]} ${String(today.jy).replace(
+      /\d/g,
+      (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!
+    )}`;
+    const toDisplayAmount = (
+      item: LoanInstallment & { loanCurrency?: Loan['currency'] }
+    ) => {
       const rate = tomanPerUnit(item.loanCurrency ?? 'IRT', currencyRates);
       const toman = item.amount * (rate > 0 ? rate : 0);
-      if (currencyMode === 'USD' && usdRate > 0) {
-        return toman / usdRate;
-      }
+      if (currencyMode === 'USD' && usdRate > 0) return toman / usdRate;
       return toman;
     };
     const monthRows = upcomingDeadlines
@@ -380,12 +375,12 @@ export function HomeTab() {
         const parsed = parseJalaali(item.due_date_string);
         const displayAmount = toDisplayAmount(item);
         return {
-        id: item.id,
-        title: item.loanTitle ?? 'بدهی',
-        dueLabel: formatJalaaliHuman(parsed ?? today),
-        amount: displayAmount,
-        amountLabel: formatCurrency(displayAmount, currencyMode),
-      };
+          id: item.id,
+          title: item.loanTitle ?? 'بدهی',
+          dueLabel: formatJalaaliHuman(parsed ?? today),
+          amount: displayAmount,
+          amountLabel: formatCurrency(displayAmount, currencyMode),
+        };
       });
     return {
       label: currentMonthLabel,
@@ -455,7 +450,10 @@ export function HomeTab() {
         />
         <MetricCard
           title="بالانس ماه"
-          value={`${displayMonthBalance >= 0 ? '+' : ''}${formatCurrency(displayMonthBalance, currencyMode)}`}
+          value={`${displayMonthBalance >= 0 ? '+' : ''}${formatCurrency(
+            displayMonthBalance,
+            currencyMode
+          )}`}
           tone={displayMonthBalance >= 0 ? 'success' : 'danger'}
           icon={<Sparkles size={14} />}
         />
@@ -492,19 +490,26 @@ export function HomeTab() {
             )}
           </div>
           {currentMonthDeadlineSummary.rows.length === 0 ? (
-            <p className="relative mt-3 text-xs text-slate-500">سررسید پرداخت‌نشده‌ای وجود ندارد</p>
+            <p className="relative mt-3 text-xs text-slate-500">
+              سررسید پرداخت‌نشده‌ای وجود ندارد
+            </p>
           ) : (
             <div className="relative mt-3 space-y-2">
               <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-slate-200 font-semibold">{currentMonthDeadlineSummary.label}</p>
+                  <p className="text-xs text-slate-200 font-semibold">
+                    {currentMonthDeadlineSummary.label}
+                  </p>
                   <span className="text-[11px] text-amber-300 shrink-0" dir="ltr">
                     {formatCurrency(currentMonthDeadlineSummary.total, currencyMode)}
                   </span>
                 </div>
                 <div className="space-y-1.5">
                   {currentMonthDeadlineSummary.rows.map((row) => (
-                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-2.5 py-1.5">
+                    <div
+                      key={row.id}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-2.5 py-1.5"
+                    >
                       <div className="min-w-0">
                         <p className="text-[11px] text-slate-200 truncate">{row.title}</p>
                         <p className="text-[10px] text-slate-500">{row.dueLabel}</p>
@@ -552,20 +557,29 @@ export function HomeTab() {
           icon={<Wallet size={16} />}
         />
         <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
-          <div className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
-            displayYearProfit >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
-          }`} />
+          <div
+            className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
+              displayYearProfit >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
+            }`}
+          />
           <div className="relative flex items-start gap-3">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-              displayYearProfit >= 0
-                ? 'bg-emerald-400/10 text-emerald-300'
-                : 'bg-rose-400/10 text-rose-300'
-            }`}>
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+                displayYearProfit >= 0
+                  ? 'bg-emerald-400/10 text-emerald-300'
+                  : 'bg-rose-400/10 text-rose-300'
+              }`}
+            >
               <TrendingUp size={16} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-slate-400 mb-1">سود سال جاری</p>
-              <p className={`truncate text-xl font-black ${displayYearProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'}`} dir="ltr">
+              <p
+                className={`truncate text-xl font-black ${
+                  displayYearProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'
+                }`}
+                dir="ltr"
+              >
                 {displayYearProfit >= 0 ? '+' : ''}
                 {formatCurrency(displayYearProfit, currencyMode)}
               </p>
@@ -573,7 +587,8 @@ export function HomeTab() {
           </div>
           {stats.yearUnrealizedMissingCount > 0 && (
             <p className="relative text-[10px] text-amber-400/80 mt-3">
-              {stats.yearUnrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی؛ عدد کل ناقص است.
+              {stats.yearUnrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی؛
+              عدد کل ناقص است.
             </p>
           )}
         </div>
@@ -625,7 +640,6 @@ function PortfolioHeroCard({
             </div>
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-3">
           <PortfolioSplitPill
             label="دارایی‌ها"
@@ -633,12 +647,7 @@ function PortfolioHeroCard({
             percent={assetShare}
             color="#8b5cf6"
           />
-          <PortfolioSplitPill
-            label="نقدی"
-            value={cashLabel}
-            percent={cashShare}
-            color="#06b6d4"
-          />
+          <PortfolioSplitPill label="نقدی" value={cashLabel} percent={cashShare} color="#06b6d4" />
         </div>
       </div>
     </div>
@@ -805,9 +814,8 @@ function GoalComparisonChartCard({
 }) {
   const averageCompletion =
     rows.length > 0
-      ? rows.reduce((sum, row) => {
-          return sum + (row.targetPercent > 0 ? row.currentPercent / row.targetPercent : 0);
-        }, 0) / rows.length
+      ? rows.reduce((sum, row) => sum + (row.targetPercent > 0 ? row.currentPercent / row.targetPercent : 0), 0) /
+        rows.length
       : 0;
   return (
     <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4 xl:col-span-1">
@@ -848,11 +856,11 @@ function GoalComparisonChartCard({
                     <p className="text-[10px] text-slate-500">{row.kindLabel}</p>
                   </div>
                   <div className="text-left shrink-0" dir="ltr">
-                    <p className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      isAhead
-                        ? 'bg-emerald-400/10 text-emerald-300'
-                        : 'bg-amber-400/10 text-amber-300'
-                    }`}>
+                    <p
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        isAhead ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-300'
+                      }`}
+                    >
                       {delta >= 0 ? '+' : ''}
                       {delta.toFixed(1)}%
                     </p>
