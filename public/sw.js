@@ -1,8 +1,8 @@
-const SW_VERSION = 'khargook-shell-v2';
+const SW_VERSION = 'khargook-shell-v3';
 const APP_SHELL_CACHE = `${SW_VERSION}-app-shell`;
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const OFFLINE_URL = '/login?source=pwa';
-const SHELL_URLS = [OFFLINE_URL, '/manifest.webmanifest', '/icon-192', '/icon', '/icon-maskable', '/apple-icon'];
+const SHELL_URLS = [OFFLINE_URL, '/manifest.webmanifest', '/logo.png', '/icon-192', '/icon', '/icon-maskable', '/apple-icon'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -70,6 +70,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/_next/image') ||
     url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/logo.png' ||
     url.pathname === '/icon-192' ||
     url.pathname === '/icon' ||
     url.pathname === '/icon-maskable' ||

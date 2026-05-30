@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import { ServiceWorkerRegistrar } from '@/shared/components/ServiceWorkerRegistrar';
+import { PWA_BRAND_COLOR } from '@/shared/lib/pwa-brand';
 
 const iranSansX = localFont({
   variable: '--font-sans',
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0F1015',
+  themeColor: PWA_BRAND_COLOR,
   colorScheme: 'dark',
   width: 'device-width',
   initialScale: 1,
