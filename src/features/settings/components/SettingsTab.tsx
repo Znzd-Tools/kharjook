@@ -11,6 +11,7 @@ import {
   Tag,
   Target,
   TrendingUp,
+  SlidersHorizontal,
   User as UserIcon,
   Wallet as WalletIcon,
 } from 'lucide-react';
@@ -129,6 +130,24 @@ export function SettingsTab() {
                 <TrendingUp size={20} />
               </div>
               <span className="font-medium text-slate-200">بروزرسانی قیمت‌ها</span>
+            </div>
+            <ChevronLeft size={20} className="text-slate-600" />
+          </button>
+
+          <button
+            onClick={() => router.push('/manage/price-sources')}
+            className="w-full bg-[#1A1B26] hover:bg-[#222436] border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                <SlidersHorizontal size={20} />
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-slate-200">تنظیم منابع قیمت</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  ضریب تبدیل و نرخ دلار برای هر منبع
+                </p>
+              </div>
             </div>
             <ChevronLeft size={20} className="text-slate-600" />
           </button>
