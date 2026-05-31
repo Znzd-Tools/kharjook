@@ -132,6 +132,8 @@ export const PRICE_SOURCES: readonly PriceSource[] = [
   },
 ];
 
+export const PRICE_SOURCE_SLUGS: readonly string[] = PRICE_SOURCES.map((s) => s.slug);
+
 export const PRICE_SOURCE_MAP: Readonly<Record<string, PriceSource>> =
   Object.freeze(
     Object.fromEntries(PRICE_SOURCES.map((s) => [s.slug, s]))

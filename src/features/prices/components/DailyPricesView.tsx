@@ -14,6 +14,10 @@ import {
   fetchProviderQuotesDetailed,
   mergeGlobalUsdDollarQuotes,
 } from '@/features/prices/utils/provider-refresh';
+import {
+  applyConversionRatesToQuotes,
+  buildConversionRateMap,
+} from '@/features/prices/utils/conversion-rate';
 
 type LocalPrices = Record<string, { toman: string; usd: string }>;
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
@@ -32,7 +36,8 @@ export function DailyPricesView() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { assets, transactions, setAssets, setCurrencyRates, setDailyPrices } = useData();
+  const { assets, transactions, setAssets, setCurrencyRates, setDailyPrices, priceSourceSettings } =
+    useData();
   const { usdRate } = useUI();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -91,10 +96,9 @@ export function DailyPricesView() {
         ? usdQuoteFromFetch.priceToman
         : effectiveUsd;
 
-    const quotes = mergeGlobalUsdDollarQuotes(
-      quotesRaw,
-      refreshableAssets,
-      nextUsdRate
+    const quotes = applyConversionRatesToQuotes(
+      mergeGlobalUsdDollarQuotes(quotesRaw, refreshableAssets, nextUsdRate),
+      buildConversionRateMap(priceSourceSettings)
     );
     if (quotes.length === 0) {
       return {

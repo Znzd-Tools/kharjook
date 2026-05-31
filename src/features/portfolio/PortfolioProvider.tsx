@@ -23,6 +23,10 @@ import {
   persistCurrencyRate,
   persistProviderQuotes,
 } from '@/features/prices/utils/provider-refresh';
+import {
+  applyConversionRatesToQuotes,
+  buildConversionRateMap,
+} from '@/features/prices/utils/conversion-rate';
 import type {
   Asset,
   AuthUser,
@@ -32,6 +36,7 @@ import type {
   DailyPrice,
   Goal,
   Person,
+  PriceSourceSetting,
   Transaction,
   Wallet,
 } from '@/shared/types/domain';
@@ -57,6 +62,7 @@ interface DataValue {
    */
   dailyPrices: DailyPrice[];
   goals: Goal[];
+  priceSourceSettings: PriceSourceSetting[];
   isLoadingData: boolean;
   setCategories: Dispatch<SetStateAction<Category[]>>;
   setAssets: Dispatch<SetStateAction<Asset[]>>;
@@ -66,6 +72,7 @@ interface DataValue {
   setPersons: Dispatch<SetStateAction<Person[]>>;
   setDailyPrices: Dispatch<SetStateAction<DailyPrice[]>>;
   setGoals: Dispatch<SetStateAction<Goal[]>>;
+  setPriceSourceSettings: Dispatch<SetStateAction<PriceSourceSetting[]>>;
   refresh: () => Promise<void>;
   refreshAll: () => Promise<void>;
 }
@@ -110,6 +117,7 @@ export function PortfolioProvider({
   const [persons, setPersons] = useState<Person[]>([]);
   const [dailyPrices, setDailyPrices] = useState<DailyPrice[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [priceSourceSettings, setPriceSourceSettings] = useState<PriceSourceSetting[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('TOMAN');
@@ -122,7 +130,7 @@ export function PortfolioProvider({
     const seq = ++fetchSeq.current;
     setIsLoadingData(true);
     try {
-      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes] = await Promise.all([
+      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes, pssRes] = await Promise.all([
         supabase
           .from('categories')
           .select('*')
@@ -157,6 +165,7 @@ export function PortfolioProvider({
           .from('goals')
           .select('*')
           .order('created_at', { ascending: true }),
+        supabase.from('price_source_settings').select('*'),
       ]);
 
       if (seq !== fetchSeq.current) return;
@@ -169,6 +178,7 @@ export function PortfolioProvider({
       if (perRes.error) throw perRes.error;
       if (dpRes.error) throw dpRes.error;
       if (goalRes.error) throw goalRes.error;
+      if (pssRes.error) throw pssRes.error;
 
       const nextCategories = (catRes.data as Category[]) || [];
       let nextAssets = (astRes.data as Asset[]) || [];
@@ -178,6 +188,8 @@ export function PortfolioProvider({
       const nextPersons = (perRes.data as Person[]) || [];
       let nextDailyPrices = (dpRes.data as DailyPrice[]) || [];
       const nextGoals = (goalRes.data as Goal[]) || [];
+      const nextPriceSourceSettings = (pssRes.data as PriceSourceSetting[]) || [];
+      const conversionRates = buildConversionRateMap(nextPriceSourceSettings);
 
       if (includeExternal) {
         try {
@@ -210,10 +222,9 @@ export function PortfolioProvider({
             }
 
             if (effectiveUsdRate > 0) {
-              const quotes = mergeGlobalUsdDollarQuotes(
-                quotesRaw,
-                nextAssets,
-                effectiveUsdRate
+              const quotes = applyConversionRatesToQuotes(
+                mergeGlobalUsdDollarQuotes(quotesRaw, nextAssets, effectiveUsdRate),
+                conversionRates
               );
               const persisted = await persistProviderQuotes({
                 userId: user.id,
@@ -242,6 +253,7 @@ export function PortfolioProvider({
       setPersons(nextPersons);
       setDailyPrices(nextDailyPrices);
       setGoals(nextGoals);
+      setPriceSourceSettings(nextPriceSourceSettings);
     } catch (error) {
       if (seq !== fetchSeq.current) return;
       console.error('Error fetching data:', error);
@@ -289,6 +301,7 @@ export function PortfolioProvider({
       setPersons([]);
       setDailyPrices([]);
       setGoals([]);
+      setPriceSourceSettings([]);
     }
   }, [user, refresh]);
 
@@ -317,6 +330,7 @@ export function PortfolioProvider({
       persons,
       dailyPrices,
       goals,
+      priceSourceSettings,
       isLoadingData,
       setCategories,
       setAssets,
@@ -326,6 +340,7 @@ export function PortfolioProvider({
       setPersons,
       setDailyPrices,
       setGoals,
+      setPriceSourceSettings,
       refresh,
       refreshAll,
     }),
@@ -338,6 +353,7 @@ export function PortfolioProvider({
       persons,
       dailyPrices,
       goals,
+      priceSourceSettings,
       isLoadingData,
       refresh,
       refreshAll,

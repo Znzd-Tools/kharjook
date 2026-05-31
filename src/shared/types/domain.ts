@@ -95,6 +95,14 @@ export interface CurrencyRate {
   updated_at: string;
 }
 
+/** User override: raw provider quote × conversion_rate → stored asset price. */
+export interface PriceSourceSetting {
+  user_id: string;
+  slug: string;
+  conversion_rate: number;
+  updated_at: string;
+}
+
 /**
  * End-of-day price snapshot per user × asset × Jalali date.
  *
