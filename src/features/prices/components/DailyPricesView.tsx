@@ -16,7 +16,7 @@ import {
 } from '@/features/prices/utils/provider-refresh';
 import {
   applyConversionRatesToQuotes,
-  buildConversionRateMap,
+  buildConversionConfigMap,
 } from '@/features/prices/utils/conversion-rate';
 
 type LocalPrices = Record<string, { toman: string; usd: string }>;
@@ -98,7 +98,8 @@ export function DailyPricesView() {
 
     const quotes = applyConversionRatesToQuotes(
       mergeGlobalUsdDollarQuotes(quotesRaw, refreshableAssets, nextUsdRate),
-      buildConversionRateMap(priceSourceSettings)
+      buildConversionConfigMap(priceSourceSettings),
+      nextUsdRate
     );
     if (quotes.length === 0) {
       return {

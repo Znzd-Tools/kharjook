@@ -95,11 +95,16 @@ export interface CurrencyRate {
   updated_at: string;
 }
 
-/** User override: raw provider quote × conversion_rate → stored asset price. */
+/** User override for transforming fetched provider quotes before save. */
+export type PriceSourceUsdFactor = 'none' | 'multiply' | 'divide';
+
 export interface PriceSourceSetting {
   user_id: string;
   slug: string;
+  /** Multiplier applied first: stored = raw × conversion_rate ×/÷ USD (optional). */
   conversion_rate: number;
+  /** After conversion_rate: multiply or divide by app USD/Toman rate; none = skip. */
+  usd_factor: PriceSourceUsdFactor;
   updated_at: string;
 }
 

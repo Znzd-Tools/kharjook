@@ -25,7 +25,7 @@ import {
 } from '@/features/prices/utils/provider-refresh';
 import {
   applyConversionRatesToQuotes,
-  buildConversionRateMap,
+  buildConversionConfigMap,
 } from '@/features/prices/utils/conversion-rate';
 import type {
   Asset,
@@ -189,7 +189,7 @@ export function PortfolioProvider({
       let nextDailyPrices = (dpRes.data as DailyPrice[]) || [];
       const nextGoals = (goalRes.data as Goal[]) || [];
       const nextPriceSourceSettings = (pssRes.data as PriceSourceSetting[]) || [];
-      const conversionRates = buildConversionRateMap(nextPriceSourceSettings);
+      const conversionConfigs = buildConversionConfigMap(nextPriceSourceSettings);
 
       if (includeExternal) {
         try {
@@ -224,7 +224,8 @@ export function PortfolioProvider({
             if (effectiveUsdRate > 0) {
               const quotes = applyConversionRatesToQuotes(
                 mergeGlobalUsdDollarQuotes(quotesRaw, nextAssets, effectiveUsdRate),
-                conversionRates
+                conversionConfigs,
+                effectiveUsdRate
               );
               const persisted = await persistProviderQuotes({
                 userId: user.id,
