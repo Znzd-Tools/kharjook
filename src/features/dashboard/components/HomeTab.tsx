@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
+  BarChart3,
   CalendarClock,
+  ChevronLeft,
   DollarSign,
   PieChart,
   RefreshCw,
@@ -432,7 +434,37 @@ export function HomeTab() {
                 })
               : '—'
           }
+          onClick={() => router.push('/prices')}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => router.push('/reports')}
+          className="bg-[#1A1B26] border border-white/5 hover:border-purple-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+              <BarChart3 size={18} />
+            </div>
+            <span className="text-sm font-medium text-slate-200">گزارش‌ها</span>
+          </div>
+          <ChevronLeft size={18} className="text-slate-600" />
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push('/prices')}
+          className="bg-[#1A1B26] border border-white/5 hover:border-cyan-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
+              <TrendingUp size={18} />
+            </div>
+            <span className="text-sm font-medium text-slate-200">قیمت‌ها و نرخ‌ها</span>
+          </div>
+          <ChevronLeft size={18} className="text-slate-600" />
+        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -689,12 +721,18 @@ function PortfolioSplitPill({
 function ExchangeRateCard({
   rateLabel,
   updatedLabel,
+  onClick,
 }: {
   rateLabel: string;
   updatedLabel: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-4xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/15 via-teal-500/10 to-[#1A1B26] p-5">
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative overflow-hidden rounded-4xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/15 via-teal-500/10 to-[#1A1B26] p-5 text-right w-full hover:border-emerald-400/35 transition-colors"
+    >
       <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-emerald-400/15 blur-2xl" />
       <div className="relative">
         <div className="mb-5 flex items-center justify-between">
@@ -716,7 +754,7 @@ function ExchangeRateCard({
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 

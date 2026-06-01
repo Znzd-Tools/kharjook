@@ -1,10 +1,10 @@
-import { CurrencyRatesView } from '@/features/rates/components/CurrencyRatesView';
+import { RedirectToPrices } from '@/features/prices/components/RedirectToPrices';
 import { Modal } from '@/features/shell/components/Modal';
 
 export default function ManageRatesModal() {
   return (
     <Modal>
-      <CurrencyRatesView />
+      <RedirectToPrices />
     </Modal>
   );
 }

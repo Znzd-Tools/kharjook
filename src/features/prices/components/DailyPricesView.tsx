@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, RefreshCw } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowRight, ChevronDown, RefreshCw } from 'lucide-react';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import type { CurrencyRate, DailyPrice } from '@/shared/types/domain';
+import type { CurrencyRate, DailyPrice, RateCurrency } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
@@ -18,8 +18,18 @@ import {
   applyConversionRatesToQuotes,
   buildConversionConfigMap,
 } from '@/features/prices/utils/conversion-rate';
+import {
+  boundFetchablePriceSourceSlugs,
+  PriceSourceAdvancedSection,
+  usePriceSourceAdvancedSave,
+} from '@/features/prices/components/PriceSourceAdvancedSection';
+import {
+  CURRENCY_META,
+  RATE_ORDER,
+} from '@/features/wallets/constants/currency-meta';
 
 type LocalPrices = Record<string, { toman: string; usd: string }>;
+type LocalRates = Partial<Record<RateCurrency, string>>;
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
 
 const toTomanInput = (value: number): string => {
@@ -32,21 +42,63 @@ const toUsdInput = (value: number): string => {
   return value.toFixed(2);
 };
 
+const buildOtherRatesLocal = (
+  rates: CurrencyRate[],
+  currencies: RateCurrency[]
+): LocalRates => {
+  const out: LocalRates = {};
+  for (const c of currencies) {
+    const found = rates.find((r) => r.currency === c);
+    out[c] = found ? String(found.toman_per_unit) : '';
+  }
+  return out;
+};
+
 export function DailyPricesView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const { user } = useAuth();
-  const { assets, transactions, setAssets, setCurrencyRates, setDailyPrices, priceSourceSettings } =
-    useData();
+  const {
+    assets,
+    wallets,
+    transactions,
+    currencyRates,
+    setAssets,
+    setCurrencyRates,
+    setDailyPrices,
+    priceSourceSettings,
+  } = useData();
   const { usdRate } = useUI();
 
   const [isSaving, setIsSaving] = useState(false);
   const [isRefreshingProviders, setIsRefreshingProviders] = useState(false);
   const [localPrices, setLocalPrices] = useState<LocalPrices>({});
-  // Local USD rate input. Seeded from the canonical rate; persisted to
-  // `currency_rates.USD` on save (single source of truth — no shadow state).
   const [localUsd, setLocalUsd] = useState<string>(() =>
     usdRate ? String(usdRate) : ''
+  );
+  const [advancedOpen, setAdvancedOpen] = useState(
+    () => searchParams.get('advanced') === '1'
+  );
+
+  const boundSlugs = useMemo(
+    () => boundFetchablePriceSourceSlugs(assets.map((a) => a.price_source_id)),
+    [assets]
+  );
+  const priceSourceControl = usePriceSourceAdvancedSave(boundSlugs);
+
+  const otherCurrencies = useMemo(() => {
+    const used = new Set<RateCurrency>();
+    for (const wallet of wallets) {
+      if (wallet.currency !== 'IRT' && wallet.currency !== 'USD') {
+        used.add(wallet.currency as RateCurrency);
+      }
+    }
+    return RATE_ORDER.filter((c) => c !== 'USD' && used.has(c));
+  }, [wallets]);
+
+  const [localOtherRates, setLocalOtherRates] = useState<LocalRates>(() =>
+    buildOtherRatesLocal(currencyRates, otherCurrencies)
   );
 
   useEffect(() => {
@@ -60,10 +112,13 @@ export function DailyPricesView() {
     setLocalPrices(p);
   }, [assets]);
 
-  // If the rate changes elsewhere while this view is mounted, re-seed.
   useEffect(() => {
     setLocalUsd(usdRate ? String(usdRate) : '');
   }, [usdRate]);
+
+  useEffect(() => {
+    setLocalOtherRates(buildOtherRatesLocal(currencyRates, otherCurrencies));
+  }, [currencyRates, otherCurrencies]);
 
   const currentUsdNum = Number(localUsd);
   const effectiveUsd =
@@ -234,6 +289,16 @@ export function DailyPricesView() {
     if (!user) return;
     setIsSaving(true);
     try {
+      for (const c of otherCurrencies) {
+        const raw = localOtherRates[c]?.trim();
+        if (!raw) continue;
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n <= 0) {
+          toast.error(`نرخ نامعتبر برای ${CURRENCY_META[c].label}.`);
+          return;
+        }
+      }
+
       const assetUpdates = assets.map((a) => ({
         id: a.id,
         user_id: a.user_id,
@@ -249,33 +314,51 @@ export function DailyPricesView() {
         include_in_balance: a.include_in_balance ?? true,
       }));
 
-      // Persist USD rate alongside asset prices so they can never drift apart.
       const usdNum = Number(localUsd);
-      const persistUsd =
-        Number.isFinite(usdNum) && usdNum > 0 && usdNum !== usdRate;
+      const now = new Date().toISOString();
+      const rateRows: {
+        user_id: string;
+        currency: RateCurrency;
+        toman_per_unit: number;
+        updated_at: string;
+      }[] = [];
+
+      if (Number.isFinite(usdNum) && usdNum > 0) {
+        rateRows.push({
+          user_id: user.id,
+          currency: 'USD',
+          toman_per_unit: usdNum,
+          updated_at: now,
+        });
+      }
+
+      for (const c of otherCurrencies) {
+        const raw = localOtherRates[c]?.trim();
+        if (!raw) continue;
+        rateRows.push({
+          user_id: user.id,
+          currency: c,
+          toman_per_unit: Number(raw),
+          updated_at: now,
+        });
+      }
 
       const assetPromise = supabase.from('assets').upsert(assetUpdates).select();
-      const ratePromise = persistUsd
-        ? supabase
-            .from('currency_rates')
-            .upsert(
-              [
-                {
-                  user_id: user.id,
-                  currency: 'USD',
-                  toman_per_unit: usdNum,
-                  updated_at: new Date().toISOString(),
-                },
-              ],
-              { onConflict: 'user_id,currency' }
-            )
-            .select()
-        : null;
+      const ratePromise =
+        rateRows.length > 0
+          ? supabase
+              .from('currency_rates')
+              .upsert(rateRows, { onConflict: 'user_id,currency' })
+              .select()
+          : null;
 
       const [assetRes, rateRes] = await Promise.all([assetPromise, ratePromise]);
 
       if (assetRes.error) throw assetRes.error;
       if (rateRes?.error) throw rateRes.error;
+
+      const priceSourceOk = await priceSourceControl.save();
+      if (!priceSourceOk) return;
 
       setAssets((assetRes.data as typeof assets) || []);
 
@@ -288,14 +371,6 @@ export function DailyPricesView() {
         });
       }
 
-      // -----------------------------------------------------------------
-      // Snapshot today's prices into `daily_prices` (source='manual').
-      // Manual always overrides any prior trade/auto snapshot for the same
-      // day via a normal upsert. Only rows with a positive toman price are
-      // worth storing; zeros would pollute historical P/L lookups.
-      // This runs AFTER the assets cache is saved; if it fails we show a
-      // non-fatal warning — the primary save already succeeded.
-      // -----------------------------------------------------------------
       const today = formatJalaali(todayJalaali());
       const snapshotPayload: Omit<DailyPrice, 'created_at' | 'updated_at'>[] =
         assetUpdates
@@ -316,7 +391,6 @@ export function DailyPricesView() {
           .select();
 
         if (dpErr) {
-          // Non-fatal: the live cache is fresh; history just missed today.
           console.error('daily_prices upsert failed', dpErr);
           toast.info('قیمت‌ها ذخیره شد؛ اما ثبت تاریخچه‌ی روزانه ناموفق بود.');
         } else {
@@ -331,9 +405,10 @@ export function DailyPricesView() {
         }
       }
 
+      toast.success('قیمت‌ها و نرخ‌ها ذخیره شد.');
       router.back();
     } catch (error) {
-      toast.error('خطا در ذخیره قیمت‌ها.');
+      toast.error('خطا در ذخیره.');
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -349,7 +424,7 @@ export function DailyPricesView() {
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">بروزرسانی قیمت‌ها</h2>
+        <h2 className="text-lg font-bold text-white flex-1">قیمت‌ها و نرخ‌ها</h2>
         <button
           onClick={() => void handleRefreshProviders()}
           disabled={isRefreshingProviders}
@@ -366,25 +441,61 @@ export function DailyPricesView() {
       <div className="p-6 space-y-6">
         <div className="bg-purple-900/20 border border-purple-500/30 p-5 rounded-3xl">
           <label className="block text-sm text-purple-300 mb-2 font-medium">
-            قیمت جهانی دلار (تومان)
+            نرخ دلار (تومان)
           </label>
           <FormattedNumberInput
             value={localUsd}
             onValueChange={handleUsdRateChange}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-left  focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
+            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-left focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
             dir="ltr"
           />
-          <p className="text-[11px] text-purple-300/60 mt-2">
-            این مقدار همان نرخ USD در «نرخ تبدیل ارزها» است و در هر دو جا یکی نگه‌داشته می‌شود.
-          </p>
         </div>
 
+        {otherCurrencies.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-slate-300">نرخ ارزهای کیف پول</p>
+            {otherCurrencies.map((c) => {
+              const meta = CURRENCY_META[c];
+              return (
+                <div
+                  key={c}
+                  className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300 text-sm font-bold"
+                      dir="ltr"
+                    >
+                      {meta.symbol}
+                    </div>
+                    <div>
+                      <p className="text-slate-200 text-sm font-medium">{meta.label}</p>
+                      <p className="text-slate-500 text-[11px]" dir="ltr">
+                        1 {c} = ? تومان
+                      </p>
+                    </div>
+                  </div>
+                  <FormattedNumberInput
+                    value={localOtherRates[c] ?? ''}
+                    onValueChange={(canonical) =>
+                      setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))
+                    }
+                    className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
+                    dir="ltr"
+                    placeholder="0"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div className="bg-white/5 border border-white/8 p-4 rounded-2xl text-sm text-slate-300">
-          در شروع اپ فقط داده‌های ذخیره‌شده از دیتابیس خوانده می‌شوند. دریافت
-          دوباره‌ی قیمت زنده فقط با همین دکمه‌ی رفرش یا رفرش داشبورد انجام می‌شود.
+          دریافت قیمت زنده با دکمهٔ رفرش یا رفرش داشبورد انجام می‌شود.
         </div>
 
         <div className="space-y-4">
+          <p className="text-sm font-medium text-slate-300">قیمت دارایی‌ها</p>
           {visibleAssets.map((asset) => (
             <div
               key={asset.id}
@@ -400,9 +511,7 @@ export function DailyPricesView() {
                     </span>
                     <FormattedNumberInput
                       value={localPrices[asset.id]?.usd || ''}
-                      onValueChange={(c) =>
-                        handlePriceChange(asset.id, 'usd', c)
-                      }
+                      onValueChange={(c) => handlePriceChange(asset.id, 'usd', c)}
                       className="w-full bg-[#222436] border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
                       dir="ltr"
                     />
@@ -416,9 +525,7 @@ export function DailyPricesView() {
                     </span>
                     <FormattedNumberInput
                       value={localPrices[asset.id]?.toman || ''}
-                      onValueChange={(c) =>
-                        handlePriceChange(asset.id, 'toman', c)
-                      }
+                      onValueChange={(c) => handlePriceChange(asset.id, 'toman', c)}
                       className="w-full bg-[#222436] border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
                       dir="ltr"
                     />
@@ -433,6 +540,28 @@ export function DailyPricesView() {
             </div>
           )}
         </div>
+
+        <div className="border border-white/5 rounded-2xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className="w-full flex items-center justify-between p-4 bg-[#1A1B26] text-right hover:bg-[#222436] transition-colors"
+          >
+            <span className="text-sm font-medium text-slate-300">تنظیمات پیشرفته</span>
+            <ChevronDown
+              size={18}
+              className={`text-slate-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {advancedOpen && (
+            <div className="p-4 pt-0 bg-[#1A1B26] border-t border-white/5">
+              <PriceSourceAdvancedSection
+                slugs={boundSlugs}
+                control={priceSourceControl}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <button
@@ -443,7 +572,7 @@ export function DailyPricesView() {
         {isSaving ? (
           <RefreshCw className="animate-spin" size={20} />
         ) : (
-          'ذخیره در دیتابیس'
+          'ذخیره'
         )}
       </button>
     </div>

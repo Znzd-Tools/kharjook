@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Wallet as WalletIcon } from 'lucide-react';
+import { ChevronLeft, Plus, Settings2, Wallet as WalletIcon } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
@@ -33,8 +33,17 @@ export function WalletsTab() {
 
   return (
     <div className="p-6 animate-in fade-in duration-300 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-3">
         <h2 className="text-xl font-bold text-white">کیف پول‌ها</h2>
+        <button
+          type="button"
+          onClick={() => router.push('/manage/wallets')}
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 transition-colors"
+          aria-label="مدیریت کیف پول‌ها"
+          title="مدیریت"
+        >
+          <Settings2 size={18} />
+        </button>
       </div>
 
       <div className="bg-linear-to-br from-purple-500/15 to-transparent border border-purple-500/20 p-5 rounded-3xl">
@@ -47,10 +56,10 @@ export function WalletsTab() {
             برای برخی ارزها نرخ تبدیل تعریف نشده. از{' '}
             <button
               type="button"
-              onClick={() => router.push('/manage/rates')}
+              onClick={() => router.push('/prices')}
               className="underline hover:text-amber-300"
             >
-              تنظیمات نرخ‌ها
+              قیمت‌ها و نرخ‌ها
             </button>{' '}
             مقدار را اضافه کن.
           </p>

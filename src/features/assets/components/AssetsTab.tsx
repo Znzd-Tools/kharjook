@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Plus, Target } from 'lucide-react';
+import { Activity, Plus, Settings2, Target, TrendingUp } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import type { Asset, Category } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -79,8 +79,37 @@ export function AssetsTab() {
 
   return (
     <div className="p-6 animate-in fade-in duration-300 space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-white">لیست دارایی‌ها</h2>
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-xl font-bold text-white shrink-0">لیست دارایی‌ها</h2>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => router.push('/manage/goals')}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-purple-300 hover:border-purple-500/30 transition-colors"
+            aria-label="هدف‌ها"
+            title="هدف‌ها"
+          >
+            <Target size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/prices')}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 transition-colors"
+            aria-label="قیمت‌ها و نرخ‌ها"
+            title="قیمت‌ها و نرخ‌ها"
+          >
+            <TrendingUp size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/manage/assets')}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 transition-colors"
+            aria-label="مدیریت دارایی‌ها"
+            title="مدیریت"
+          >
+            <Settings2 size={18} />
+          </button>
+        </div>
       </div>
 
       {isLoadingData && assets.length === 0 && (

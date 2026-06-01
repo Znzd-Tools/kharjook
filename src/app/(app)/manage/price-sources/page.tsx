@@ -1,5 +1,5 @@
-import { PriceSourceSettingsView } from '@/features/prices/components/PriceSourceSettingsView';
+import { RedirectToPrices } from '@/features/prices/components/RedirectToPrices';
 
 export default function ManagePriceSourcesPage() {
-  return <PriceSourceSettingsView />;
+  return <RedirectToPrices advanced />;
 }

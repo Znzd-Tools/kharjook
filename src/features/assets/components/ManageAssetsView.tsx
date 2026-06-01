@@ -6,6 +6,7 @@ import {
   Activity,
   ArrowRight,
   ChevronLeft,
+  ChevronDown,
   Edit3,
   Folder,
   GripVertical,
@@ -68,6 +69,7 @@ export function ManageAssetsView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [priceSourcePickerOpen, setPriceSourcePickerOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [pendingAssetIds, setPendingAssetIds] = useState<Set<string>>(new Set());
 
   const selectedCategory = useMemo(
@@ -287,21 +289,28 @@ export function ManageAssetsView() {
 
   const handleEdit = (asset: Asset) => {
     setEditingId(asset.id);
+    const decimalPlaces = Number.isFinite(asset.decimal_places) ? asset.decimal_places : 4;
+    const includeInProfitLoss = asset.include_in_profit_loss ?? true;
+    const includeInBalance = asset.include_in_balance ?? true;
     setFormData({
       name: asset.name,
       unit: asset.unit,
-      decimalPlaces: Number.isFinite(asset.decimal_places) ? asset.decimal_places : 4,
+      decimalPlaces,
       categoryId: asset.category_id || '',
       iconUrl: asset.icon_url ?? null,
       priceSourceId: asset.price_source_id ?? '',
-      includeInProfitLoss: asset.include_in_profit_loss ?? true,
-      includeInBalance: asset.include_in_balance ?? true,
+      includeInProfitLoss,
+      includeInBalance,
     });
+    setShowAdvanced(
+      decimalPlaces !== 4 || !includeInProfitLoss || !includeInBalance
+    );
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
     setEditingId(null);
+    setShowAdvanced(false);
     setFormData({
       name: '',
       unit: '',
@@ -401,9 +410,18 @@ export function ManageAssetsView() {
           />
 
           <div>
-            <label className="block text-xs text-slate-400 mb-2">
-              دسته‌بندی (اختیاری)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs text-slate-400">
+                دسته‌بندی (اختیاری)
+              </label>
+              <button
+                type="button"
+                onClick={() => router.push('/manage/categories')}
+                className="text-[11px] text-purple-400 hover:text-purple-300"
+              >
+                مدیریت دسته‌ها
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => setCategoryPickerOpen(true)}
@@ -462,27 +480,6 @@ export function ManageAssetsView() {
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-2">
-              تعداد اعشار نمایش مقدار
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={12}
-              step={1}
-              value={formData.decimalPlaces}
-              onChange={(e) =>
-                setFormData({ ...formData, decimalPlaces: Number(e.target.value) })
-              }
-              className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
-              required
-            />
-            <p className="text-[11px] text-slate-500 mt-1">
-              فقط نمایش UI را کنترل می‌کند و مقدار ذخیره‌شده را تغییر نمی‌دهد.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-2">
               منبع قیمت (اختیاری)
             </label>
             <button
@@ -514,8 +511,40 @@ export function ManageAssetsView() {
               )}
               <ChevronLeft size={16} className="text-slate-500 shrink-0" />
             </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="w-full flex items-center justify-between py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <span>تنظیمات پیشرفته</span>
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {showAdvanced && (
+            <>
+          <div>
+            <label className="block text-xs text-slate-400 mb-2">
+              تعداد اعشار نمایش مقدار
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={12}
+              step={1}
+              value={formData.decimalPlaces}
+              onChange={(e) =>
+                setFormData({ ...formData, decimalPlaces: Number(e.target.value) })
+              }
+              className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
+              required
+            />
             <p className="text-[11px] text-slate-500 mt-1">
-              در صورت انتخاب، قیمت از این منبع در صفحهٔ قیمت‌ها قابل به‌روزرسانی خواهد بود.
+              فقط نمایش UI را کنترل می‌کند.
             </p>
           </div>
 
@@ -523,7 +552,7 @@ export function ManageAssetsView() {
             <div>
               <p className="text-sm text-slate-200">شامل در ارزش کل سبد</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                خاموش: در جمع «ارزش کل سبد» و نمودار پراکندگی داشبورد لحاظ نمی‌شود
+                خاموش: در جمع داشبورد لحاظ نمی‌شود
               </p>
             </div>
             <input
@@ -540,8 +569,7 @@ export function ManageAssetsView() {
             <div>
               <p className="text-sm text-slate-200">شامل در سود/زیان</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                خاموش: در گزارش سود/زیان لحاظ نمی‌شود؛ ارزش فعلی در صفحهٔ دارایی
-                همان است مگر «ارزش کل سبد» هم خاموش باشد.
+                خاموش: در گزارش سود/زیان لحاظ نمی‌شود
               </p>
             </div>
             <input
@@ -553,6 +581,8 @@ export function ManageAssetsView() {
               className="accent-purple-600 w-4 h-4"
             />
           </label>
+            </>
+          )}
         </div>
 
         <button

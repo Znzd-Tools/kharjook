@@ -25,7 +25,7 @@ export default function manifest(): MetadataRoute.Manifest {
         url: '/transactions/new',
       },
       {
-        name: 'بروزرسانی قیمت‌ها',
+        name: 'قیمت‌ها و نرخ‌ها',
         short_name: 'قیمت‌ها',
         url: '/prices',
       },

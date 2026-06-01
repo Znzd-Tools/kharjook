@@ -1,5 +1,5 @@
-import { CurrencyRatesView } from '@/features/rates/components/CurrencyRatesView';
+import { RedirectToPrices } from '@/features/prices/components/RedirectToPrices';
 
 export default function ManageRatesPage() {
-  return <CurrencyRatesView />;
+  return <RedirectToPrices />;
 }
