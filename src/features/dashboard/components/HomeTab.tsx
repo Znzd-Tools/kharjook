@@ -38,6 +38,9 @@ import {
   AssetPriceTicker,
   type PriceTickerItem,
 } from '@/features/dashboard/components/AssetPriceTicker';
+import { MonthlyCashflowChart } from '@/features/dashboard/components/MonthlyCashflowChart';
+import { TopAllocationCard } from '@/features/dashboard/components/TopAllocationCard';
+import { buildYearCashflowByMonth } from '@/features/dashboard/utils/year-cashflow';
 
 export function HomeTab() {
   const router = useRouter();
@@ -118,7 +121,6 @@ export function HomeTab() {
     const categoryById = new Map(categories.map((c) => [c.id, c]));
     const walletsById = new Map(wallets.map((w) => [w.id, w]));
     const mainDistributionMap = new Map<string, number>();
-    const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
 
     const txToToman = (
@@ -184,11 +186,6 @@ export function HomeTab() {
         assetsValueToman += s.currentValueToman;
       }
       if (s.currentValueToman > 0 && asset.include_in_balance !== false) {
-        subDistribution.push({
-          id: asset.id,
-          name: asset.name,
-          valueToman: s.currentValueToman,
-        });
         assetValueById.set(asset.id, s.currentValueToman);
         const catId = asset.category_id ?? '__uncat__';
         mainDistributionMap.set(
@@ -237,8 +234,6 @@ export function HomeTab() {
         valueToman,
       }))
       .sort((a, b) => b.valueToman - a.valueToman);
-
-    subDistribution.sort((a, b) => b.valueToman - a.valueToman);
 
     const goalComparison = goals
       .filter((goal) => goal.target_kind === 'allocation_percent')
@@ -308,7 +303,6 @@ export function HomeTab() {
       maxExpenseToman: buildMaxExpense(monthExpenseByCategory),
       maxExpenseUsd: buildMaxExpense(monthExpenseByCategoryUsd),
       mainDistribution,
-      subDistribution,
       goalComparison,
     };
   }, [
@@ -359,6 +353,35 @@ export function HomeTab() {
     return items;
   }, [assets, transactions, currencyMode, usdRate]);
 
+  const yearCashflowMonths = useMemo(
+    () =>
+      buildYearCashflowByMonth(
+        transactions,
+        wallets,
+        currencyRates,
+        currencyMode,
+        usdRate
+      ),
+    [transactions, wallets, currencyRates, currencyMode, usdRate]
+  );
+
+  const yearLabel = useMemo(
+    () => `سال ${String(today.jy).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!)}`,
+    [today.jy]
+  );
+
+  const sortedGoalRows = useMemo(() => {
+    return [...stats.goalComparison].sort((a, b) => {
+      const metA = isGoalMet(a.currentPercent, a.targetPercent, 'percent');
+      const metB = isGoalMet(b.currentPercent, b.targetPercent, 'percent');
+      if (metA !== metB) return metA ? 1 : -1;
+      return (
+        Math.abs(b.currentPercent - b.targetPercent) -
+        Math.abs(a.currentPercent - a.targetPercent)
+      );
+    });
+  }, [stats.goalComparison]);
+
   const displayPortfolio =
     currencyMode === 'USD'
       ? (usdRate > 0 ? stats.totalPortfolioToman / usdRate : 0)
@@ -378,10 +401,6 @@ export function HomeTab() {
       : 0;
   const displayYearProfit =
     currencyMode === 'USD' ? stats.yearProfitUsd : stats.yearProfitToman;
-  const displayMonthIncome =
-    currencyMode === 'USD' ? stats.monthIncomeUsd : stats.monthIncomeToman;
-  const displayMonthExpense =
-    currencyMode === 'USD' ? stats.monthExpenseUsd : stats.monthExpenseToman;
   const displayMonthBalance =
     currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
   const activeMaxExpense =
@@ -390,6 +409,15 @@ export function HomeTab() {
 
   const convertDistribution = (valueToman: number) =>
     currencyMode === 'USD' && usdRate > 0 ? valueToman / usdRate : valueToman;
+
+  const topAllocationRows = useMemo(() => {
+    const total = stats.mainDistribution.reduce((sum, row) => sum + row.valueToman, 0);
+    return stats.mainDistribution.slice(0, 3).map((row) => ({
+      name: row.name,
+      value: convertDistribution(row.valueToman),
+      percent: total > 0 ? (row.valueToman / total) * 100 : 0,
+    }));
+  }, [stats.mainDistribution, currencyMode, usdRate]);
 
   const currentMonthDeadlineSummary = useMemo(() => {
     const currentMonthKey = `${today.jy}/${String(today.jm).padStart(2, '0')}/`;
@@ -485,19 +513,14 @@ export function HomeTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          title="درآمد ماه"
-          value={formatCurrency(displayMonthIncome, currencyMode)}
-          tone="success"
-          icon={<TrendingUp size={14} />}
-        />
-        <MetricCard
-          title="هزینه‌های ماه"
-          value={formatCurrency(displayMonthExpense, currencyMode)}
-          tone="danger"
-          icon={<Wallet size={14} />}
-        />
+      <MonthlyCashflowChart
+        months={yearCashflowMonths}
+        currencyMode={currencyMode}
+        yearLabel={yearLabel}
+        onOpenReports={() => router.push('/reports/cashflow')}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
         <MetricCard
           title="بالانس ماه"
           value={`${displayMonthBalance >= 0 ? '+' : ''}${formatCurrency(
@@ -576,27 +599,12 @@ export function HomeTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <GoalComparisonChartCard rows={stats.goalComparison.slice(0, 8)} />
-        <DistributionChartCard
-          title="توزیع دارایی اصلی"
-          subtitle="گروه‌های بزرگ‌تر در سبد"
-          rows={stats.mainDistribution.slice(0, 6).map((r) => ({
-            name: r.name,
-            value: convertDistribution(r.valueToman),
-            label: formatCurrency(convertDistribution(r.valueToman), currencyMode),
-          }))}
-        />
-        <DistributionChartCard
-          title="توزیع دارایی فرعی"
-          subtitle="دارایی‌های غالب"
-          rows={stats.subDistribution.slice(0, 6).map((r) => ({
-            name: r.name,
-            value: convertDistribution(r.valueToman),
-            label: formatCurrency(convertDistribution(r.valueToman), currencyMode),
-          }))}
-        />
-      </div>
+      <HomeGoalsSection
+        rows={sortedGoalRows.slice(0, 6)}
+        onManage={() => router.push('/manage/goals')}
+      />
+
+      <TopAllocationCard rows={topAllocationRows} currencyMode={currencyMode} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SummaryInsightCard
@@ -817,8 +825,9 @@ function SummaryInsightCard({
   );
 }
 
-function GoalComparisonChartCard({
+function HomeGoalsSection({
   rows,
+  onManage,
 }: {
   rows: Array<{
     id: string;
@@ -827,38 +836,44 @@ function GoalComparisonChartCard({
     currentPercent: number;
     targetPercent: number;
   }>;
+  onManage: () => void;
 }) {
   const metCount = rows.filter((row) =>
     isGoalMet(row.currentPercent, row.targetPercent, 'percent')
   ).length;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4 xl:col-span-1">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4">
       <div className="absolute -right-12 top-8 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl" />
       <div className="relative mb-4 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-purple-300">
             <Target size={16} />
-            <p className="text-sm font-bold">هدف‌ها</p>
+            <p className="text-sm font-bold">هدف‌های سبد</p>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">وضعیت فعلی در برابر هدف</p>
+          <p className="mt-1 text-[11px] text-slate-500">
+            {rows.length > 0
+              ? `${metCount.toLocaleString('fa-IR')} از ${rows.length.toLocaleString('fa-IR')} رسیده`
+              : 'هدف درصدی تعریف نشده'}
+          </p>
         </div>
-        {rows.length > 0 && (
-          <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2 text-left">
-            <p className="text-[10px] text-slate-500">رسیده</p>
-            <p className="text-sm font-black text-white" dir="ltr">
-              {metCount}/{rows.length}
-            </p>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={onManage}
+          className="flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 shrink-0"
+        >
+          مدیریت
+          <ChevronLeft size={14} />
+        </button>
       </div>
+
       {rows.length === 0 ? (
-        <div className="relative flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 text-xs text-slate-500">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 py-10 text-xs text-slate-500">
           <AlertCircle size={12} />
-          <span className="mt-2">هدف درصدی ثبت نشده</span>
+          <span className="mt-2">از بخش مدیریت، هدف برای دارایی یا گروه تعریف کن.</span>
         </div>
       ) : (
-        <div className="relative space-y-4">
+        <div className="relative space-y-3">
           {rows.map((row) => {
             const progress: GoalProgress = {
               current: row.currentPercent,
@@ -890,109 +905,6 @@ function GoalComparisonChartCard({
               </div>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DistributionChartCard({
-  title,
-  subtitle,
-  rows,
-}: {
-  title: string;
-  subtitle: string;
-  rows: Array<{ name: string; value: number; label: string }>;
-}) {
-  const palette = ['#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'];
-  const total = rows.reduce((sum, row) => sum + row.value, 0);
-  let cursor = 0;
-  const donutStops =
-    total > 0
-      ? rows
-          .map((row, index) => {
-            const start = cursor;
-            const size = (row.value / total) * 100;
-            cursor += size;
-            return `${palette[index % palette.length]} ${start}% ${cursor}%`;
-          })
-          .join(', ')
-      : 'rgba(255,255,255,0.08) 0 100%';
-  const topRow = rows[0] ?? null;
-  return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
-      <div className="absolute -left-14 bottom-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="relative mb-4 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-slate-200">
-            <PieChart size={16} className="text-cyan-300" />
-            <p className="text-sm font-bold">{title}</p>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
-        </div>
-        {topRow && (
-          <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2 text-left">
-            <p className="text-[10px] text-slate-500">بیشترین</p>
-            <p className="max-w-24 truncate text-xs font-semibold text-white">{topRow.name}</p>
-          </div>
-        )}
-      </div>
-      {rows.length === 0 ? (
-        <div className="relative flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 text-xs text-slate-500">
-          <AlertCircle size={12} />
-          <span className="mt-2">بدون داده</span>
-        </div>
-      ) : (
-        <div className="relative grid grid-cols-[112px_1fr] items-center gap-4">
-          <div className="relative h-28 w-28 shrink-0 rounded-full p-3">
-            <div
-              className="absolute inset-0 rounded-full shadow-2xl shadow-purple-950/30"
-              style={{ background: `conic-gradient(${donutStops})` }}
-            />
-            <div className="absolute inset-4 rounded-full bg-[#1A1B26] ring-1 ring-white/10" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] text-slate-500">کل</span>
-              <span className="text-lg font-black text-white">{rows.length.toLocaleString('fa-IR')}</span>
-            </div>
-          </div>
-          <div className="min-w-0 space-y-3">
-            {rows.map((row, index) => {
-              const percent = total > 0 ? (row.value / total) * 100 : 0;
-              return (
-                <div key={row.name} className="group">
-                  <div className="mb-1 flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_14px_rgba(255,255,255,0.16)]"
-                        style={{ backgroundColor: palette[index % palette.length] }}
-                      />
-                      <span className="truncate text-sm text-slate-300 group-hover:text-white">
-                        {row.name}
-                      </span>
-                    </div>
-                    <div className="shrink-0 text-left">
-                      <div className="text-[11px] text-slate-300" dir="ltr">
-                        {row.label}
-                      </div>
-                      <div className="text-[10px] text-slate-500" dir="ltr">
-                        {percent.toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
-                    <div
-                      className="h-full rounded-full transition-all duration-500 group-hover:brightness-125"
-                      style={{
-                        width: `${percent}%`,
-                        background: `linear-gradient(90deg, ${palette[index % palette.length]}, rgba(255,255,255,0.7))`,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
     </div>
