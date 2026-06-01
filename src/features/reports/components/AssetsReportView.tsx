@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  ChevronDown,
   ChevronRight,
   Coins,
   Info,
@@ -308,60 +309,85 @@ function SummaryCard({
   periodEndLabel: string;
   currencyMode: CurrencyMode;
 }) {
+  const [open, setOpen] = useState(false);
+  const total = currencyMode === 'USD' ? totalUsd : totalToman;
+  const positive = total >= 0;
+
   return (
     <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">خلاصه دوره</span>
-        <span className="text-[10px] text-slate-500">
-          {buyCount} خرید · {sellCount} فروش
-        </span>
-      </div>
-      <PnlLine
-        label="سود/زیان کل (Total)"
-        toman={totalToman}
-        usd={totalUsd}
-        tip={
-          unrealizedMissingCount > 0
-            ? `جمع کل با کسر ${unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت پایان دوره`
-            : 'مجموع محقق‌شده و باز در این دوره'
-        }
-        size="lg"
-        warn={unrealizedMissingCount > 0}
-        currencyMode={currencyMode}
-      />
-      <div className="border-t border-white/5" />
-      <PnlLine
-        label="محقق‌شده (Realized)"
-        toman={realizedToman}
-        usd={realizedUsd}
-        tip="از تراکنش‌های فروش انجام‌شده در این دوره"
-        size="md"
-        currencyMode={currencyMode}
-      />
-      <div className="border-t border-white/5" />
-      <PnlLine
-        label={`باز (Unrealized) — ${periodEndLabel}`}
-        toman={unrealizedToman}
-        usd={unrealizedUsd}
-        tip={
-          unrealizedMissingCount > 0
-            ? `${unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی لحاظ نشده`
-            : 'بر اساس قیمت ثبت‌شده در پایان دوره'
-        }
-        size="md"
-        warn={unrealizedMissingCount > 0}
-        currencyMode={currencyMode}
-      />
-      {(invalidTradeCount > 0 || oversellCount > 0) && (
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-right"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-slate-400">سود/زیان کل دوره</span>
+          <ChevronDown
+            size={16}
+            className={`text-slate-500 transition ${open ? 'rotate-180' : ''}`}
+          />
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          {positive ? (
+            <TrendingUp size={18} className="text-emerald-400 shrink-0" />
+          ) : (
+            <TrendingDown size={18} className="text-rose-400 shrink-0" />
+          )}
+          <span
+            className={`text-2xl font-black ${
+              total === 0 ? 'text-slate-300' : positive ? 'text-emerald-400' : 'text-rose-400'
+            }`}
+            dir="ltr"
+          >
+            {total > 0 ? '+' : ''}
+            {formatCurrency(total, currencyMode)}
+          </span>
+        </div>
+        {unrealizedMissingCount > 0 && (
+          <p className="text-[10px] text-amber-400/80 mt-1">
+            {unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت پایان دوره
+          </p>
+        )}
+        {!open && (
+          <p className="text-[10px] text-slate-500 mt-1">
+            {buyCount} خرید · {sellCount} فروش — جزئیات
+          </p>
+        )}
+      </button>
+
+      {open && (
         <>
           <div className="border-t border-white/5" />
-          <div className="text-[10px] text-rose-300/90">
-            {invalidTradeCount > 0 &&
-              `${invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
-            {invalidTradeCount > 0 && oversellCount > 0 && ' · '}
-            {oversellCount > 0 &&
-              `${oversellCount.toLocaleString('fa-IR')} فروش بیشتر از موجودی`}
-          </div>
+          <PnlLine
+            label="محقق‌شده"
+            value={currencyMode === 'USD' ? realizedUsd : realizedToman}
+            tip="از تراکنش‌های فروش انجام‌شده در این دوره"
+            currencyMode={currencyMode}
+          />
+          <div className="border-t border-white/5" />
+          <PnlLine
+            label={`باز — ${periodEndLabel}`}
+            value={currencyMode === 'USD' ? unrealizedUsd : unrealizedToman}
+            tip={
+              unrealizedMissingCount > 0
+                ? `${unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی لحاظ نشده`
+                : 'بر اساس قیمت ثبت‌شده در پایان دوره'
+            }
+            warn={unrealizedMissingCount > 0}
+            currencyMode={currencyMode}
+          />
+          <p className="text-[10px] text-slate-500">
+            {buyCount} خرید · {sellCount} فروش
+          </p>
+          {(invalidTradeCount > 0 || oversellCount > 0) && (
+            <div className="text-[10px] text-rose-300/90">
+              {invalidTradeCount > 0 &&
+                `${invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
+              {invalidTradeCount > 0 && oversellCount > 0 && ' · '}
+              {oversellCount > 0 &&
+                `${oversellCount.toLocaleString('fa-IR')} فروش بیشتر از موجودی`}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -370,56 +396,31 @@ function SummaryCard({
 
 function PnlLine({
   label,
-  toman,
-  usd,
+  value,
   tip,
-  size,
   warn,
   currencyMode,
 }: {
   label: string;
-  toman: number;
-  usd: number;
+  value: number;
   tip: string;
-  size: 'lg' | 'md';
   warn?: boolean;
   currencyMode: CurrencyMode;
 }) {
-  // Pivot primary/secondary based on the global currency toggle so the
-  // dominant number always matches the user's chosen perspective.
-  const primary = currencyMode === 'USD' ? usd : toman;
-  const secondary = currencyMode === 'USD' ? toman : usd;
-  const secondaryMode: CurrencyMode = currencyMode === 'USD' ? 'TOMAN' : 'USD';
-
-  const positive = primary >= 0;
+  const positive = value >= 0;
   const color =
-    primary === 0
-      ? 'text-slate-300'
-      : positive
-        ? 'text-emerald-400'
-        : 'text-rose-400';
-  const sizeCls = size === 'lg' ? 'text-xl' : 'text-base';
+    value === 0 ? 'text-slate-300' : positive ? 'text-emerald-400' : 'text-rose-400';
+
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
-        {primary >= 0 ? (
-          <TrendingUp size={14} className="text-emerald-400" />
-        ) : (
-          <TrendingDown size={14} className="text-rose-400" />
-        )}
         <span className="text-[11px] text-slate-400">{label}</span>
         {warn && <AlertCircle size={11} className="text-amber-400" />}
       </div>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className={`${sizeCls}  font-bold ${color}`}>
-          {primary > 0 ? '+' : ''}
-          {formatCurrency(primary, currencyMode)}
-        </span>
-        <span className={`text-xs  ${color}`}>
-          ({secondary > 0 ? '+' : ''}
-          {formatCurrency(secondary, secondaryMode)})
-        </span>
-      </div>
+      <span className={`text-base font-bold ${color}`} dir="ltr">
+        {value > 0 ? '+' : ''}
+        {formatCurrency(value, currencyMode)}
+      </span>
       <p className="text-[10px] text-slate-500 mt-0.5">{tip}</p>
     </div>
   );
@@ -434,36 +435,33 @@ function AssetRow({
   stats: AssetPeriodStats;
   currencyMode: CurrencyMode;
 }) {
+  const [open, setOpen] = useState(false);
   const hasActivity = stats.hadActivity;
   const realizedPrimary = currencyMode === 'USD' ? stats.realizedUsd : stats.realizedToman;
-  const realizedSecondary = currencyMode === 'USD' ? stats.realizedToman : stats.realizedUsd;
   const unrealizedPrimary = currencyMode === 'USD' ? stats.unrealizedUsd : stats.unrealizedToman;
-  const unrealizedSecondary = currencyMode === 'USD' ? stats.unrealizedToman : stats.unrealizedUsd;
   const totalPrimary = stats.unrealizedAvailable
     ? realizedPrimary + unrealizedPrimary
-    : null;
-  const totalSecondary = stats.unrealizedAvailable
-    ? realizedSecondary + unrealizedSecondary
-    : null;
-  const secondaryMode: CurrencyMode = currencyMode === 'USD' ? 'TOMAN' : 'USD';
-  const realizedPositive = realizedPrimary >= 0;
+    : hasActivity
+      ? realizedPrimary
+      : null;
+  const displayValue = totalPrimary ?? 0;
+  const displayPositive = displayValue >= 0;
+  const displayColor =
+    displayValue === 0
+      ? 'text-slate-500'
+      : displayPositive
+        ? 'text-emerald-400'
+        : 'text-rose-400';
   const realizedColor =
     realizedPrimary === 0
       ? 'text-slate-500'
-      : realizedPositive
+      : realizedPrimary >= 0
         ? 'text-emerald-400'
         : 'text-rose-400';
 
-  // Show a stale-snapshot hint when the actual source date is meaningfully
-  // earlier than the period end. Use 3+ days as the threshold for "stale".
   const staleHint = useMemo(() => {
     if (!stats.unrealizedAvailable) return null;
     if (!stats.periodEndPriceSourceDate) return null;
-    // We don't have the period.end here; but `periodEndPriceSourceDate` is
-    // only non-null when the price came from a snapshot, and the snapshot
-    // is definitionally <= period.end. We parse both dates to days to
-    // compute staleness below — this is a tiny helper that only runs when
-    // the flag is set.
     const src = parseJalaali(stats.periodEndPriceSourceDate);
     if (!src) return null;
     return stats.periodEndPriceSourceDate;
@@ -471,204 +469,140 @@ function AssetRow({
   const decimals = assetDecimals(asset);
 
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3 space-y-3">
-      <div className="flex items-center gap-3">
+    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 p-3 text-right hover:bg-white/[0.02] transition"
+      >
         <EntityIcon
           iconUrl={asset.icon_url}
           fallback={<Coins size={16} />}
           className="w-9 h-9 shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white truncate">
-            {asset.name}
-          </div>
+          <div className="text-sm font-bold text-white truncate">{asset.name}</div>
           <div className="text-[10px] text-slate-500">
-            موجودی در پایان دوره:{' '}
-            <span className=" text-slate-400">
-              {formatAssetAmount(stats.endHoldings, decimals)}{' '}
-              {asset.unit}
-            </span>
+            {formatAssetAmount(stats.endHoldings, decimals)} {asset.unit}
+            {!hasActivity && ' · بدون فعالیت'}
           </div>
         </div>
-        {hasActivity && (
-          <div className="text-left shrink-0">
-            <div className={`text-sm  font-bold ${realizedColor}`}>
-              {realizedPrimary > 0 ? '+' : ''}
-              {formatCurrency(realizedPrimary, currencyMode)}
+        <div className="text-left shrink-0 flex items-center gap-2">
+          {totalPrimary !== null ? (
+            <span className={`text-sm font-bold ${displayColor}`} dir="ltr">
+              {displayValue > 0 ? '+' : ''}
+              {formatCurrency(displayValue, currencyMode)}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">—</span>
+          )}
+          <ChevronDown
+            size={16}
+            className={`text-slate-500 transition ${open ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
+          {hasActivity ? (
+            <div className="grid grid-cols-2 gap-2">
+              <TradeBox
+                icon={<ArrowDown size={12} className="text-emerald-400" />}
+                label="خرید دوره"
+                units={stats.bought.units}
+                unit={asset.unit}
+                decimals={decimals}
+                avgToman={stats.bought.avgPriceToman}
+                avgUsd={stats.bought.avgPriceUsd}
+                count={stats.bought.count}
+                empty={stats.bought.units === 0}
+                currencyMode={currencyMode}
+              />
+              <TradeBox
+                icon={<ArrowUp size={12} className="text-rose-400" />}
+                label="فروش دوره"
+                units={stats.sold.units}
+                unit={asset.unit}
+                decimals={decimals}
+                avgToman={stats.sold.avgPriceToman}
+                avgUsd={stats.sold.avgPriceUsd}
+                count={stats.sold.count}
+                empty={stats.sold.units === 0}
+                currencyMode={currencyMode}
+              />
             </div>
-            <div className="text-[10px]  text-slate-500">
-              {realizedSecondary > 0 ? '+' : ''}
-              {formatCurrency(realizedSecondary, secondaryMode)}
+          ) : (
+            <div className="text-[11px] text-slate-500 bg-white/2 border border-white/5 rounded-lg px-3 py-2">
+              در این دوره تراکنشی ثبت نشده.
             </div>
+          )}
+
+          {(stats.invalidTradeCount > 0 || stats.oversellCount > 0) && (
+            <div className="text-[10px] text-rose-300/90 bg-rose-500/8 border border-rose-500/20 rounded-lg px-2 py-1.5">
+              {stats.invalidTradeCount > 0 &&
+                `${stats.invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
+              {stats.invalidTradeCount > 0 && stats.oversellCount > 0 && ' · '}
+              {stats.oversellCount > 0 &&
+                `${stats.oversellCount.toLocaleString('fa-IR')} فروش بیش از موجودی`}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <MiniFact
+              label="محقق‌شده"
+              value={
+                <span className={realizedColor}>
+                  {realizedPrimary > 0 ? '+' : ''}
+                  {formatCurrency(realizedPrimary, currencyMode)}
+                </span>
+              }
+            />
+            {stats.unrealizedAvailable ? (
+              <MiniFact
+                label="باز"
+                value={
+                  <span
+                    className={
+                      unrealizedPrimary > 0
+                        ? 'text-emerald-400'
+                        : unrealizedPrimary < 0
+                          ? 'text-rose-400'
+                          : 'text-slate-400'
+                    }
+                  >
+                    {unrealizedPrimary > 0 ? '+' : ''}
+                    {formatCurrency(unrealizedPrimary, currencyMode)}
+                  </span>
+                }
+                hint={
+                  staleHint && !stats.periodEndPriceIsLive
+                    ? `قیمت: ${formatJalaaliHuman(parseJalaali(staleHint)!)}`
+                    : undefined
+                }
+              />
+            ) : (
+              <MiniFact
+                label="باز"
+                value={
+                  <span className="text-slate-500 inline-flex items-center gap-1">
+                    —
+                    <Info size={11} className="text-slate-600" />
+                  </span>
+                }
+              />
+            )}
           </div>
-        )}
-      </div>
 
-      {hasActivity ? (
-        <div className="grid grid-cols-2 gap-2">
-          <TradeBox
-            icon={<ArrowDown size={12} className="text-emerald-400" />}
-            label="خرید دوره"
-            units={stats.bought.units}
-            unit={asset.unit}
-            decimals={decimals}
-            avgToman={stats.bought.avgPriceToman}
-            avgUsd={stats.bought.avgPriceUsd}
-            count={stats.bought.count}
-            empty={stats.bought.units === 0}
-            currencyMode={currencyMode}
-          />
-          <TradeBox
-            icon={<ArrowUp size={12} className="text-rose-400" />}
-            label="فروش دوره"
-            units={stats.sold.units}
-            unit={asset.unit}
-            decimals={decimals}
-            avgToman={stats.sold.avgPriceToman}
-            avgUsd={stats.sold.avgPriceUsd}
-            count={stats.sold.count}
-            empty={stats.sold.units === 0}
-            currencyMode={currencyMode}
-          />
-        </div>
-      ) : (
-        <div className="text-[11px] text-slate-500 bg-white/2 border border-white/5 rounded-lg px-3 py-2">
-          در این دوره تراکنشی ثبت نشده.
-        </div>
-      )}
-      {(stats.invalidTradeCount > 0 || stats.oversellCount > 0) && (
-        <div className="text-[10px] text-rose-300/90 bg-rose-500/8 border border-rose-500/20 rounded-lg px-2 py-1.5">
-          {stats.invalidTradeCount > 0 &&
-            `${stats.invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
-          {stats.invalidTradeCount > 0 && stats.oversellCount > 0 && ' · '}
-          {stats.oversellCount > 0 &&
-            `${stats.oversellCount.toLocaleString('fa-IR')} فروش بیش از موجودی`}
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
-        <MiniFact
-          label="سود/زیان محقق‌شده"
-          main={
-            <span className={realizedColor}>
-              {realizedPrimary > 0 ? '+' : ''}
-              {formatCurrency(realizedPrimary, currencyMode)}
-            </span>
-          }
-          sub={
-            <span className={realizedColor}>
-              {realizedSecondary > 0 ? '+' : ''}
-              {formatCurrency(realizedSecondary, secondaryMode)}
-            </span>
-          }
-        />
-        {stats.unrealizedAvailable ? (
-          <MiniFact
-            label="سود/زیان باز"
-            main={
-              <span
-                className={
-                  unrealizedPrimary > 0
-                    ? 'text-emerald-400'
-                    : unrealizedPrimary < 0
-                      ? 'text-rose-400'
-                      : 'text-slate-400'
-                }
-              >
-                {unrealizedPrimary > 0 ? '+' : ''}
-                {formatCurrency(unrealizedPrimary, currencyMode)}
-              </span>
-            }
-            sub={
-              <span
-                className={
-                  unrealizedSecondary > 0
-                    ? 'text-emerald-400'
-                    : unrealizedSecondary < 0
-                      ? 'text-rose-400'
-                      : 'text-slate-400'
-                }
-              >
-                {unrealizedSecondary > 0 ? '+' : ''}
-                {formatCurrency(unrealizedSecondary, secondaryMode)}
-              </span>
-            }
-            hint={
-              staleHint && !stats.periodEndPriceIsLive
-                ? `قیمت: ${formatJalaaliHuman(parseJalaali(staleHint)!)}`
-                : undefined
-            }
-          />
-        ) : (
-          <MiniFact
-            label="سود/زیان باز"
-            main={
-              <span className="text-slate-500 inline-flex items-center gap-1">
-                —
-                <Info size={11} className="text-slate-600" />
-              </span>
-            }
-            sub={
-              <span className="text-[10px] text-slate-600">
-                قیمت پایان دوره ثبت نشده
-              </span>
-            }
-          />
-        )}
-        {stats.unrealizedAvailable && totalPrimary !== null && totalSecondary !== null ? (
-          <MiniFact
-            label="سود/زیان کل"
-            main={
-              <span
-                className={
-                  totalPrimary > 0
-                    ? 'text-emerald-400'
-                    : totalPrimary < 0
-                      ? 'text-rose-400'
-                      : 'text-slate-400'
-                }
-              >
-                {totalPrimary > 0 ? '+' : ''}
-                {formatCurrency(totalPrimary, currencyMode)}
-              </span>
-            }
-            sub={
-              <span
-                className={
-                  totalSecondary > 0
-                    ? 'text-emerald-400'
-                    : totalSecondary < 0
-                      ? 'text-rose-400'
-                      : 'text-slate-400'
-                }
-              >
-                {totalSecondary > 0 ? '+' : ''}
-                {formatCurrency(totalSecondary, secondaryMode)}
-              </span>
-            }
-          />
-        ) : (
-          <MiniFact
-            label="سود/زیان کل"
-            main={<span className="text-slate-500">—</span>}
-            sub={<span className="text-[10px] text-slate-600">به قیمت تاریخی نیاز دارد</span>}
-          />
-        )}
-      </div>
-
-      {stats.endHoldings > 0 && (
-        <div className="grid grid-cols-1 gap-2 pt-2 border-t border-white/5">
-          <MiniFact
-            label="میانگین قیمت خرید (پایان دوره)"
-            main={formatCurrency(
-              currencyMode === 'USD' ? stats.endAvgCostUsd : stats.endAvgCostToman,
-              currencyMode
-            )}
-            sub={formatCurrency(
-              currencyMode === 'USD' ? stats.endAvgCostToman : stats.endAvgCostUsd,
-              secondaryMode
-            )}
-          />
+          {stats.endHoldings > 0 && (
+            <MiniFact
+              label="میانگین قیمت خرید (پایان دوره)"
+              value={formatCurrency(
+                currencyMode === 'USD' ? stats.endAvgCostUsd : stats.endAvgCostToman,
+                currencyMode
+              )}
+            />
+          )}
         </div>
       )}
     </div>
@@ -699,8 +633,6 @@ function TradeBox({
   currencyMode: CurrencyMode;
 }) {
   const primary = currencyMode === 'USD' ? avgUsd : avgToman;
-  const secondary = currencyMode === 'USD' ? avgToman : avgUsd;
-  const secondaryMode: CurrencyMode = currencyMode === 'USD' ? 'TOMAN' : 'USD';
   return (
     <div
       className={`bg-white/2 border border-white/5 rounded-xl p-2.5 ${empty ? 'opacity-50' : ''}`}
@@ -710,16 +642,13 @@ function TradeBox({
         <span className="text-[10px] text-slate-500">{label}</span>
         <span className="text-[10px] text-slate-600 mr-auto">({count})</span>
       </div>
-      <div className="text-xs  text-white">
+      <div className="text-xs text-white">
         {formatAssetAmount(units, decimals)}{' '}
         <span className="text-[10px] text-slate-500">{unit}</span>
       </div>
       <div className="text-[10px] text-slate-500 mt-1">میانگین قیمت</div>
-      <div className="text-[11px]  text-slate-300">
+      <div className="text-[11px] text-slate-300">
         {formatCurrency(primary, currencyMode)}
-      </div>
-      <div className="text-[10px]  text-slate-500">
-        {formatCurrency(secondary, secondaryMode)}
       </div>
     </div>
   );
@@ -727,20 +656,17 @@ function TradeBox({
 
 function MiniFact({
   label,
-  main,
-  sub,
+  value,
   hint,
 }: {
   label: string;
-  main: React.ReactNode;
-  sub: React.ReactNode;
+  value: React.ReactNode;
   hint?: string;
 }) {
   return (
     <div>
       <div className="text-[10px] text-slate-500">{label}</div>
-      <div className="text-xs  font-bold text-white">{main}</div>
-      <div className="text-[10px]  text-slate-500">{sub}</div>
+      <div className="text-xs font-bold text-white">{value}</div>
       {hint && (
         <div className="text-[9px] text-amber-400/70 mt-0.5">{hint}</div>
       )}

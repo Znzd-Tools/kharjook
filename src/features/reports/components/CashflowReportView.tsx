@@ -121,6 +121,12 @@ export function CashflowReportView() {
           currencyMode={currencyMode}
         />
 
+        <CashflowNetBanner
+          income={incomeRollup.total}
+          expense={expenseRollup.total}
+          currencyMode={currencyMode}
+        />
+
         <CategoryList
           result={active}
           tab={tab}
@@ -194,6 +200,34 @@ function FilterChip({
     >
       {label}
     </button>
+  );
+}
+
+function CashflowNetBanner({
+  income,
+  expense,
+  currencyMode,
+}: {
+  income: number;
+  expense: number;
+  currencyMode: CurrencyMode;
+}) {
+  const net = income - expense;
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#1A1B26] p-4">
+      <p className="text-xs text-slate-400 mb-1">مانده دوره</p>
+      <p
+        className={`text-2xl font-black ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+        dir="ltr"
+      >
+        {net >= 0 ? '+' : ''}
+        {formatCurrency(net, currencyMode)}
+      </p>
+      <p className="text-[11px] text-slate-500 mt-2" dir="ltr">
+        درآمد {formatCurrency(income, currencyMode)} · هزینه{' '}
+        {formatCurrency(expense, currencyMode)}
+      </p>
+    </div>
   );
 }
 
@@ -292,7 +326,7 @@ function CategoryList({
   onToggle: (id: string) => void;
   currencyMode: CurrencyMode;
 }) {
-  const { nodes, total, uncategorized } = result;
+  const { nodes, uncategorized } = result;
 
   // Hide rows whose ancestor is collapsed.
   const visibleNodes = useMemoVisible(nodes, expanded);
@@ -316,7 +350,6 @@ function CategoryList({
         <CategoryRow
           key={n.id}
           node={n}
-          total={total}
           accent={accent}
           isExpanded={expanded.has(n.id)}
           onToggle={() => onToggle(n.id)}
@@ -324,7 +357,12 @@ function CategoryList({
         />
       ))}
       {uncategorized.total > 0 && (
-        <UncategorizedRow total={uncategorized.total} count={uncategorized.count} parentTotal={total} accent={accent} currencyMode={currencyMode} />
+        <UncategorizedRow
+          total={uncategorized.total}
+          count={uncategorized.count}
+          accent={accent}
+          currencyMode={currencyMode}
+        />
       )}
     </div>
   );
@@ -349,23 +387,19 @@ function useMemoVisible(nodes: RollupNode[], expanded: Set<string>) {
 
 function CategoryRow({
   node,
-  total,
   accent,
   isExpanded,
   onToggle,
   currencyMode,
 }: {
   node: RollupNode;
-  total: number;
   accent: 'emerald' | 'rose';
   isExpanded: boolean;
   onToggle: () => void;
   currencyMode: CurrencyMode;
 }) {
   const displayValue = node.depth === 0 ? node.rolled : node.own;
-  const pct = total > 0 ? (displayValue / total) * 100 : 0;
   const empty = displayValue === 0;
-  const barColor = accent === 'emerald' ? 'bg-emerald-500/60' : 'bg-rose-500/60';
   const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
 
   const handleClick = () => {
@@ -395,25 +429,9 @@ function CategoryRow({
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-white truncate">
-            {node.name}
-            {node.depth === 0 && node.hasChildren && !isExpanded && (
-              <span className="text-[10px] text-slate-500 mr-1">(جمع زیرشاخه‌ها)</span>
-            )}
-          </span>
-          <span className={`text-xs  font-bold ${empty ? 'text-slate-500' : textColor}`}>
+          <span className="text-[13px] text-white truncate">{node.name}</span>
+          <span className={`text-xs font-bold shrink-0 ${empty ? 'text-slate-500' : textColor}`}>
             {formatCurrency(displayValue, currencyMode)}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${barColor} rounded-full transition-all`}
-              style={{ width: `${Math.min(pct, 100)}%` }}
-            />
-          </div>
-          <span className="text-[10px]  text-slate-500 shrink-0 w-10 text-left">
-            {pct.toFixed(1)}٪
           </span>
         </div>
       </div>
@@ -424,32 +442,26 @@ function CategoryRow({
 function UncategorizedRow({
   total,
   count,
-  parentTotal,
   accent,
   currencyMode,
 }: {
   total: number;
   count: number;
-  parentTotal: number;
   accent: 'emerald' | 'rose';
   currencyMode: CurrencyMode;
 }) {
-  const pct = parentTotal > 0 ? (total / parentTotal) * 100 : 0;
   const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
   return (
     <div className="flex items-center gap-2 bg-[#1A1B26] border border-dashed border-white/10 rounded-xl px-3 py-2.5">
       <WalletIcon size={14} className="text-slate-500 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-slate-300 truncate">
-            بدون دسته‌بندی
-            <span className="text-[10px] text-slate-500 mr-1">({count} تراکنش)</span>
-          </span>
-          <span className={`text-xs  font-bold ${textColor}`}>
-            {formatCurrency(total, currencyMode)}
-          </span>
-        </div>
-        <div className="text-[10px]  text-slate-500 mt-0.5">{pct.toFixed(1)}٪</div>
+      <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+        <span className="text-[13px] text-slate-300 truncate">
+          بدون دسته‌بندی
+          <span className="text-[10px] text-slate-500 mr-1">({count})</span>
+        </span>
+        <span className={`text-xs font-bold shrink-0 ${textColor}`}>
+          {formatCurrency(total, currencyMode)}
+        </span>
       </div>
     </div>
   );

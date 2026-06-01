@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
   BarChart3,
   ChevronLeft,
   ChevronRight,
@@ -22,7 +20,6 @@ import {
   currentPeriod,
   encodePeriodParams,
   formatCurrentPeriodLabel,
-  PERIOD_KINDS,
   type PeriodKind,
 } from '@/shared/utils/period';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
@@ -30,69 +27,74 @@ import { rollupCategories } from '@/features/reports/utils/category-rollup';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import { effectivePriceAt } from '@/features/reports/utils/price-history';
 
+const REPORT_SCOPES: PeriodKind[] = ['month', 'year', 'all'];
+
 export function ReportsIndexView() {
   const router = useRouter();
   const { transactions, categories, wallets, assets, dailyPrices } = useData();
   const { usdRate, currencyMode } = useUI();
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
+  const [scope, setScope] = useState<PeriodKind>('month');
 
-  const cashflowByPeriod = useMemo(() => {
-    return PERIOD_KINDS.map((kind) => {
-      const period = clampPeriodToToday(currentPeriod(kind));
-      const income = rollupCategories({
-        transactions, categories, wallets,
-        period, kind: 'income', walletId: null, currencyMode,
-      }).total;
-      const expense = rollupCategories({
-        transactions, categories, wallets,
-        period, kind: 'expense', walletId: null, currencyMode,
-      }).total;
-      return { kind, income, expense };
-    });
-  }, [transactions, categories, wallets, currencyMode]);
+  const cashflow = useMemo(() => {
+    const period = clampPeriodToToday(currentPeriod(scope));
+    const income = rollupCategories({
+      transactions,
+      categories,
+      wallets,
+      period,
+      kind: 'income',
+      walletId: null,
+      currencyMode,
+    }).total;
+    const expense = rollupCategories({
+      transactions,
+      categories,
+      wallets,
+      period,
+      kind: 'expense',
+      walletId: null,
+      currencyMode,
+    }).total;
+    return { period, income, expense, net: income - expense };
+  }, [transactions, categories, wallets, currencyMode, scope]);
 
-  const assetsByPeriod = useMemo(() => {
-    return PERIOD_KINDS.map((kind) => {
-      const period = clampPeriodToToday(currentPeriod(kind));
-      const periodEndStr = formatJalaali(period.end);
-      let realizedToman = 0;
-      let realizedUsd = 0;
-      let unrealizedToman = 0;
-      let unrealizedUsd = 0;
-      let unrealizedMissingCount = 0;
-      let buyCount = 0;
-      let sellCount = 0;
-      for (const a of assets) {
-        if (a.include_in_profit_loss === false) continue;
-        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
-        const s = calculateAssetPeriodStats(
-          a,
-          transactions,
-          period,
-          usdRate,
-          endPrice
-        );
-        realizedToman += s.realizedToman;
-        realizedUsd += s.realizedUsd;
-        if (s.unrealizedAvailable) {
-          unrealizedToman += s.unrealizedToman;
-          unrealizedUsd += s.unrealizedUsd;
-        } else {
-          unrealizedMissingCount += 1;
-        }
-        buyCount += s.bought.count;
-        sellCount += s.sold.count;
+  const assetsSummary = useMemo(() => {
+    const period = clampPeriodToToday(currentPeriod(scope));
+    const periodEndStr = formatJalaali(period.end);
+    let totalToman = 0;
+    let totalUsd = 0;
+    let unrealizedMissingCount = 0;
+    for (const a of assets) {
+      if (a.include_in_profit_loss === false) continue;
+      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+      const s = calculateAssetPeriodStats(
+        a,
+        transactions,
+        period,
+        usdRate,
+        endPrice
+      );
+      totalToman += s.realizedToman;
+      totalUsd += s.realizedUsd;
+      if (s.unrealizedAvailable) {
+        totalToman += s.unrealizedToman;
+        totalUsd += s.unrealizedUsd;
+      } else {
+        unrealizedMissingCount += 1;
       }
-      return {
-        kind,
-        totalToman: realizedToman + unrealizedToman,
-        totalUsd: realizedUsd + unrealizedUsd,
-        unrealizedMissingCount,
-        buyCount,
-        sellCount,
-      };
-    });
-  }, [assets, dailyPrices, transactions, usdRate, todayStr]);
+    }
+    return {
+      period,
+      totalToman,
+      totalUsd,
+      unrealizedMissingCount,
+    };
+  }, [assets, dailyPrices, transactions, usdRate, todayStr, scope]);
+
+  const scopeLabel = formatCurrentPeriodLabel(scope);
+  const cashflowHref = buildReportHref('cashflow', cashflow.period);
+  const assetsHref = buildReportHref('assets', assetsSummary.period);
 
   return (
     <div className="bg-[#161722] min-h-full">
@@ -110,228 +112,122 @@ export function ReportsIndexView() {
             <BarChart3 size={18} className="text-purple-400" />
             گزارش‌ها
           </h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            تحلیل جریان نقدی و سود/زیان دارایی‌ها بر اساس دوره‌های زمانی
-          </p>
         </div>
       </header>
 
-      <main className="p-4 space-y-8 pb-24">
-        {/* Cashflow section */}
-        <section className="space-y-3">
-          <SectionHeader
-            icon={<WalletIcon size={16} className="text-emerald-400" />}
-            title="درآمد و هزینه"
-            subtitle="مجموع بر اساس دسته‌بندی‌ها"
-          />
-          <div className="grid grid-cols-1 gap-2">
-            {cashflowByPeriod.map(({ kind, income, expense }) => (
-              <CashflowPeriodCard
-                key={kind}
-                kind={kind}
-                income={income}
-                expense={expense}
-                currencyMode={currencyMode}
-              />
-            ))}
-          </div>
-        </section>
+      <main className="p-4 space-y-4 pb-24">
+        <div className="flex gap-2">
+          {REPORT_SCOPES.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => setScope(kind)}
+              className={`flex-1 rounded-xl py-2 text-xs font-bold border transition ${
+                scope === kind
+                  ? 'bg-purple-500/20 border-purple-500/40 text-white'
+                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+              }`}
+            >
+              {formatCurrentPeriodLabel(kind)}
+            </button>
+          ))}
+        </div>
 
-        {/* Assets section */}
-        <section className="space-y-3">
-          <SectionHeader
-            icon={<Coins size={16} className="text-amber-400" />}
-            title="سود/زیان دارایی‌ها"
-            subtitle="کل سود/زیان دوره (محقق‌شده + باز)"
-          />
-          <div className="grid grid-cols-1 gap-2">
-            {assetsByPeriod.map(({ kind, totalToman, totalUsd, unrealizedMissingCount, buyCount, sellCount }) => (
-              <AssetsPeriodCard
-                key={kind}
-                kind={kind}
-                totalToman={totalToman}
-                totalUsd={totalUsd}
-                unrealizedMissingCount={unrealizedMissingCount}
-                buyCount={buyCount}
-                sellCount={sellCount}
-                currencyMode={currencyMode}
-              />
-            ))}
+        <Link
+          href={cashflowHref}
+          className="block bg-[#1A1B26] border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 text-emerald-300">
+              <WalletIcon size={16} />
+              <span className="text-sm font-bold text-white">درآمد و هزینه</span>
+            </div>
+            <ChevronLeft
+              size={18}
+              className="text-slate-600 group-hover:text-emerald-400 shrink-0"
+            />
           </div>
-        </section>
+          <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
+          <p
+            className={`mt-3 text-2xl font-black ${
+              cashflow.net >= 0 ? 'text-emerald-400' : 'text-rose-400'
+            }`}
+            dir="ltr"
+          >
+            {cashflow.net >= 0 ? '+' : ''}
+            {formatCurrency(cashflow.net, currencyMode)}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-2" dir="ltr">
+            درآمد {formatCurrency(cashflow.income, currencyMode)} · هزینه{' '}
+            {formatCurrency(cashflow.expense, currencyMode)}
+          </p>
+        </Link>
+
+        <Link
+          href={assetsHref}
+          className="block bg-[#1A1B26] border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 text-amber-300">
+              <Coins size={16} />
+              <span className="text-sm font-bold text-white">سود/زیان دارایی‌ها</span>
+            </div>
+            <ChevronLeft
+              size={18}
+              className="text-slate-600 group-hover:text-amber-400 shrink-0"
+            />
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
+          <AssetsTotalLine
+            totalToman={assetsSummary.totalToman}
+            totalUsd={assetsSummary.totalUsd}
+            currencyMode={currencyMode}
+          />
+          {assetsSummary.unrealizedMissingCount > 0 && (
+            <p className="text-[10px] text-amber-400/80 mt-2">
+              {assetsSummary.unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون
+              قیمت پایان دوره — جمع ناقص است.
+            </p>
+          )}
+        </Link>
       </main>
     </div>
   );
 }
 
-function SectionHeader({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">{icon}</div>
-      <div>
-        <h2 className="text-sm font-bold text-white">{title}</h2>
-        <p className="text-[10px] text-slate-500">{subtitle}</p>
-      </div>
-    </div>
-  );
+function buildReportHref(
+  type: 'cashflow' | 'assets',
+  period: ReturnType<typeof currentPeriod>
+) {
+  const { period: kind, d } = encodePeriodParams(period);
+  return `/reports/${type}?period=${kind}&d=${d}`;
 }
 
-function CashflowPeriodCard({
-  kind,
-  income,
-  expense,
-  currencyMode,
-}: {
-  kind: PeriodKind;
-  income: number;
-  expense: number;
-  currencyMode: CurrencyMode;
-}) {
-  const { period, d } = encodePeriodParams(clampPeriodToToday(currentPeriod(kind)));
-  const href = `/reports/cashflow?period=${period}&d=${d}`;
-  const net = income - expense;
-
-  return (
-    <Link
-      href={href}
-      className="flex items-stretch gap-3 bg-[#1A1B26] border border-white/5 hover:border-purple-500/30 rounded-2xl p-3 transition group"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-300">
-            {formatCurrentPeriodLabel(kind)}
-          </span>
-          <span className={`text-[10px]  ${
-            net > 0 ? 'text-emerald-400' : net < 0 ? 'text-rose-400' : 'text-slate-500'
-          }`}>
-            {net > 0 ? '+' : ''}
-            {formatCurrency(net, currencyMode)}
-          </span>
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <MiniStat
-            icon={<ArrowDownCircle size={12} className="text-emerald-400" />}
-            label="درآمد"
-            value={formatCurrency(income, currencyMode)}
-            tone="income"
-            empty={income === 0}
-          />
-          <MiniStat
-            icon={<ArrowUpCircle size={12} className="text-rose-400" />}
-            label="هزینه"
-            value={formatCurrency(expense, currencyMode)}
-            tone="expense"
-            empty={expense === 0}
-          />
-        </div>
-      </div>
-      <ChevronLeft size={18} className="text-slate-600 group-hover:text-purple-400 self-center transition" />
-    </Link>
-  );
-}
-
-function AssetsPeriodCard({
-  kind,
+function AssetsTotalLine({
   totalToman,
   totalUsd,
-  unrealizedMissingCount,
-  buyCount,
-  sellCount,
   currencyMode,
 }: {
-  kind: PeriodKind;
   totalToman: number;
   totalUsd: number;
-  unrealizedMissingCount: number;
-  buyCount: number;
-  sellCount: number;
   currencyMode: CurrencyMode;
 }) {
-  const { period, d } = encodePeriodParams(clampPeriodToToday(currentPeriod(kind)));
-  const href = `/reports/assets?period=${period}&d=${d}`;
-  // Primary / secondary values swap with the global toggle so the card's
-  // dominant line matches the active currency.
-  const primary = currencyMode === 'USD' ? totalUsd : totalToman;
-  const secondary = currencyMode === 'USD' ? totalToman : totalUsd;
-  const secondaryMode: CurrencyMode = currencyMode === 'USD' ? 'TOMAN' : 'USD';
-  const positive = primary >= 0;
-
+  const total = currencyMode === 'USD' ? totalUsd : totalToman;
+  const positive = total >= 0;
   return (
-    <Link
-      href={href}
-      className="flex items-stretch gap-3 bg-[#1A1B26] border border-white/5 hover:border-purple-500/30 rounded-2xl p-3 transition group"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-300">
-            {formatCurrentPeriodLabel(kind)}
-          </span>
-          <span className="text-[10px] text-slate-500">
-            {buyCount} خرید · {sellCount} فروش
-          </span>
-        </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          {positive ? (
-            <TrendingUp size={14} className="text-emerald-400" />
-          ) : (
-            <TrendingDown size={14} className="text-rose-400" />
-          )}
-          <span className={`text-sm  font-bold ${
-            positive ? 'text-emerald-400' : 'text-rose-400'
-          }`}>
-            {primary > 0 ? '+' : ''}
-            {formatCurrency(primary, currencyMode)}
-          </span>
-          <span className="text-[10px]  text-slate-500">
-            ({secondary > 0 ? '+' : ''}
-            {formatCurrency(secondary, secondaryMode)})
-          </span>
-        </div>
-        <p className="text-[10px] text-slate-500 mt-0.5">
-          سود/زیان کل
-          {unrealizedMissingCount > 0
-            ? ` · ${unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت تاریخی`
-            : ''}
-        </p>
-      </div>
-      <ChevronLeft size={18} className="text-slate-600 group-hover:text-purple-400 self-center transition" />
-    </Link>
-  );
-}
-
-function MiniStat({
-  icon,
-  label,
-  value,
-  tone,
-  empty,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tone: 'income' | 'expense';
-  empty: boolean;
-}) {
-  const color = empty
-    ? 'text-slate-600'
-    : tone === 'income'
-      ? 'text-emerald-400'
-      : 'text-rose-400';
-  return (
-    <div className="bg-white/2 border border-white/5 rounded-xl px-2.5 py-2">
-      <div className="flex items-center gap-1.5 mb-0.5">
-        {icon}
-        <span className="text-[10px] text-slate-500">{label}</span>
-      </div>
-      <div className={`text-xs  font-bold ${color}`}>{value}</div>
+    <div className="mt-3 flex items-center gap-2">
+      {positive ? (
+        <TrendingUp size={18} className="text-emerald-400" />
+      ) : (
+        <TrendingDown size={18} className="text-rose-400" />
+      )}
+      <p
+        className={`text-2xl font-black ${positive ? 'text-emerald-400' : 'text-rose-400'}`}
+        dir="ltr"
+      >
+        {total > 0 ? '+' : ''}
+        {formatCurrency(total, currencyMode)}
+      </p>
     </div>
   );
 }
