@@ -7,6 +7,25 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+const DISMISS_STORAGE_KEY = 'pwa-install-prompt-dismissed';
+
+function readDismissedFromStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(DISMISS_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function persistDismissedToStorage() {
+  try {
+    localStorage.setItem(DISMISS_STORAGE_KEY, '1');
+  } catch {
+    // Private mode / blocked storage — session dismiss still works.
+  }
+}
+
 function isStandaloneMode() {
   if (typeof window === 'undefined') return false;
   return (
@@ -29,7 +48,18 @@ function isSafari() {
 export function PwaInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState<boolean>(() => isStandaloneMode());
+
+  useEffect(() => {
+    setDismissed(readDismissedFromStorage());
+    setStorageReady(true);
+  }, []);
+
+  const dismissPermanently = () => {
+    persistDismissedToStorage();
+    setDismissed(true);
+  };
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
@@ -60,6 +90,7 @@ export function PwaInstallPrompt() {
   const showFallbackHint =
     !isInstalled && !dismissed && !promptEvent && !(isiOS() && isSafari());
 
+  if (!storageReady) return null;
   if (!showInstall && !showIosHint && !showFallbackHint) return null;
 
   return (
@@ -78,7 +109,7 @@ export function PwaInstallPrompt() {
           </div>
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={dismissPermanently}
             className="text-slate-400 hover:text-white text-xs"
           >
             بستن
@@ -93,10 +124,10 @@ export function PwaInstallPrompt() {
                 if (!promptEvent) return;
                 await promptEvent.prompt();
                 const choice = await promptEvent.userChoice;
-                if (choice.outcome !== 'accepted') {
-                  setDismissed(true);
-                }
                 setPromptEvent(null);
+                if (choice.outcome !== 'accepted') {
+                  dismissPermanently();
+                }
               }}
               className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium"
             >
