@@ -27,6 +27,11 @@ import {
   applyConversionRatesToQuotes,
   buildConversionConfigMap,
 } from '@/features/prices/utils/conversion-rate';
+import {
+  catalogToApiSources,
+  ensureDefaultPriceSources,
+  recordsToCatalog,
+} from '@/features/prices/utils/price-source-catalog';
 import type {
   Asset,
   AuthUser,
@@ -36,10 +41,12 @@ import type {
   DailyPrice,
   Goal,
   Person,
+  PriceSourceRecord,
   PriceSourceSetting,
   Transaction,
   Wallet,
 } from '@/shared/types/domain';
+import type { PriceSource } from '@/features/prices/constants/price-sources';
 
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
 
@@ -63,6 +70,9 @@ interface DataValue {
   dailyPrices: DailyPrice[];
   goals: Goal[];
   priceSourceSettings: PriceSourceSetting[];
+  /** User's price source catalog — drives auto-fetch slugs/keys/labels. */
+  priceSources: PriceSourceRecord[];
+  priceSourceCatalog: PriceSource[];
   isLoadingData: boolean;
   setCategories: Dispatch<SetStateAction<Category[]>>;
   setAssets: Dispatch<SetStateAction<Asset[]>>;
@@ -73,6 +83,7 @@ interface DataValue {
   setDailyPrices: Dispatch<SetStateAction<DailyPrice[]>>;
   setGoals: Dispatch<SetStateAction<Goal[]>>;
   setPriceSourceSettings: Dispatch<SetStateAction<PriceSourceSetting[]>>;
+  setPriceSources: Dispatch<SetStateAction<PriceSourceRecord[]>>;
   refresh: () => Promise<void>;
   refreshAll: () => Promise<void>;
 }
@@ -118,6 +129,7 @@ export function PortfolioProvider({
   const [dailyPrices, setDailyPrices] = useState<DailyPrice[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [priceSourceSettings, setPriceSourceSettings] = useState<PriceSourceSetting[]>([]);
+  const [priceSources, setPriceSources] = useState<PriceSourceRecord[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('TOMAN');
@@ -130,7 +142,7 @@ export function PortfolioProvider({
     const seq = ++fetchSeq.current;
     setIsLoadingData(true);
     try {
-      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes, pssRes] = await Promise.all([
+      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes, pssRes, psRes] = await Promise.all([
         supabase
           .from('categories')
           .select('*')
@@ -166,6 +178,11 @@ export function PortfolioProvider({
           .select('*')
           .order('created_at', { ascending: true }),
         supabase.from('price_source_settings').select('*'),
+        supabase
+          .from('price_sources')
+          .select('*')
+          .order('is_builtin', { ascending: false })
+          .order('slug', { ascending: true }),
       ]);
 
       if (seq !== fetchSeq.current) return;
@@ -179,6 +196,7 @@ export function PortfolioProvider({
       if (dpRes.error) throw dpRes.error;
       if (goalRes.error) throw goalRes.error;
       if (pssRes.error) throw pssRes.error;
+      if (psRes.error) throw psRes.error;
 
       const nextCategories = (catRes.data as Category[]) || [];
       let nextAssets = (astRes.data as Asset[]) || [];
@@ -188,7 +206,23 @@ export function PortfolioProvider({
       const nextPersons = (perRes.data as Person[]) || [];
       let nextDailyPrices = (dpRes.data as DailyPrice[]) || [];
       const nextGoals = (goalRes.data as Goal[]) || [];
-      const nextPriceSourceSettings = (pssRes.data as PriceSourceSetting[]) || [];
+      let nextPriceSourceSettings = (pssRes.data as PriceSourceSetting[]) || [];
+      let nextPriceSources = (psRes.data as PriceSourceRecord[]) || [];
+
+      if (nextPriceSources.length === 0) {
+        const seeded = await ensureDefaultPriceSources(user.id);
+        if (seeded.length > 0) {
+          nextPriceSources = seeded;
+          const { data: freshSettings } = await supabase
+            .from('price_source_settings')
+            .select('*');
+          if (freshSettings) {
+            nextPriceSourceSettings = freshSettings as PriceSourceSetting[];
+          }
+        }
+      }
+
+      const priceSourceCatalog = recordsToCatalog(nextPriceSources);
       const conversionConfigs = buildConversionConfigMap(nextPriceSourceSettings);
 
       if (includeExternal) {
@@ -202,7 +236,10 @@ export function PortfolioProvider({
           );
 
           if (providerSlugs.length > 0) {
-            const quotesRaw = await fetchProviderQuotes(providerSlugs);
+            const quotesRaw = await fetchProviderQuotes(
+              providerSlugs,
+              catalogToApiSources(priceSourceCatalog)
+            );
             const usdQuote = quotesRaw.find((quote) => quote.slug === USD_RATE_SOURCE_SLUG);
             const effectiveUsdRate =
               usdQuote?.priceToman && usdQuote.priceToman > 0
@@ -255,6 +292,7 @@ export function PortfolioProvider({
       setDailyPrices(nextDailyPrices);
       setGoals(nextGoals);
       setPriceSourceSettings(nextPriceSourceSettings);
+      setPriceSources(nextPriceSources);
     } catch (error) {
       if (seq !== fetchSeq.current) return;
       console.error('Error fetching data:', error);
@@ -303,6 +341,7 @@ export function PortfolioProvider({
       setDailyPrices([]);
       setGoals([]);
       setPriceSourceSettings([]);
+      setPriceSources([]);
     }
   }, [user, refresh]);
 
@@ -321,6 +360,11 @@ export function PortfolioProvider({
     [user, isLoadingAuth, logout]
   );
 
+  const priceSourceCatalog = useMemo(
+    () => recordsToCatalog(priceSources),
+    [priceSources]
+  );
+
   const dataValue = useMemo<DataValue>(
     () => ({
       categories,
@@ -332,6 +376,8 @@ export function PortfolioProvider({
       dailyPrices,
       goals,
       priceSourceSettings,
+      priceSources,
+      priceSourceCatalog,
       isLoadingData,
       setCategories,
       setAssets,
@@ -342,6 +388,7 @@ export function PortfolioProvider({
       setDailyPrices,
       setGoals,
       setPriceSourceSettings,
+      setPriceSources,
       refresh,
       refreshAll,
     }),
@@ -355,6 +402,8 @@ export function PortfolioProvider({
       dailyPrices,
       goals,
       priceSourceSettings,
+      priceSources,
+      priceSourceCatalog,
       isLoadingData,
       refresh,
       refreshAll,

@@ -18,11 +18,13 @@ import {
   applyConversionRatesToQuotes,
   buildConversionConfigMap,
 } from '@/features/prices/utils/conversion-rate';
+import { catalogToApiSources } from '@/features/prices/utils/price-source-catalog';
 import {
   boundFetchablePriceSourceSlugs,
   PriceSourceAdvancedSection,
   usePriceSourceAdvancedSave,
 } from '@/features/prices/components/PriceSourceAdvancedSection';
+import { PriceSourceCatalogSection } from '@/features/prices/components/PriceSourceCatalogSection';
 import {
   CURRENCY_META,
   RATE_ORDER,
@@ -68,6 +70,7 @@ export function DailyPricesView() {
     setCurrencyRates,
     setDailyPrices,
     priceSourceSettings,
+    priceSourceCatalog,
   } = useData();
   const { usdRate } = useUI();
 
@@ -82,8 +85,12 @@ export function DailyPricesView() {
   );
 
   const boundSlugs = useMemo(
-    () => boundFetchablePriceSourceSlugs(assets.map((a) => a.price_source_id)),
-    [assets]
+    () =>
+      boundFetchablePriceSourceSlugs(
+        assets.map((a) => a.price_source_id),
+        priceSourceCatalog
+      ),
+    [assets, priceSourceCatalog]
   );
   const priceSourceControl = usePriceSourceAdvancedSave(boundSlugs);
 
@@ -143,7 +150,10 @@ export function DailyPricesView() {
         .filter((slug): slug is string => !!slug),
     ];
 
-    const result = await fetchProviderQuotesDetailed(slugs);
+    const result = await fetchProviderQuotesDetailed(
+      slugs,
+      catalogToApiSources(priceSourceCatalog)
+    );
     const quotesRaw = result.quotes;
     const usdQuoteFromFetch = quotesRaw.find((quote) => quote.slug === USD_RATE_SOURCE_SLUG);
     const nextUsdRate =
@@ -554,11 +564,15 @@ export function DailyPricesView() {
             />
           </button>
           {advancedOpen && (
-            <div className="p-4 pt-0 bg-[#1A1B26] border-t border-white/5">
-              <PriceSourceAdvancedSection
-                slugs={boundSlugs}
-                control={priceSourceControl}
-              />
+            <div className="p-4 pt-0 bg-[#1A1B26] border-t border-white/5 space-y-6">
+              <PriceSourceCatalogSection />
+              <div className="border-t border-white/5 pt-4">
+                <p className="text-xs font-medium text-slate-400 mb-3">ضرایب تبدیل</p>
+                <PriceSourceAdvancedSection
+                  slugs={boundSlugs}
+                  control={priceSourceControl}
+                />
+              </div>
             </div>
           )}
         </div>

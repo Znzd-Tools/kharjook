@@ -44,10 +44,8 @@ export interface Asset {
   price_usd: number;
   icon_url: string | null;
   /**
-   * Slug from `PRICE_SOURCES` catalog used to auto-fetch prices later.
-   * Nullable = user marks the asset manual-priced. Stored value is the slug
-   * string so the catalog can evolve without schema changes; unknown slugs
-   * must degrade to "manual" in UI.
+   * Slug from the user's price source catalog (`price_sources`) used to auto-fetch
+   * prices. Nullable = manual-priced asset. Unknown slugs degrade gracefully in UI.
    */
   price_source_id: string | null;
   /**
@@ -106,6 +104,20 @@ export interface PriceSourceSetting {
   /** After conversion_rate: multiply or divide by app USD/Toman rate; none = skip. */
   usd_factor: PriceSourceUsdFactor;
   updated_at: string;
+}
+
+/** User-scoped row in `price_sources` — the dynamic catalog backing auto-fetch. */
+export interface PriceSourceRecord {
+  user_id: string;
+  slug: string;
+  provider: 'abantether' | 'zarpay';
+  label: string;
+  fetch_key: string | null;
+  updates_rate: RateCurrency | null;
+  deprecated: boolean;
+  is_builtin: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**

@@ -38,7 +38,7 @@ export interface PriceSource {
   deprecated?: boolean;
 }
 
-export const PRICE_SOURCES: readonly PriceSource[] = [
+export const DEFAULT_PRICE_SOURCES: readonly PriceSource[] = [
   {
     slug: APP_GLOBAL_USD_SLUG,
     provider: 'abantether',
@@ -132,14 +132,26 @@ export const PRICE_SOURCES: readonly PriceSource[] = [
   },
 ];
 
-export const PRICE_SOURCE_SLUGS: readonly string[] = PRICE_SOURCES.map((s) => s.slug);
+/** @deprecated Prefer `useData().priceSources` — kept for API fallback and seeding. */
+export const PRICE_SOURCES = DEFAULT_PRICE_SOURCES;
+
+export const PRICE_SOURCE_SLUGS: readonly string[] = DEFAULT_PRICE_SOURCES.map((s) => s.slug);
 
 export const PRICE_SOURCE_MAP: Readonly<Record<string, PriceSource>> =
   Object.freeze(
-    Object.fromEntries(PRICE_SOURCES.map((s) => [s.slug, s]))
+    Object.fromEntries(DEFAULT_PRICE_SOURCES.map((s) => [s.slug, s]))
   );
 
-/** Resolve a slug defensively; unknown slugs return null so UI can degrade. */
+/** Resolve a slug in a catalog; unknown slugs return null so UI can degrade. */
+export function findPriceSourceInCatalog(
+  slug: string | null | undefined,
+  catalog: readonly PriceSource[]
+): PriceSource | null {
+  if (!slug) return null;
+  return catalog.find((s) => s.slug === slug) ?? null;
+}
+
+/** Static-catalog lookup — used by API fallback when client sends no sources. */
 export function findPriceSource(slug: string | null | undefined): PriceSource | null {
   if (!slug) return null;
   return PRICE_SOURCE_MAP[slug] ?? null;

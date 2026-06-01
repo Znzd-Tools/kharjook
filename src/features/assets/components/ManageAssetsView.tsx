@@ -44,16 +44,13 @@ import {
 import { useToast } from '@/shared/components/Toast';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
-import {
-  PRICE_SOURCES,
-  findPriceSource,
-} from '@/features/prices/constants/price-sources';
+import { findPriceSourceInCatalog } from '@/features/prices/constants/price-sources';
 
 export function ManageAssetsView() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { categories, assets, setAssets } = useData();
+  const { categories, assets, setAssets, priceSourceCatalog } = useData();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -81,20 +78,18 @@ export function ManageAssetsView() {
   );
 
   const priceSourceItems = useMemo<ListSheetPickerItem[]>(() => {
-    const base: ListSheetPickerItem[] = PRICE_SOURCES.filter(
-      (s) => !s.deprecated
-    ).map((s) => ({
-      id: s.slug,
-      label: s.label,
-      sublabel: s.slug,
-      leading: <Link2 size={14} />,
-    }));
+    const base: ListSheetPickerItem[] = priceSourceCatalog
+      .filter((s) => !s.deprecated)
+      .map((s) => ({
+        id: s.slug,
+        label: s.label,
+        sublabel: s.slug,
+        leading: <Link2 size={14} />,
+      }));
 
-    // Preserve the currently-bound slug even if it's no longer in the catalog,
-    // so editing never silently drops the binding when a source is removed.
     if (
       formData.priceSourceId &&
-      !findPriceSource(formData.priceSourceId)
+      !findPriceSourceInCatalog(formData.priceSourceId, priceSourceCatalog)
     ) {
       base.push({
         id: formData.priceSourceId,
@@ -104,9 +99,12 @@ export function ManageAssetsView() {
       });
     }
     return base;
-  }, [formData.priceSourceId]);
+  }, [formData.priceSourceId, priceSourceCatalog]);
 
-  const selectedPriceSource = findPriceSource(formData.priceSourceId);
+  const selectedPriceSource = findPriceSourceInCatalog(
+    formData.priceSourceId,
+    priceSourceCatalog
+  );
   const selectedPriceSourceLabel = selectedPriceSource
     ? selectedPriceSource.label
     : formData.priceSourceId
@@ -612,7 +610,7 @@ export function ManageAssetsView() {
             {assets.map((asset) => {
           const cat = categories.find((c) => c.id === asset.category_id);
           const color = cat ? cat.color : '#64748b';
-          const source = findPriceSource(asset.price_source_id);
+          const source = findPriceSourceInCatalog(asset.price_source_id, priceSourceCatalog);
 
           return (
             <SortableAssetRow

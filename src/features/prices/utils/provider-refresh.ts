@@ -2,6 +2,7 @@
 
 import { supabase } from '@/shared/lib/supabase/client';
 import { APP_GLOBAL_USD_SLUG } from '@/features/prices/constants/price-sources';
+import type { ApiQuoteSource } from '@/features/prices/utils/price-source-catalog';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import type {
   Asset,
@@ -94,12 +95,18 @@ export function mergeGlobalUsdDollarQuotes(
   return merged;
 }
 
-export async function fetchProviderQuotes(slugs: string[]): Promise<ProviderQuote[]> {
-  const result = await fetchProviderQuotesDetailed(slugs);
+export async function fetchProviderQuotes(
+  slugs: string[],
+  sources?: ApiQuoteSource[]
+): Promise<ProviderQuote[]> {
+  const result = await fetchProviderQuotesDetailed(slugs, sources);
   return result.quotes;
 }
 
-export async function fetchProviderQuotesDetailed(slugs: string[]): Promise<ProviderQuoteFetchResult> {
+export async function fetchProviderQuotesDetailed(
+  slugs: string[],
+  sources?: ApiQuoteSource[]
+): Promise<ProviderQuoteFetchResult> {
   const uniqueSlugs = Array.from(new Set(slugs.filter(Boolean)));
   if (uniqueSlugs.length === 0) {
     return {
@@ -122,7 +129,10 @@ export async function fetchProviderQuotesDetailed(slugs: string[]): Promise<Prov
     },
     credentials: 'omit',
     cache: 'no-store',
-    body: JSON.stringify({ slugs: uniqueSlugs }),
+    body: JSON.stringify({
+      slugs: uniqueSlugs,
+      ...(sources && sources.length > 0 ? { sources } : {}),
+    }),
   };
 
   const doFetch = () => fetch(quotesUrl, requestInit);

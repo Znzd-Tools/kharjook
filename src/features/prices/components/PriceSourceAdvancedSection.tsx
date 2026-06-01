@@ -6,7 +6,7 @@ import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { PriceSourceSetting, PriceSourceUsdFactor } from '@/shared/types/domain';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
-import { findPriceSource, PRICE_SOURCES } from '@/features/prices/constants/price-sources';
+import { findPriceSourceInCatalog } from '@/features/prices/constants/price-sources';
 
 type LocalRow = {
   conversion_rate: string;
@@ -52,7 +52,7 @@ export interface PriceSourceAdvancedSectionProps {
 export function usePriceSourceAdvancedSave(slugs: string[]) {
   const toast = useToast();
   const { user } = useAuth();
-  const { priceSourceSettings, setPriceSourceSettings } = useData();
+  const { priceSourceSettings, setPriceSourceSettings, priceSourceCatalog } = useData();
   const [local, setLocal] = useState<Record<string, LocalRow>>(() =>
     buildLocal(priceSourceSettings, slugs)
   );
@@ -80,7 +80,7 @@ export function usePriceSourceAdvancedSave(slugs: string[]) {
     const rows: PriceSourceSetting[] = [];
 
     for (const slug of slugs) {
-      const source = findPriceSource(slug);
+      const source = findPriceSourceInCatalog(slug, priceSourceCatalog);
       if (!source?.fetchKey) continue;
 
       const row = local[slug];
@@ -128,13 +128,14 @@ export type PriceSourceAdvancedControl = ReturnType<
 >;
 
 function useResolvedSlugs(slugsProp?: string[]) {
-  const { assets } = useData();
+  const { assets, priceSourceCatalog } = useData();
   return useMemo(() => {
     if (slugsProp) return slugsProp;
     return boundFetchablePriceSourceSlugs(
-      assets.map((asset) => asset.price_source_id)
+      assets.map((asset) => asset.price_source_id),
+      priceSourceCatalog
     );
-  }, [slugsProp, assets]);
+  }, [slugsProp, assets, priceSourceCatalog]);
 }
 
 function PriceSourceAdvancedSectionInner({
@@ -150,10 +151,11 @@ function PriceSourceAdvancedSectionInner({
 }) {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const { priceSourceCatalog } = useData();
   const { local, setConversionRate, setUsdFactor, save } = control;
 
   const sources = slugs
-    .map((slug) => findPriceSource(slug))
+    .map((slug) => findPriceSourceInCatalog(slug, priceSourceCatalog))
     .filter((s): s is NonNullable<typeof s> => !!s);
 
   if (sources.length === 0) {
@@ -300,14 +302,15 @@ export function PriceSourceAdvancedSection({
 
 /** Slugs with fetch keys that are bound to at least one asset. */
 export function boundFetchablePriceSourceSlugs(
-  assetPriceSourceIds: (string | null | undefined)[]
+  assetPriceSourceIds: (string | null | undefined)[],
+  catalog: readonly { slug: string; fetchKey?: string; deprecated?: boolean }[]
 ): string[] {
   const bound = new Set<string>();
   for (const id of assetPriceSourceIds) {
     if (id) bound.add(id);
   }
   return Array.from(bound).filter((slug) => {
-    const source = PRICE_SOURCES.find((s) => s.slug === slug);
-    return !!source?.fetchKey;
+    const source = catalog.find((s) => s.slug === slug);
+    return !!source?.fetchKey && !source.deprecated;
   });
 }

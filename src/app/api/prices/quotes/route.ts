@@ -3,6 +3,7 @@ import dns from 'node:dns';
 import { NextResponse } from 'next/server';
 import {
   APP_GLOBAL_USD_SLUG,
+  DEFAULT_PRICE_SOURCES,
   findPriceSource,
   type PriceSource,
 } from '@/features/prices/constants/price-sources';
@@ -464,6 +465,62 @@ function abanSourcesSatisfiedByMarkets(
   return true;
 }
 
+interface RequestQuoteSource {
+  slug: string;
+  provider: PriceSource['provider'];
+  fetchKey?: string;
+}
+
+function normalizeRequestSource(raw: unknown): RequestQuoteSource | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const rec = raw as Record<string, unknown>;
+  const slug = typeof rec.slug === 'string' ? rec.slug.trim() : '';
+  const provider = rec.provider;
+  const fetchKey =
+    typeof rec.fetchKey === 'string'
+      ? rec.fetchKey.trim()
+      : typeof rec.fetch_key === 'string'
+        ? rec.fetch_key.trim()
+        : undefined;
+
+  if (!slug) return null;
+  if (provider !== 'abantether' && provider !== 'zarpay') return null;
+
+  return {
+    slug,
+    provider,
+    fetchKey: fetchKey || undefined,
+  };
+}
+
+function toPriceSource(entry: RequestQuoteSource): PriceSource {
+  return {
+    slug: entry.slug,
+    provider: entry.provider,
+    label: entry.slug,
+    fetchKey: entry.fetchKey,
+    updatesRate: null,
+  };
+}
+
+function buildCatalogMap(
+  requestSources: RequestQuoteSource[] | undefined
+): Map<string, PriceSource> {
+  const entries =
+    requestSources && requestSources.length > 0
+      ? requestSources.map(toPriceSource)
+      : [...DEFAULT_PRICE_SOURCES];
+
+  return new Map(entries.map((source) => [source.slug, source]));
+}
+
+function resolveCatalogSource(
+  slug: string,
+  catalog: Map<string, PriceSource>
+): PriceSource | null {
+  return catalog.get(slug) ?? findPriceSource(slug);
+}
+
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
@@ -475,11 +532,17 @@ export async function POST(request: Request) {
   let unknownRequestedSlugs: string[] = [];
   try {
     let requestedSlugs: string[];
+    let requestSources: RequestQuoteSource[] | undefined;
     try {
-      const body = (await request.json()) as { slugs?: unknown };
+      const body = (await request.json()) as { slugs?: unknown; sources?: unknown };
       requestedSlugs = Array.isArray(body?.slugs)
         ? body.slugs.filter((value): value is string => typeof value === 'string')
         : [];
+      requestSources = Array.isArray(body?.sources)
+        ? body.sources
+            .map(normalizeRequestSource)
+            .filter((source): source is RequestQuoteSource => !!source)
+        : undefined;
     } catch {
       return quoteResponse(
         request,
@@ -488,14 +551,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const catalogMap = buildCatalogMap(requestSources);
+
     unknownRequestedSlugs = Array.from(
-      new Set(requestedSlugs.filter((slug) => !findPriceSource(slug)))
+      new Set(requestedSlugs.filter((slug) => !resolveCatalogSource(slug, catalogMap)))
     );
 
     const sources = Array.from(
       new Map(
         requestedSlugs
-          .map((slug) => findPriceSource(slug))
+          .map((slug) => resolveCatalogSource(slug, catalogMap))
           .filter((source): source is PriceSource => !!source && !!source.fetchKey)
           .map((source) => [source.slug, source])
       ).values()
