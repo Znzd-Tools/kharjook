@@ -90,22 +90,35 @@ body {
 
 @keyframes price-ticker-scroll {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
+}
+
+.price-ticker-viewport {
+  direction: ltr;
 }
 
 .price-ticker-track {
-  animation: price-ticker-scroll 36s linear infinite;
+  animation: price-ticker-scroll var(--ticker-duration, 36s) linear infinite;
+  will-change: transform;
+}
+
+.price-ticker-viewport:hover .price-ticker-track {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .price-ticker-viewport {
+    overflow-x: auto;
+    direction: rtl;
+  }
+
   .price-ticker-track {
     animation: none;
-    overflow-x: auto;
-    max-width: 100%;
+    will-change: auto;
   }
 }
 

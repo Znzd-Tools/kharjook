@@ -40,6 +40,7 @@ import {
 } from '@/features/dashboard/components/AssetPriceTicker';
 import { MonthlyCashflowChart } from '@/features/dashboard/components/MonthlyCashflowChart';
 import { TopAllocationCard } from '@/features/dashboard/components/TopAllocationCard';
+import { DistributionChartCard } from '@/features/dashboard/components/DistributionChartCard';
 import { buildYearCashflowByMonth } from '@/features/dashboard/utils/year-cashflow';
 
 export function HomeTab() {
@@ -121,6 +122,7 @@ export function HomeTab() {
     const categoryById = new Map(categories.map((c) => [c.id, c]));
     const walletsById = new Map(wallets.map((w) => [w.id, w]));
     const mainDistributionMap = new Map<string, number>();
+    const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
 
     const txToToman = (
@@ -186,6 +188,11 @@ export function HomeTab() {
         assetsValueToman += s.currentValueToman;
       }
       if (s.currentValueToman > 0 && asset.include_in_balance !== false) {
+        subDistribution.push({
+          id: asset.id,
+          name: asset.name,
+          valueToman: s.currentValueToman,
+        });
         assetValueById.set(asset.id, s.currentValueToman);
         const catId = asset.category_id ?? '__uncat__';
         mainDistributionMap.set(
@@ -234,6 +241,8 @@ export function HomeTab() {
         valueToman,
       }))
       .sort((a, b) => b.valueToman - a.valueToman);
+
+    subDistribution.sort((a, b) => b.valueToman - a.valueToman);
 
     const goalComparison = goals
       .filter((goal) => goal.target_kind === 'allocation_percent')
@@ -303,6 +312,7 @@ export function HomeTab() {
       maxExpenseToman: buildMaxExpense(monthExpenseByCategory),
       maxExpenseUsd: buildMaxExpense(monthExpenseByCategoryUsd),
       mainDistribution,
+      subDistribution,
       goalComparison,
     };
   }, [
@@ -416,6 +426,22 @@ export function HomeTab() {
       name: row.name,
       value: convertDistribution(row.valueToman),
       percent: total > 0 ? (row.valueToman / total) * 100 : 0,
+    }));
+  }, [stats.mainDistribution, currencyMode, usdRate]);
+
+  const subAssetChartRows = useMemo(() => {
+    return stats.subDistribution.slice(0, 6).map((row) => ({
+      name: row.name,
+      value: convertDistribution(row.valueToman),
+      label: formatCurrency(convertDistribution(row.valueToman), currencyMode),
+    }));
+  }, [stats.subDistribution, currencyMode, usdRate]);
+
+  const mainGroupChartRows = useMemo(() => {
+    return stats.mainDistribution.slice(0, 6).map((row) => ({
+      name: row.name,
+      value: convertDistribution(row.valueToman),
+      label: formatCurrency(convertDistribution(row.valueToman), currencyMode),
     }));
   }, [stats.mainDistribution, currencyMode, usdRate]);
 
@@ -605,6 +631,19 @@ export function HomeTab() {
       />
 
       <TopAllocationCard rows={topAllocationRows} currencyMode={currencyMode} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <DistributionChartCard
+          title="توزیع گروه‌ها"
+          subtitle="گروه‌های بزرگ‌تر در سبد"
+          rows={mainGroupChartRows}
+        />
+        <DistributionChartCard
+          title="توزیع دارایی‌ها"
+          subtitle="دارایی‌های غالب"
+          rows={subAssetChartRows}
+        />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SummaryInsightCard
