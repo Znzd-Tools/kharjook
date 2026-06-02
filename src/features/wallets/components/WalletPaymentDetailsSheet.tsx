@@ -16,6 +16,9 @@ import {
 const inputClassName =
   'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 font-mono';
 
+const textInputClassName =
+  'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500';
+
 export interface WalletPaymentDetailsSheetProps {
   open: boolean;
   onClose: () => void;
@@ -33,6 +36,7 @@ export function WalletPaymentDetailsSheet({
   const [cardNumber, setCardNumber] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [iban, setIban] = useState('');
+  const [accountOwnerName, setAccountOwnerName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export function WalletPaymentDetailsSheet({
     setCardNumber(form.card_number);
     setAccountNumber(form.account_number);
     setIban(form.iban);
+    setAccountOwnerName(form.account_owner_name);
   }, [open, wallet]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +54,7 @@ export function WalletPaymentDetailsSheet({
       card_number: cardNumber,
       account_number: accountNumber,
       iban,
+      account_owner_name: accountOwnerName,
     });
 
     setIsSubmitting(true);
@@ -95,6 +101,18 @@ export function WalletPaymentDetailsSheet({
         <p className="text-xs text-slate-500 leading-relaxed">
           همه فیلدها اختیاری‌اند. برای کارت و حساب فقط رقم وارد کنید.
         </p>
+
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">نام صاحب حساب</label>
+          <input
+            type="text"
+            autoComplete="name"
+            placeholder="مثلاً علی رضایی"
+            value={accountOwnerName}
+            onChange={(e) => setAccountOwnerName(e.target.value)}
+            className={textInputClassName}
+          />
+        </div>
 
         <div>
           <label className="block text-xs text-slate-400 mb-1">شماره کارت</label>

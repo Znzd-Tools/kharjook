@@ -9,9 +9,16 @@ export interface CopyableDetailRowProps {
   value: string;
   /** Raw string copied to clipboard (defaults to `value`). */
   copyValue?: string;
+  /** Text direction for the value line. */
+  valueDir?: 'ltr' | 'rtl' | 'auto';
 }
 
-export function CopyableDetailRow({ label, value, copyValue }: CopyableDetailRowProps) {
+export function CopyableDetailRow({
+  label,
+  value,
+  copyValue,
+  valueDir = 'ltr',
+}: CopyableDetailRowProps) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
 
@@ -35,7 +42,7 @@ export function CopyableDetailRow({ label, value, copyValue }: CopyableDetailRow
     >
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-slate-500 mb-1">{label}</p>
-        <p className="text-sm text-slate-100 font-medium truncate" dir="ltr">
+        <p className="text-sm text-slate-100 font-medium truncate" dir={valueDir}>
           {value}
         </p>
       </div>

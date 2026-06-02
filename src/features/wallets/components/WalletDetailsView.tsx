@@ -248,6 +248,13 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
           {hasPaymentDetails ? (
             <div className="space-y-2">
+              {wallet.account_owner_name && (
+                <CopyableDetailRow
+                  label="نام صاحب حساب"
+                  value={wallet.account_owner_name}
+                  valueDir="auto"
+                />
+              )}
               {wallet.card_number && (
                 <CopyableDetailRow
                   label="شماره کارت"
@@ -272,7 +279,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
             </div>
           ) : (
             <p className="text-xs text-slate-500 leading-relaxed">
-              شماره کارت، حساب یا شبا را اضافه کنید تا با یک لمس کپی شود.
+              نام صاحب حساب، شماره کارت، حساب یا شبا را اضافه کنید تا با یک لمس کپی شود.
             </p>
           )}
         </div>

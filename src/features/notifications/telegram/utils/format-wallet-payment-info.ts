@@ -19,6 +19,9 @@ export function formatWalletPaymentInfoMessage(wallet: Wallet): string {
     TELEGRAM_SEPARATOR,
   ];
 
+  if (wallet.account_owner_name) {
+    lines.push('👤 <b>نام صاحب حساب</b>', `<code>${escapeHtml(wallet.account_owner_name)}</code>`, '');
+  }
   if (wallet.card_number) {
     lines.push('💳 <b>شماره کارت</b>', `<code>${escapeHtml(wallet.card_number)}</code>`, '');
   }
@@ -35,6 +38,9 @@ export function formatWalletPaymentInfoMessage(wallet: Wallet): string {
 
 export function formatWalletPaymentInfoPlain(wallet: Wallet): string {
   const lines = [`🏦 ${wallet.name}`, TELEGRAM_SEPARATOR];
+  if (wallet.account_owner_name) {
+    lines.push(`👤 صاحب حساب: ${wallet.account_owner_name}`, '');
+  }
   if (wallet.card_number) {
     lines.push(`💳 کارت: ${formatCardNumber(wallet.card_number)}`, `   ${wallet.card_number}`, '');
   }
@@ -53,6 +59,9 @@ export function buildWalletPaymentCopyKeyboard(wallet: Wallet): TelegramInlineMa
 
   const rows: TelegramInlineMarkup['inline_keyboard'] = [];
 
+  if (wallet.account_owner_name) {
+    rows.push([{ text: '📋 کپی نام صاحب حساب', copy_text: { text: wallet.account_owner_name } }]);
+  }
   if (wallet.card_number) {
     rows.push([{ text: '📋 کپی شماره کارت', copy_text: { text: wallet.card_number } }]);
   }

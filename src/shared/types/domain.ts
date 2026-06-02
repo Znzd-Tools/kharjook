@@ -78,6 +78,8 @@ export interface Wallet {
   account_number?: string | null;
   /** Optional Sheba / IBAN — stored uppercase without spaces. */
   iban?: string | null;
+  /** Optional account holder name for transfers. */
+  account_owner_name?: string | null;
   order_index?: number;
   created_at: string;
 }
