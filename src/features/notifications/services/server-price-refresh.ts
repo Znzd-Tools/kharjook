@@ -7,8 +7,8 @@ import {
   catalogToApiSources,
   defaultRecordsForUser,
   recordsToCatalog,
-  type ApiQuoteSource,
 } from '@/features/prices/utils/price-source-catalog';
+import { fetchProviderQuotes } from '@/features/prices/services/fetch-provider-quotes';
 import {
   mergeGlobalUsdDollarQuotes,
   type ProviderQuote,
@@ -28,45 +28,6 @@ import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
 
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
-
-interface FetchProviderQuotesResponse {
-  quotes: ProviderQuote[];
-  failedProviders?: Array<{ provider: string; error: string }>;
-}
-
-function quotesApiUrl(): string {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api/prices/quotes`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
-  if (appUrl) return `${appUrl}/api/prices/quotes`;
-  return 'http://127.0.0.1:3000/api/prices/quotes';
-}
-
-async function fetchProviderQuotesServer(
-  slugs: string[],
-  sources: ApiQuoteSource[]
-): Promise<{ quotes: ProviderQuote[]; failedProviders: string[] }> {
-  const uniqueSlugs = Array.from(new Set(slugs.filter(Boolean)));
-  if (uniqueSlugs.length === 0) return { quotes: [], failedProviders: [] };
-
-  const response = await fetch(quotesApiUrl(), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    cache: 'no-store',
-    body: JSON.stringify({ slugs: uniqueSlugs, sources }),
-  });
-
-  const raw = await response.text();
-  if (!response.ok) {
-    throw new Error(`quotes API ${response.status}: ${raw.slice(0, 200)}`);
-  }
-
-  const payload = JSON.parse(raw) as FetchProviderQuotesResponse;
-  const failedProviders = (payload.failedProviders ?? []).map((f) => f.provider);
-  return {
-    quotes: Array.isArray(payload.quotes) ? payload.quotes : [],
-    failedProviders,
-  };
-}
 
 async function ensureDefaultPriceSourcesAdmin(userId: string): Promise<PriceSourceRecord[]> {
   const admin = createSupabaseAdminClient();
@@ -242,10 +203,10 @@ export async function refreshUserPricesFromProviders(
     return { updatedCount: 0, usdRate, failedProviders: [] };
   }
 
-  const { quotes: quotesRaw, failedProviders } = await fetchProviderQuotesServer(
-    providerSlugs,
-    catalogToApiSources(catalog)
-  );
+  const { quotes: quotesRaw, failedProviders } = await fetchProviderQuotes({
+    slugs: providerSlugs,
+    sources: catalogToApiSources(catalog),
+  });
 
   const usdQuote = quotesRaw.find((q) => q.slug === USD_RATE_SOURCE_SLUG);
   let effectiveUsdRate =
@@ -259,7 +220,11 @@ export async function refreshUserPricesFromProviders(
   }
 
   if (!(effectiveUsdRate > 0)) {
-    return { updatedCount: 0, usdRate: 0, failedProviders };
+    return {
+      updatedCount: 0,
+      usdRate: 0,
+      failedProviders: failedProviders.map((f) => f.provider),
+    };
   }
 
   const quotes = applyConversionRatesToQuotes(
@@ -276,7 +241,11 @@ export async function refreshUserPricesFromProviders(
     quotes,
   });
 
-  return { updatedCount, usdRate: effectiveUsdRate, failedProviders };
+  return {
+    updatedCount,
+    usdRate: effectiveUsdRate,
+    failedProviders: failedProviders.map((f) => f.provider),
+  };
 }
 
 export async function loadUserAssetsWithRates(userId: string): Promise<{
