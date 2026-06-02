@@ -231,12 +231,16 @@ export interface TelegramConnection {
   telegram_username: string | null;
   is_active: boolean;
   linked_at: string;
+  menu_stack?: string[] | null;
+  bot_flow?: Record<string, unknown> | null;
 }
 
 export interface NotificationSettings {
   user_id: string;
   /** Daily 9 AM Telegram digest of unpaid installments. */
   enabled: boolean;
+  /** Notify on bot price refresh when held assets move materially. */
+  price_alert_enabled: boolean;
   updated_at: string;
 }
 

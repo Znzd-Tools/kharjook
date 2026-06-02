@@ -1,9 +1,13 @@
 import type { TelegramReplyMarkup } from '@/features/notifications/telegram/utils/telegram-client';
 
+export type BotMenuId = 'main' | 'cashflow' | 'reports' | 'prices' | 'settings' | 'quick_add';
+
 /** Main menu */
 export const BTN_MENU_CASHFLOW = '📊 درآمد و هزینه';
 export const BTN_MENU_REPORTS = '📋 گزارش‌ها';
 export const BTN_MENU_PRICES = '💰 قیمت‌ها';
+export const BTN_QUICK_ADD = '⚡ ثبت سریع';
+export const BTN_MENU_SETTINGS = '⚙️ تنظیمات';
 
 /** Cashflow submenu */
 export const BTN_CASHFLOW_TODAY = '📅 امروز';
@@ -12,31 +16,55 @@ export const BTN_CASHFLOW_MONTH = '📆 این ماه';
 /** Reports submenu */
 export const BTN_PORTFOLIO = '💼 ارزش پرتفوی';
 export const BTN_MONTH_DEBTS = '📅 اقساط این ماه';
+export const BTN_OVERDUE_DEBTS = '🔴 اقساط معوق';
+export const BTN_WALLET_BALANCES = '💳 موجودی کیف‌ها';
 
 /** Prices submenu */
 export const BTN_UPDATE_PRICES = '🔄 بروزرسانی قیمت‌ها';
 export const BTN_GET_PRICES = '📈 مشاهده قیمت‌ها';
 
+/** Quick add */
+export const BTN_QA_INCOME = '💚 درآمد';
+export const BTN_QA_EXPENSE = '🔴 هزینه';
+export const BTN_QA_CANCEL = '❌ لغو';
+
+/** Settings toggles — labels built dynamically */
 export const BTN_BACK = '🔙 بازگشت';
 
 export const ALL_BOT_BUTTONS = new Set([
   BTN_MENU_CASHFLOW,
   BTN_MENU_REPORTS,
   BTN_MENU_PRICES,
+  BTN_QUICK_ADD,
+  BTN_MENU_SETTINGS,
   BTN_CASHFLOW_TODAY,
   BTN_CASHFLOW_MONTH,
   BTN_PORTFOLIO,
   BTN_MONTH_DEBTS,
+  BTN_OVERDUE_DEBTS,
+  BTN_WALLET_BALANCES,
   BTN_UPDATE_PRICES,
   BTN_GET_PRICES,
+  BTN_QA_INCOME,
+  BTN_QA_EXPENSE,
+  BTN_QA_CANCEL,
   BTN_BACK,
 ]);
+
+export function settingsToggleDebtLabel(enabled: boolean): string {
+  return enabled ? '🔔 یادآور قسط: روشن' : '🔔 یادآور قسط: خاموش';
+}
+
+export function settingsTogglePriceLabel(enabled: boolean): string {
+  return enabled ? '📈 هشدار قیمت: روشن' : '📈 هشدار قیمت: خاموش';
+}
 
 export function buildMainReplyKeyboard(): TelegramReplyMarkup {
   return {
     keyboard: [
-      [{ text: BTN_MENU_CASHFLOW }],
+      [{ text: BTN_MENU_CASHFLOW }, { text: BTN_QUICK_ADD }],
       [{ text: BTN_MENU_REPORTS }, { text: BTN_MENU_PRICES }],
+      [{ text: BTN_MENU_SETTINGS }],
     ],
     resize_keyboard: true,
     is_persistent: true,
@@ -55,7 +83,11 @@ export function buildCashflowReplyKeyboard(): TelegramReplyMarkup {
 
 export function buildReportsReplyKeyboard(): TelegramReplyMarkup {
   return {
-    keyboard: [[{ text: BTN_PORTFOLIO }, { text: BTN_MONTH_DEBTS }], [{ text: BTN_BACK }]],
+    keyboard: [
+      [{ text: BTN_PORTFOLIO }, { text: BTN_WALLET_BALANCES }],
+      [{ text: BTN_MONTH_DEBTS }, { text: BTN_OVERDUE_DEBTS }],
+      [{ text: BTN_BACK }],
+    ],
     resize_keyboard: true,
     is_persistent: true,
     input_field_placeholder: 'گزارش را انتخاب کنید',
@@ -71,14 +103,38 @@ export function buildPricesReplyKeyboard(): TelegramReplyMarkup {
   };
 }
 
+export function buildSettingsReplyKeyboard(
+  debtEnabled: boolean,
+  priceAlertEnabled: boolean
+): TelegramReplyMarkup {
+  return {
+    keyboard: [
+      [{ text: settingsToggleDebtLabel(debtEnabled) }],
+      [{ text: settingsTogglePriceLabel(priceAlertEnabled) }],
+      [{ text: BTN_BACK }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: 'تنظیمات',
+  };
+}
+
+export function buildQuickAddReplyKeyboard(): TelegramReplyMarkup {
+  return {
+    keyboard: [[{ text: BTN_QA_INCOME }, { text: BTN_QA_EXPENSE }], [{ text: BTN_QA_CANCEL }]],
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: 'نوع تراکنش',
+  };
+}
+
 export const BOT_WELCOME_LINKED = `👋 به خرجوک خوش آمدید!
 
-از منوی زیر استفاده کنید:
-• درآمد و هزینه (امروز / این ماه)
-• گزارش‌ها (پرتفوی، اقساط ماه)
-• قیمت‌ها (بروزرسانی و مشاهده)
+منوی اصلی به‌روز شد. اگر دکمه‌ها قدیمی‌اند /start بزنید.
 
-⏰ یادآور قسط‌های امروز ساعت ۹ صبح — از تنظیمات اپ.`;
+• درآمد/هزینه · ثبت سریع · گزارش‌ها · قیمت‌ها · تنظیمات
+
+⏰ یادآور قسط‌های امروز ساعت ۹ صبح — از تنظیمات.`;
 
 export const BOT_WELCOME_UNLINKED = `👋 سلام!
 
@@ -89,3 +145,8 @@ export const BOT_LINKED_SUCCESS = '✅ اتصال برقرار شد!';
 export const BOT_CASHFLOW_MENU_HINT = '📊 بازه درآمد و هزینه:';
 export const BOT_REPORTS_MENU_HINT = '📋 یک گزارش انتخاب کنید:';
 export const BOT_PRICES_MENU_HINT = '💰 عملیات قیمت:';
+export const BOT_SETTINGS_MENU_HINT = '⚙️ تنظیمات اعلان‌ها:';
+export const BOT_QUICK_ADD_HINT = '⚡ نوع تراکنش را انتخاب کنید:';
+
+export const BOT_QA_AMOUNT_PROMPT = '💰 مبلغ را به تومان وارد کنید:';
+export const BOT_QA_CONFIRM_PROMPT = '✅ ثبت این تراکنش؟';

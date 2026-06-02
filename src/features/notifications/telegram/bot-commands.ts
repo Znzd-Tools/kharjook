@@ -1,20 +1,36 @@
-import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
-import type { TelegramConnection } from '@/shared/types/domain';
 import {
   refreshAndReportPricesForUser,
   sendMonthCashflowForUser,
   sendMonthDebtsForUser,
+  sendOverdueDebtsForUser,
   sendPortfolioForUser,
   sendPricesListForUser,
   sendTodayCashflowForUser,
+  sendWalletBalancesForUser,
 } from '@/features/notifications/services/dispatch-notifications';
-import { sendTelegramMessage } from '@/features/notifications/telegram/utils/telegram-client';
+import {
+  loadBotNotificationSettings,
+  updateBotNotificationSettings,
+} from '@/features/notifications/services/bot-notification-settings';
+import {
+  getConnectionByChatId,
+  getMenuStack,
+  hintForMenu,
+  keyboardForMenu,
+  popMenu,
+  pushMenu,
+  resetMenuStack,
+} from '@/features/notifications/telegram/bot-nav';
+import {
+  cancelQuickAddFlow,
+  handleQuickAddMessage,
+  isQuickAddActive,
+  startQuickAddFlow,
+  type QuickAddFlow,
+} from '@/features/notifications/telegram/bot-quick-add';
 import {
   ALL_BOT_BUTTONS,
-  BOT_CASHFLOW_MENU_HINT,
   BOT_LINKED_SUCCESS,
-  BOT_PRICES_MENU_HINT,
-  BOT_REPORTS_MENU_HINT,
   BOT_WELCOME_LINKED,
   BOT_WELCOME_UNLINKED,
   BTN_BACK,
@@ -24,27 +40,32 @@ import {
   BTN_MENU_CASHFLOW,
   BTN_MENU_PRICES,
   BTN_MENU_REPORTS,
+  BTN_MENU_SETTINGS,
   BTN_MONTH_DEBTS,
+  BTN_OVERDUE_DEBTS,
   BTN_PORTFOLIO,
+  BTN_QUICK_ADD,
   BTN_UPDATE_PRICES,
-  buildCashflowReplyKeyboard,
+  BTN_WALLET_BALANCES,
   buildMainReplyKeyboard,
-  buildPricesReplyKeyboard,
-  buildReportsReplyKeyboard,
+  buildSettingsReplyKeyboard,
 } from '@/features/notifications/telegram/telegram-keyboard';
+import {
+  MSG_ERROR_GENERIC,
+  MSG_LOADING_CALC,
+  MSG_LOADING_FETCH,
+  MSG_LOADING_PRICES,
+  MSG_MAIN_MENU,
+  MSG_SETTINGS_SAVED,
+  MSG_USE_MENU,
+  msgPriceRefreshFailed,
+} from '@/features/notifications/telegram/utils/telegram-copy';
+import { sendTelegramMessage } from '@/features/notifications/telegram/utils/telegram-client';
 
-async function getConnectionByChatId(chatId: number): Promise<TelegramConnection | null> {
-  const admin = createSupabaseAdminClient();
-  const { data } = await admin
-    .from('telegram_connections')
-    .select('*')
-    .eq('telegram_chat_id', chatId)
-    .eq('is_active', true)
-    .maybeSingle();
-  return (data as TelegramConnection | null) ?? null;
-}
+export { getConnectionByChatId };
 
 export async function sendBotMenu(chatId: number, text: string): Promise<void> {
+  await resetMenuStack(chatId);
   await sendTelegramMessage(chatId, text, buildMainReplyKeyboard());
 }
 
@@ -56,119 +77,226 @@ export async function sendUnlinkedPrompt(chatId: number): Promise<void> {
   await sendTelegramMessage(chatId, BOT_WELCOME_UNLINKED);
 }
 
-async function requireConnection(chatId: number): Promise<TelegramConnection | null> {
+async function requireConnection(chatId: number) {
   const connection = await getConnectionByChatId(chatId);
   if (!connection) await sendUnlinkedPrompt(chatId);
   return connection;
 }
 
+async function openSubmenu(chatId: number, menu: 'cashflow' | 'reports' | 'prices' | 'settings'): Promise<void> {
+  await pushMenu(chatId, menu);
+  await sendTelegramMessage(chatId, hintForMenu(menu), keyboardForMenu(menu));
+}
+
+async function handleBack(chatId: number): Promise<void> {
+  const connection = await requireConnection(chatId);
+  if (!connection) return;
+
+  if (isQuickAddActive((connection.bot_flow as Record<string, unknown> | null) ?? null)) {
+    await cancelQuickAddFlow(chatId);
+    return;
+  }
+
+  const menu = await popMenu(chatId);
+  await sendTelegramMessage(chatId, hintForMenu(menu), keyboardForMenu(menu));
+}
+
+async function runReportAction(
+  chatId: number,
+  action: (userId: string, connection: NonNullable<Awaited<ReturnType<typeof requireConnection>>>) => Promise<void>
+): Promise<void> {
+  const connection = await requireConnection(chatId);
+  if (!connection) return;
+  const keyboard = keyboardForMenu('reports');
+  await sendTelegramMessage(chatId, MSG_LOADING_FETCH, keyboard);
+  try {
+    await action(connection.user_id, connection);
+  } catch {
+    await sendTelegramMessage(chatId, MSG_ERROR_GENERIC, keyboard);
+  }
+}
+
+async function runCashflowAction(
+  chatId: number,
+  action: (userId: string, connection: NonNullable<Awaited<ReturnType<typeof requireConnection>>>) => Promise<void>
+): Promise<void> {
+  const connection = await requireConnection(chatId);
+  if (!connection) return;
+  const keyboard = keyboardForMenu('cashflow');
+  await sendTelegramMessage(chatId, MSG_LOADING_CALC, keyboard);
+  try {
+    await action(connection.user_id, connection);
+  } catch {
+    await sendTelegramMessage(chatId, MSG_ERROR_GENERIC, keyboard);
+  }
+}
+
 export async function handleBotMessage(chatId: number, text: string): Promise<void> {
+  const connection = await getConnectionByChatId(chatId);
+
+  if (connection) {
+    const flow = connection.bot_flow as Record<string, unknown> | null;
+    if (isQuickAddActive(flow)) {
+      const handled = await handleQuickAddMessage(
+        chatId,
+        text,
+        connection,
+        flow as unknown as QuickAddFlow
+      );
+      if (handled) return;
+    }
+  }
+
   if (text === BTN_MENU_CASHFLOW) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, BOT_CASHFLOW_MENU_HINT, buildCashflowReplyKeyboard());
+    if (!(await requireConnection(chatId))) return;
+    await openSubmenu(chatId, 'cashflow');
     return;
   }
 
   if (text === BTN_MENU_REPORTS) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, BOT_REPORTS_MENU_HINT, buildReportsReplyKeyboard());
+    if (!(await requireConnection(chatId))) return;
+    await openSubmenu(chatId, 'reports');
     return;
   }
 
   if (text === BTN_MENU_PRICES) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, BOT_PRICES_MENU_HINT, buildPricesReplyKeyboard());
+    if (!(await requireConnection(chatId))) return;
+    await openSubmenu(chatId, 'prices');
+    return;
+  }
+
+  if (text === BTN_MENU_SETTINGS) {
+    const conn = await requireConnection(chatId);
+    if (!conn) return;
+    const settings = await loadBotNotificationSettings(conn.user_id);
+    await pushMenu(chatId, 'settings');
+    await sendTelegramMessage(
+      chatId,
+      hintForMenu('settings'),
+      buildSettingsReplyKeyboard(settings.enabled, settings.price_alert_enabled)
+    );
+    return;
+  }
+
+  if (text === BTN_QUICK_ADD) {
+    if (!(await requireConnection(chatId))) return;
+    await startQuickAddFlow(chatId);
     return;
   }
 
   if (text === BTN_BACK) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendBotMenu(chatId, 'منوی اصلی 👇');
+    await handleBack(chatId);
     return;
   }
 
   if (text === BTN_CASHFLOW_TODAY) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildCashflowReplyKeyboard());
-    await sendTodayCashflowForUser(connection.user_id, connection, {
-      replyMarkup: buildCashflowReplyKeyboard(),
+    await runCashflowAction(chatId, async (userId, conn) => {
+      await sendTodayCashflowForUser(userId, conn, {
+        replyMarkup: keyboardForMenu('cashflow'),
+      });
     });
     return;
   }
 
   if (text === BTN_CASHFLOW_MONTH) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildCashflowReplyKeyboard());
-    await sendMonthCashflowForUser(connection.user_id, connection, {
-      replyMarkup: buildCashflowReplyKeyboard(),
+    await runCashflowAction(chatId, async (userId, conn) => {
+      await sendMonthCashflowForUser(userId, conn, {
+        replyMarkup: keyboardForMenu('cashflow'),
+      });
     });
     return;
   }
 
   if (text === BTN_PORTFOLIO) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildReportsReplyKeyboard());
-    await sendPortfolioForUser(connection.user_id, connection, {
-      replyMarkup: buildReportsReplyKeyboard(),
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendPortfolioForUser(userId, conn, { replyMarkup: keyboardForMenu('reports') });
+    });
+    return;
+  }
+
+  if (text === BTN_WALLET_BALANCES) {
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendWalletBalancesForUser(userId, conn, { replyMarkup: keyboardForMenu('reports') });
     });
     return;
   }
 
   if (text === BTN_MONTH_DEBTS) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال بارگذاری...', buildReportsReplyKeyboard());
-    await sendMonthDebtsForUser(connection.user_id, connection, {
-      replyMarkup: buildReportsReplyKeyboard(),
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendMonthDebtsForUser(userId, conn, { replyMarkup: keyboardForMenu('reports') });
+    });
+    return;
+  }
+
+  if (text === BTN_OVERDUE_DEBTS) {
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendOverdueDebtsForUser(userId, conn, {
+        replyMarkup: keyboardForMenu('reports'),
+        withPayButtons: true,
+      });
     });
     return;
   }
 
   if (text === BTN_UPDATE_PRICES) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(
-      chatId,
-      '⏳ در حال بروزرسانی قیمت‌ها...\nممکن است چند ثانیه طول بکشد.',
-      buildPricesReplyKeyboard()
-    );
+    const conn = await requireConnection(chatId);
+    if (!conn) return;
+    const keyboard = keyboardForMenu('prices');
+    await sendTelegramMessage(chatId, MSG_LOADING_PRICES, keyboard);
     try {
-      await refreshAndReportPricesForUser(connection.user_id, connection, {
-        replyMarkup: buildPricesReplyKeyboard(),
-      });
+      await refreshAndReportPricesForUser(conn.user_id, conn, { replyMarkup: keyboard });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'خطای ناشناخته';
-      await sendTelegramMessage(
-        chatId,
-        `❌ بروزرسانی ناموفق بود.\n${message}`,
-        buildPricesReplyKeyboard()
-      );
+      const detail = err instanceof Error ? err.message : MSG_ERROR_GENERIC;
+      await sendTelegramMessage(chatId, msgPriceRefreshFailed(detail), keyboard);
     }
     return;
   }
 
   if (text === BTN_GET_PRICES) {
-    const connection = await requireConnection(chatId);
-    if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال بارگذاری...', buildPricesReplyKeyboard());
-    await sendPricesListForUser(connection.user_id, connection, {
-      replyMarkup: buildPricesReplyKeyboard(),
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendPricesListForUser(userId, conn, { replyMarkup: keyboardForMenu('prices') });
     });
+    return;
+  }
+
+  if (
+    connection &&
+    (text.startsWith('🔔 یادآور قسط:') || text.startsWith('📈 هشدار قیمت:'))
+  ) {
+    const settings = await loadBotNotificationSettings(connection.user_id);
+    if (text.startsWith('🔔')) {
+      const next = await updateBotNotificationSettings(connection.user_id, {
+        enabled: !settings.enabled,
+      });
+      await sendTelegramMessage(
+        chatId,
+        MSG_SETTINGS_SAVED,
+        buildSettingsReplyKeyboard(next.enabled, next.price_alert_enabled)
+      );
+    } else {
+      const next = await updateBotNotificationSettings(connection.user_id, {
+        price_alert_enabled: !settings.price_alert_enabled,
+      });
+      await sendTelegramMessage(
+        chatId,
+        MSG_SETTINGS_SAVED,
+        buildSettingsReplyKeyboard(next.enabled, next.price_alert_enabled)
+      );
+    }
     return;
   }
 
   if (ALL_BOT_BUTTONS.has(text)) return;
 
-  const connection = await getConnectionByChatId(chatId);
   if (connection) {
-    await sendBotMenu(chatId, 'از منوی زیر استفاده کنید 👇');
+    const stack = await getMenuStack(chatId);
+    const menu = stack[stack.length - 1] ?? 'main';
+    if (menu === 'settings') {
+      const settings = await loadBotNotificationSettings(connection.user_id);
+      await sendTelegramMessage(chatId, MSG_USE_MENU, buildSettingsReplyKeyboard(settings.enabled, settings.price_alert_enabled));
+    } else {
+      await sendTelegramMessage(chatId, MSG_USE_MENU, keyboardForMenu(menu));
+    }
   } else {
     await sendUnlinkedPrompt(chatId);
   }

@@ -19,14 +19,17 @@ import {
 import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import {
   formatDebtsListMessage,
+  buildInstallmentPayInlineKeyboard,
   installmentDaysUntilDue,
   TEHRAN_TIMEZONE,
   type DebtListItem,
   type DebtsListScope,
 } from '@/features/notifications/telegram/utils/format-debts-list';
 import {
+  sendTelegramInlineMessage,
   sendTelegramMessage,
   TelegramSendError,
+  type TelegramInlineMarkup,
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
@@ -40,25 +43,27 @@ import {
   formatPriceRefreshResultMessage,
   formatPricesListMessage,
 } from '@/features/notifications/telegram/utils/format-prices-list';
+import { formatWalletBalancesMessage } from '@/features/notifications/telegram/utils/format-wallets-list';
+import { formatTelegramMoney, toPersianDigits } from '@/features/notifications/telegram/utils/format-helpers';
+import {
+  DEFAULT_NOTIFICATION_SETTINGS as BOT_DEFAULT_NOTIFICATION_SETTINGS,
+  loadNotificationEnabled,
+  loadPriceAlertEnabled,
+  type BotNotificationSettings,
+} from '@/features/notifications/services/bot-notification-settings';
 
-/** Defaults for new rows; only `enabled` is user-facing in the app. */
+/** Defaults for new rows. */
 export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
   NotificationSettings,
   'user_id' | 'updated_at'
 > = {
-  enabled: true,
+  enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled,
+  price_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
 };
 
-export async function loadNotificationEnabled(userId: string): Promise<boolean> {
-  const admin = createSupabaseAdminClient();
-  const { data } = await admin
-    .from('notification_settings')
-    .select('enabled')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (!data) return DEFAULT_NOTIFICATION_SETTINGS.enabled;
-  return (data as { enabled: boolean }).enabled;
-}
+export type { BotNotificationSettings };
+
+export { loadNotificationEnabled };
 
 async function loadUserData(userId: string) {
   const admin = createSupabaseAdminClient();
@@ -114,6 +119,7 @@ async function loadUnpaidDebtItems(userId: string): Promise<DebtListItem[]> {
     if (daysUntil == null) continue;
     const rate = tomanPerUnit(loan.currency, rates);
     items.push({
+      installmentId: row.id,
       loanTitle: loan.title,
       dueDateString: row.due_date_string,
       amountToman: row.amount * rate,
@@ -172,6 +178,21 @@ async function sendTelegramToConnection(
   }
 }
 
+async function sendTelegramInlineToConnection(
+  connection: TelegramConnection,
+  text: string,
+  inlineMarkup: TelegramInlineMarkup
+): Promise<void> {
+  try {
+    await sendTelegramInlineMessage(connection.telegram_chat_id, text, inlineMarkup);
+  } catch (err) {
+    if (err instanceof TelegramSendError && err.blocked) {
+      await markConnectionInactive(connection.user_id);
+    }
+    throw err;
+  }
+}
+
 export async function sendTodayCashflowForUser(
   userId: string,
   connection: TelegramConnection,
@@ -218,6 +239,32 @@ export async function sendMonthDebtsForUser(
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
 }
 
+export async function sendOverdueDebtsForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup; withPayButtons?: boolean }
+): Promise<void> {
+  let items = await loadUnpaidDebtItems(userId);
+  items = items.filter((item) => item.daysUntilDue < 0);
+  const text = formatDebtsListMessage(items, 'overdue');
+  const inline = options?.withPayButtons ? buildInstallmentPayInlineKeyboard(items) : null;
+  if (inline) {
+    await sendTelegramInlineToConnection(connection, text, inline);
+  } else {
+    await sendTelegramToConnection(connection, text, options?.replyMarkup);
+  }
+}
+
+export async function sendWalletBalancesForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const data = await loadUserData(userId);
+  const text = formatWalletBalancesMessage(data);
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
 export async function sendPricesListForUser(
   userId: string,
   connection: TelegramConnection,
@@ -233,6 +280,9 @@ export async function refreshAndReportPricesForUser(
   connection: TelegramConnection,
   options?: { replyMarkup?: TelegramReplyMarkup }
 ): Promise<void> {
+  const alertEnabled = await loadPriceAlertEnabled(userId);
+  const before = alertEnabled ? await loadUserAssetsWithRates(userId) : null;
+
   const result = await refreshUserPricesFromProviders(userId);
   const text = formatPriceRefreshResultMessage({
     updatedCount: result.updatedCount,
@@ -240,6 +290,54 @@ export async function refreshAndReportPricesForUser(
     failedProviders: result.failedProviders,
   });
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
+
+  if (alertEnabled && before) {
+    const after = await loadUserAssetsWithRates(userId);
+    const changes = detectMaterialPriceChanges(before.assets, after.assets);
+    if (changes.length > 0) {
+      const alertText = formatPriceChangeAlert(changes);
+      await sendTelegramToConnection(connection, alertText, options?.replyMarkup);
+    }
+  }
+}
+
+function detectMaterialPriceChanges(
+  before: Awaited<ReturnType<typeof loadUserAssetsWithRates>>['assets'],
+  after: Awaited<ReturnType<typeof loadUserAssetsWithRates>>['assets']
+): Array<{ name: string; oldPrice: number; newPrice: number; pct: number }> {
+  const beforeMap = new Map(before.map((a) => [a.id, a]));
+  const changes: Array<{ name: string; oldPrice: number; newPrice: number; pct: number }> = [];
+
+  for (const asset of after) {
+    const prev = beforeMap.get(asset.id);
+    if (!prev || prev.price_toman <= 0 || asset.price_toman <= 0) continue;
+    const pct = ((asset.price_toman - prev.price_toman) / prev.price_toman) * 100;
+    if (Math.abs(pct) >= 1) {
+      changes.push({
+        name: asset.name,
+        oldPrice: prev.price_toman,
+        newPrice: asset.price_toman,
+        pct,
+      });
+    }
+  }
+
+  return changes.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+}
+
+function formatPriceChangeAlert(
+  changes: Array<{ name: string; oldPrice: number; newPrice: number; pct: number }>
+): string {
+  const lines = ['📈 تغییر قیمت دارایی‌ها', '────────────'];
+  for (const row of changes.slice(0, 8)) {
+    const arrow = row.pct >= 0 ? '📈' : '📉';
+    lines.push(
+      `${arrow} ${row.name}`,
+      `   ${formatTelegramMoney(row.oldPrice, 'TOMAN')} → ${formatTelegramMoney(row.newPrice, 'TOMAN')} (${toPersianDigits(row.pct.toFixed(1))}٪)`
+    );
+  }
+  lines.push('────────────');
+  return lines.join('\n');
 }
 
 /** Daily cron at 09:00 Tehran — today's installments only, skip if none. */
@@ -263,7 +361,14 @@ export async function sendDebtsListForUser(
   }
 
   const text = formatDebtsListMessage(items, scope);
-  await sendTelegramToConnection(connection, text);
+  const inline =
+    options?.todayOnly && items.length > 0 ? buildInstallmentPayInlineKeyboard(items) : null;
+
+  if (inline) {
+    await sendTelegramInlineToConnection(connection, text, inline);
+  } else {
+    await sendTelegramToConnection(connection, text);
+  }
 
   if (!options?.skipDedup) {
     await markDelivered(userId, 'loan_reminder', dedupKey);

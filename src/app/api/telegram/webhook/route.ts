@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import { consumeTelegramLinkToken } from '@/features/notifications/telegram/utils/link-token';
 import { sendTelegramMessage } from '@/features/notifications/telegram/utils/telegram-client';
+import { handleBotCallback } from '@/features/notifications/telegram/bot-callbacks';
 import {
   handleBotMessage,
   sendBotMenu,
@@ -26,6 +27,11 @@ type TelegramUpdate = {
     from?: { id: number; username?: string };
     text?: string;
   };
+  callback_query?: {
+    id: string;
+    data?: string;
+    message?: { message_id?: number; chat?: { id?: number } };
+  };
 };
 
 export async function POST(request: Request) {
@@ -38,6 +44,20 @@ export async function POST(request: Request) {
   }
 
   const update = (await request.json()) as TelegramUpdate;
+
+  if (update.callback_query?.data) {
+    const chatId = update.callback_query.message?.chat?.id;
+    if (chatId) {
+      await handleBotCallback({
+        chatId,
+        data: update.callback_query.data,
+        callbackQueryId: update.callback_query.id,
+        messageId: update.callback_query.message?.message_id,
+      });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const message = update.message;
   if (!message?.text || !message.chat?.id) {
     return NextResponse.json({ ok: true });
@@ -81,6 +101,8 @@ export async function POST(request: Request) {
       telegram_username: message.from?.username ?? null,
       is_active: true,
       linked_at: new Date().toISOString(),
+      menu_stack: ['main'],
+      bot_flow: null,
     });
 
     if (connErr) {
@@ -92,6 +114,7 @@ export async function POST(request: Request) {
     await admin.from('notification_settings').upsert({
       user_id: consumed.userId,
       enabled: true,
+      price_alert_enabled: false,
       updated_at: new Date().toISOString(),
     });
 

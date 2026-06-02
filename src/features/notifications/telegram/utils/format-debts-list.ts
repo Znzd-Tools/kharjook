@@ -11,17 +11,19 @@ import {
   TELEGRAM_SEPARATOR,
   toPersianDigits,
 } from '@/features/notifications/telegram/utils/format-helpers';
+import type { TelegramInlineMarkup } from '@/features/notifications/telegram/utils/telegram-client';
 
 export const TEHRAN_TIMEZONE = 'Asia/Tehran';
 
 export type DebtListItem = {
+  installmentId: string;
   loanTitle: string;
   dueDateString: string;
   amountToman: number;
   daysUntilDue: number;
 };
 
-export type DebtsListScope = 'today' | 'month' | 'all';
+export type DebtsListScope = 'today' | 'month' | 'overdue' | 'all';
 
 function dueLabel(daysUntilDue: number): string {
   if (daysUntilDue < 0) return `${toPersianDigits(Math.abs(daysUntilDue))} روز گذشته`;
@@ -49,7 +51,9 @@ export function formatDebtsListMessage(
       ? '⏰ قسط‌های امروز'
       : scope === 'month'
         ? '📅 اقساط این ماه'
-        : '📋 بدهی‌ها و اقساط';
+        : scope === 'overdue'
+          ? '🔴 اقساط معوق'
+          : '📋 بدهی‌ها و اقساط';
 
   if (items.length === 0) {
     const emptyLine =
@@ -57,7 +61,9 @@ export function formatDebtsListMessage(
         ? '✅ امروز قسطی سررسید ندارید.'
         : scope === 'month'
           ? '✅ قسط پرداخت‌نشده‌ای در این ماه ندارید.'
-          : '✅ قسط پرداخت‌نشده‌ای ندارید.';
+          : scope === 'overdue'
+            ? '✅ قسط معوقی ندارید.'
+            : '✅ قسط پرداخت‌نشده‌ای ندارید.';
     return `${heading}\n${TELEGRAM_SEPARATOR}\n📅 ${todayLine}\n\n${emptyLine}\n${TELEGRAM_SEPARATOR}`;
   }
 
@@ -73,7 +79,7 @@ export function formatDebtsListMessage(
     lines.push('');
   }
 
-  if (scope === 'month') {
+  if (scope === 'month' || scope === 'overdue') {
     const total = sorted.reduce((sum, item) => sum + item.amountToman, 0);
     lines.push(`📌 ${toPersianDigits(sorted.length)} قسط · ${formatTelegramMoney(total, 'TOMAN')}`);
     lines.push('');
@@ -93,4 +99,22 @@ export function formatDebtsListMessage(
 
   lines.push(TELEGRAM_SEPARATOR);
   return lines.join('\n').trim();
+}
+
+function truncateLabel(text: string, max = 28): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+export function buildInstallmentPayInlineKeyboard(items: DebtListItem[]): TelegramInlineMarkup | null {
+  const payable = items.filter((item) => item.installmentId).slice(0, 8);
+  if (payable.length === 0) return null;
+
+  const rows = payable.map((item) => [
+    {
+      text: `✅ ${truncateLabel(item.loanTitle)}`,
+      callback_data: `pi:${item.installmentId}`,
+    },
+  ]);
+
+  return { inline_keyboard: rows };
 }

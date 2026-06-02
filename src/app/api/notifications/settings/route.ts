@@ -15,7 +15,7 @@ export async function GET() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('notification_settings')
-    .select('enabled, updated_at')
+    .select('enabled, price_alert_enabled, updated_at')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -27,6 +27,9 @@ export async function GET() {
   return NextResponse.json({
     settings: {
       enabled: data?.enabled ?? DEFAULT_NOTIFICATION_SETTINGS.enabled,
+      price_alert_enabled:
+        (data as { price_alert_enabled?: boolean } | null)?.price_alert_enabled ??
+        DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
       updated_at: data?.updated_at ?? null,
     },
   });
@@ -36,8 +39,10 @@ export async function PUT(request: Request) {
   const user = await requireAuthUser();
   if (!user) return unauthorized();
 
-  const body = (await request.json()) as { enabled?: boolean };
+  const body = (await request.json()) as { enabled?: boolean; price_alert_enabled?: boolean };
   const enabled = body.enabled ?? DEFAULT_NOTIFICATION_SETTINGS.enabled;
+  const price_alert_enabled =
+    body.price_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -46,11 +51,12 @@ export async function PUT(request: Request) {
       {
         user_id: user.id,
         enabled,
+        price_alert_enabled,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )
-    .select('enabled, updated_at')
+    .select('enabled, price_alert_enabled, updated_at')
     .single();
 
   if (error) {
