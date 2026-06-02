@@ -8,6 +8,14 @@ import { sendTelegramMessage } from '@/features/notifications/telegram/utils/tel
 
 export const runtime = 'nodejs';
 
+/** Browser GET is not how Telegram delivers updates — this is only a health check. */
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    message: 'Kharjook Telegram webhook is live. Telegram sends POST here, not GET.',
+  });
+}
+
 type TelegramUpdate = {
   message?: {
     chat: { id: number };

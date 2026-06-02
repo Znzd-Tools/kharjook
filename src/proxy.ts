@@ -5,6 +5,8 @@ const PUBLIC_ROUTES = [
   '/login',
   '/register',
   '/api/prices/quotes',
+  '/api/telegram/webhook',
+  '/api/cron/notifications',
   '/manifest.webmanifest',
   '/sw.js',
   '/icon',
