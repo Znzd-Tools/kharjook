@@ -21,6 +21,7 @@ import {
   popMenu,
   pushMenu,
   resetMenuStack,
+  setBotFlow,
 } from '@/features/notifications/telegram/bot-nav';
 import {
   cancelQuickAddFlow,
@@ -46,6 +47,9 @@ import {
   BTN_OVERDUE_DEBTS,
   BTN_PORTFOLIO,
   BTN_QUICK_ADD,
+  BTN_QA_CANCEL,
+  BTN_QA_EXPENSE,
+  BTN_QA_INCOME,
   BTN_UPDATE_PRICES,
   BTN_WALLET_BALANCES,
   BTN_WALLET_PAYMENT_INFO,
@@ -137,13 +141,25 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
   const connection = await getConnectionByChatId(chatId);
 
   if (connection) {
-    const flow = connection.bot_flow as Record<string, unknown> | null;
-    if (isQuickAddActive(flow)) {
+    const stack = await getMenuStack(chatId);
+    const inQuickAddMenu = stack[stack.length - 1] === 'quick_add';
+    let flow = connection.bot_flow as Record<string, unknown> | null;
+
+    if (
+      inQuickAddMenu &&
+      !isQuickAddActive(flow) &&
+      (text === BTN_QA_INCOME || text === BTN_QA_EXPENSE || text === BTN_QA_CANCEL)
+    ) {
+      flow = { type: 'quick_add', step: 'type' };
+      await setBotFlow(chatId, flow);
+    }
+
+    if (isQuickAddActive(flow) || (inQuickAddMenu && flow?.type === 'quick_add')) {
       const handled = await handleQuickAddMessage(
         chatId,
         text,
         connection,
-        flow as unknown as QuickAddFlow
+        (flow ?? { type: 'quick_add', step: 'type' }) as QuickAddFlow
       );
       if (handled) return;
     }
@@ -182,7 +198,12 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
 
   if (text === BTN_QUICK_ADD) {
     if (!(await requireConnection(chatId))) return;
-    await startQuickAddFlow(chatId);
+    try {
+      await startQuickAddFlow(chatId);
+    } catch (err) {
+      console.error('startQuickAddFlow failed', err);
+      await sendTelegramMessage(chatId, MSG_ERROR_GENERIC, buildMainReplyKeyboard());
+    }
     return;
   }
 

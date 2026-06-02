@@ -118,11 +118,12 @@ export async function setBotFlow(
   flow: Record<string, unknown> | null
 ): Promise<void> {
   const admin = createSupabaseAdminClient();
-  await admin
+  const { error } = await admin
     .from('telegram_connections')
     .update({ bot_flow: flow })
     .eq('telegram_chat_id', chatId)
     .eq('is_active', true);
+  if (error) throw new Error(`bot_flow update failed: ${error.message}`);
 }
 
 export async function clearBotFlow(chatId: number): Promise<void> {

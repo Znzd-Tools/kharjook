@@ -100,6 +100,23 @@ function categoryInlineKeyboard(categories: Category[]): TelegramInlineMarkup {
   return { inline_keyboard: rows };
 }
 
+async function editOrSendInline(
+  chatId: number,
+  messageId: number | undefined,
+  text: string,
+  markup: TelegramInlineMarkup
+): Promise<void> {
+  if (messageId) {
+    try {
+      await editTelegramMessage(chatId, messageId, text, markup);
+      return;
+    } catch {
+      // Fall back to a new message if the inline message can't be edited.
+    }
+  }
+  await sendTelegramInlineMessage(chatId, text, markup);
+}
+
 export async function startQuickAddFlow(chatId: number): Promise<void> {
   await pushMenu(chatId, 'quick_add');
   await setBotFlow(chatId, { type: 'quick_add', step: 'type' });
@@ -237,14 +254,12 @@ export async function handleQuickAddCallback(
     };
     await setBotFlow(chatId, next);
     await answerTelegramCallback(callbackQueryId);
-    if (messageId) {
-      await editTelegramMessage(
-        chatId,
-        messageId,
-        '🏷 دسته‌بندی را انتخاب کنید:',
-        categoryInlineKeyboard(categories)
-      );
-    }
+    await editOrSendInline(
+      chatId,
+      messageId,
+      '🏷 دسته‌بندی را انتخاب کنید:',
+      categoryInlineKeyboard(categories)
+    );
     return true;
   }
 
@@ -280,11 +295,7 @@ export async function handleQuickAddCallback(
       ],
     };
 
-    if (messageId) {
-      await editTelegramMessage(chatId, messageId, summary, markup);
-    } else {
-      await sendTelegramInlineMessage(chatId, summary, markup);
-    }
+    await editOrSendInline(chatId, messageId, summary, markup);
     return true;
   }
 

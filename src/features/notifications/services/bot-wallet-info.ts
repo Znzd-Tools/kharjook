@@ -11,6 +11,7 @@ import {
 import {
   sendTelegramInlineMessage,
   sendTelegramMessage,
+  TelegramSendError,
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
 import { walletHasPaymentDetails } from '@/features/wallets/utils/wallet-payment-details';
@@ -82,11 +83,18 @@ export async function sendWalletPaymentInfoForWallet(
   const text = formatWalletPaymentInfoMessage(wallet);
   const keyboard = buildWalletPaymentCopyKeyboard(wallet);
 
-  if (keyboard) {
-    await sendTelegramInlineMessage(connection.telegram_chat_id, text, keyboard, {
+  try {
+    if (keyboard) {
+      await sendTelegramInlineMessage(connection.telegram_chat_id, text, keyboard, {
+        parse_mode: 'HTML',
+      });
+      return;
+    }
+    await sendTelegramMessage(connection.telegram_chat_id, text, undefined, {
       parse_mode: 'HTML',
     });
-  } else {
+  } catch (err) {
+    if (!(err instanceof TelegramSendError)) throw err;
     await sendTelegramMessage(connection.telegram_chat_id, text, undefined, {
       parse_mode: 'HTML',
     });

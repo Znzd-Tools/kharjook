@@ -10,6 +10,7 @@ import {
   sendWelcomeAfterLink,
 } from '@/features/notifications/telegram/bot-commands';
 import { BOT_WELCOME_LINKED } from '@/features/notifications/telegram/telegram-keyboard';
+import { MSG_ERROR_GENERIC } from '@/features/notifications/telegram/utils/telegram-copy';
 
 export const runtime = 'nodejs';
 
@@ -48,12 +49,18 @@ export async function POST(request: Request) {
   if (update.callback_query?.data) {
     const chatId = update.callback_query.message?.chat?.id;
     if (chatId) {
-      await handleBotCallback({
-        chatId,
-        data: update.callback_query.data,
-        callbackQueryId: update.callback_query.id,
-        messageId: update.callback_query.message?.message_id,
-      });
+      try {
+        await handleBotCallback({
+          chatId,
+          data: update.callback_query.data,
+          callbackQueryId: update.callback_query.id,
+          messageId: update.callback_query.message?.message_id,
+        });
+      } catch (err) {
+        console.error('Telegram callback failed', err);
+        const detail = err instanceof Error ? err.message : MSG_ERROR_GENERIC;
+        await sendTelegramMessage(chatId, `❌ ${MSG_ERROR_GENERIC}\n${detail.slice(0, 200)}`);
+      }
     }
     return NextResponse.json({ ok: true });
   }
