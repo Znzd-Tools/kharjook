@@ -27,6 +27,16 @@ import {
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { isInPeriod, periodContaining } from '@/shared/utils/period';
+import {
+  loadUserAssetsWithRates,
+  refreshUserPricesFromProviders,
+} from '@/features/notifications/services/server-price-refresh';
+import { formatPortfolioMessage } from '@/features/notifications/telegram/utils/format-portfolio';
+import {
+  formatPriceRefreshResultMessage,
+  formatPricesListMessage,
+} from '@/features/notifications/telegram/utils/format-prices-list';
 
 /** Defaults for new rows; only `enabled` is user-facing in the app. */
 export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
@@ -167,6 +177,54 @@ export async function sendTodayCashflowForUser(
   const data = await loadUserData(userId);
   const snapshot = buildUserNotificationSnapshot(data);
   const text = formatTodayCashflowMessage(snapshot.today, snapshot.todayUsd);
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
+export async function sendPortfolioForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const data = await loadUserData(userId);
+  const snapshot = buildUserNotificationSnapshot(data);
+  const text = formatPortfolioMessage(snapshot.portfolio);
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
+export async function sendMonthDebtsForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  const monthPeriod = periodContaining('month', today);
+  let items = await loadUnpaidDebtItems(userId);
+  items = items.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
+  const text = formatDebtsListMessage(items, 'month');
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
+export async function sendPricesListForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const { assets, usdRate } = await loadUserAssetsWithRates(userId);
+  const text = formatPricesListMessage(assets, usdRate);
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
+export async function refreshAndReportPricesForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const result = await refreshUserPricesFromProviders(userId);
+  const text = formatPriceRefreshResultMessage({
+    updatedCount: result.updatedCount,
+    usdRate: result.usdRate,
+    failedProviders: result.failedProviders,
+  });
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
 }
 

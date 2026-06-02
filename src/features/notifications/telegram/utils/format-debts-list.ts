@@ -21,7 +21,7 @@ export type DebtListItem = {
   daysUntilDue: number;
 };
 
-export type DebtsListScope = 'today' | 'all';
+export type DebtsListScope = 'today' | 'month' | 'all';
 
 function dueLabel(daysUntilDue: number): string {
   if (daysUntilDue < 0) return `${toPersianDigits(Math.abs(daysUntilDue))} روز گذشته`;
@@ -44,13 +44,20 @@ export function formatDebtsListMessage(
 ): string {
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
   const todayLine = toPersianDigits(formatJalaaliHuman(today));
-  const heading = scope === 'today' ? '⏰ قسط‌های امروز' : '📋 بدهی‌ها و اقساط';
+  const heading =
+    scope === 'today'
+      ? '⏰ قسط‌های امروز'
+      : scope === 'month'
+        ? '📅 اقساط این ماه'
+        : '📋 بدهی‌ها و اقساط';
 
   if (items.length === 0) {
     const emptyLine =
       scope === 'today'
         ? '✅ امروز قسطی سررسید ندارید.'
-        : '✅ قسط پرداخت‌نشده‌ای ندارید.';
+        : scope === 'month'
+          ? '✅ قسط پرداخت‌نشده‌ای در این ماه ندارید.'
+          : '✅ قسط پرداخت‌نشده‌ای ندارید.';
     return `${heading}\n${TELEGRAM_SEPARATOR}\n📅 ${todayLine}\n\n${emptyLine}\n${TELEGRAM_SEPARATOR}`;
   }
 
@@ -63,6 +70,12 @@ export function formatDebtsListMessage(
   if (scope === 'today') {
     const total = sorted.reduce((sum, item) => sum + item.amountToman, 0);
     lines.push(`🟠 ${toPersianDigits(sorted.length)} قسط · ${formatTelegramMoney(total, 'TOMAN')}`);
+    lines.push('');
+  }
+
+  if (scope === 'month') {
+    const total = sorted.reduce((sum, item) => sum + item.amountToman, 0);
+    lines.push(`📌 ${toPersianDigits(sorted.length)} قسط · ${formatTelegramMoney(total, 'TOMAN')}`);
     lines.push('');
   }
 
