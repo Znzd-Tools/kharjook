@@ -24,6 +24,15 @@ import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { DetailCard } from '@/features/assets/components/DetailCard';
 import {
+  ConvertTransactionCard,
+  convertGroupsForWallet,
+} from '@/features/transactions/components/ConvertTransactionCard';
+import {
+  groupConvertTransactions,
+  transactionIdsInConvertGroups,
+  type ConvertTransactionGroup,
+} from '@/features/transactions/utils/convert-transaction';
+import {
   TransactionHistoryTypeFilter,
   type TxHistoryTypeFilter,
 } from '@/features/transactions/components/TransactionHistoryTypeFilter';
@@ -68,6 +77,40 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
     return txs.filter((tx) => tx.type === txTypeFilter);
   }, [stats, txTypeFilter]);
 
+  const convertGroups = useMemo(
+    () =>
+      stats
+        ? convertGroupsForWallet(walletId, groupConvertTransactions(transactions))
+        : [],
+    [stats, walletId, transactions]
+  );
+  const convertTxIds = useMemo(
+    () => transactionIdsInConvertGroups(transactions),
+    [transactions]
+  );
+  const walletHistoryItems = useMemo(() => {
+    if (!stats) return [];
+    type HistoryItem =
+      | { kind: 'convert'; date: string; group: ConvertTransactionGroup }
+      | { kind: 'tx'; date: string; tx: Transaction };
+    const items: HistoryItem[] = [];
+    for (const group of convertGroups) {
+      if (txTypeFilter !== 'ALL') {
+        const matches =
+          (txTypeFilter === 'SELL' && group.sell.target_wallet_id === walletId) ||
+          (txTypeFilter === 'BUY' && group.buy.source_wallet_id === walletId);
+        if (!matches) continue;
+      }
+      items.push({ kind: 'convert', date: group.sell.date_string, group });
+    }
+    for (const tx of visibleWalletTxs) {
+      if (convertTxIds.has(tx.id)) continue;
+      items.push({ kind: 'tx', date: tx.date_string, tx });
+    }
+    items.sort((a, b) => b.date.localeCompare(a.date));
+    return items;
+  }, [stats, convertGroups, visibleWalletTxs, convertTxIds, txTypeFilter, walletId]);
+
   if (!wallet || !stats) {
     return (
       <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
@@ -95,6 +138,23 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
     } catch (err) {
       console.error(err);
       toast.error('خطا در حذف رکورد.');
+    }
+  };
+
+  const deleteConvert = async (group: ConvertTransactionGroup) => {
+    if (!window.confirm('آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟')) return;
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', [group.sell.id, group.buy.id]);
+      if (error) throw error;
+      setTransactions((prev) =>
+        prev.filter((tx) => tx.id !== group.sell.id && tx.id !== group.buy.id)
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('خطا در حذف تبدیل.');
     }
   };
 
@@ -171,12 +231,27 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
                 هنوز تراکنشی برای این کیف پول ثبت نشده.
               </div>
             )}
-            {stats.transactions.length > 0 && visibleWalletTxs.length === 0 && (
+            {stats.transactions.length > 0 && visibleWalletTxs.length === 0 && walletHistoryItems.length === 0 && (
               <div className="text-center text-slate-500 text-sm py-6">
                 تراکنشی با این نوع وجود ندارد.
               </div>
             )}
-            {visibleWalletTxs.map((tx) => (
+            {walletHistoryItems.map((item) => {
+              if (item.kind === 'convert') {
+                return (
+                  <ConvertTransactionCard
+                    key={item.group.operationId}
+                    group={item.group}
+                    assets={assets}
+                    onEdit={() =>
+                      router.push(`/transactions/${item.group.sell.id}/edit`)
+                    }
+                    onDelete={() => void deleteConvert(item.group)}
+                  />
+                );
+              }
+              const tx = item.tx;
+              return (
               <TxRow
                 key={tx.id}
                 tx={tx}
@@ -187,7 +262,8 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
                 onEdit={() => router.push(`/transactions/${tx.id}/edit`)}
                 onDelete={() => deleteTx(tx.id)}
               />
-            ))}
+            );
+            })}
           </div>
         </div>
       </div>

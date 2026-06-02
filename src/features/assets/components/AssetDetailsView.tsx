@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, ArrowRight, Edit3, Plus, Target, Trash2 } from 'lucide-react';
+import { Activity, ArrowLeftRight, ArrowRight, Edit3, Plus, TargetIcon, Trash2 } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -25,6 +25,16 @@ import {
   TransactionHistoryTypeFilter,
   type TxHistoryTypeFilter,
 } from '@/features/transactions/components/TransactionHistoryTypeFilter';
+import {
+  ConvertTransactionCard,
+  convertGroupsForAsset,
+} from '@/features/transactions/components/ConvertTransactionCard';
+import {
+  CONVERT_UI_MODE,
+  groupConvertTransactions,
+  transactionIdsInConvertGroups,
+  type ConvertTransactionGroup,
+} from '@/features/transactions/utils/convert-transaction';
 
 const TYPE_LABELS: Record<string, string> = {
   BUY: 'خرید',
@@ -62,6 +72,36 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
     return assetTxsSorted.filter((tx) => tx.type === txTypeFilter);
   }, [assetTxsSorted, txTypeFilter]);
 
+  const convertGroups = useMemo(
+    () => convertGroupsForAsset(assetId, groupConvertTransactions(transactions)),
+    [assetId, transactions]
+  );
+  const convertTxIds = useMemo(
+    () => transactionIdsInConvertGroups(transactions),
+    [transactions]
+  );
+  const assetHistoryItems = useMemo(() => {
+    type HistoryItem =
+      | { kind: 'convert'; date: string; group: ConvertTransactionGroup }
+      | { kind: 'tx'; date: string; tx: (typeof assetTxsSorted)[number] };
+    const items: HistoryItem[] = [];
+    for (const group of convertGroups) {
+      if (txTypeFilter !== 'ALL') {
+        const matches =
+          (txTypeFilter === 'SELL' && group.sell.source_asset_id === assetId) ||
+          (txTypeFilter === 'BUY' && group.buy.target_asset_id === assetId);
+        if (!matches) continue;
+      }
+      items.push({ kind: 'convert', date: group.sell.date_string, group });
+    }
+    for (const tx of visibleAssetTxs) {
+      if (convertTxIds.has(tx.id)) continue;
+      items.push({ kind: 'tx', date: tx.date_string, tx });
+    }
+    items.sort((a, b) => b.date.localeCompare(a.date));
+    return items;
+  }, [convertGroups, visibleAssetTxs, convertTxIds, txTypeFilter, assetId]);
+
   const snapshots = useMemo(
     () => buildAssetSnapshots(assets, transactions, currencyMode, usdRate),
     [assets, transactions, currencyMode, usdRate]
@@ -98,12 +138,20 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           allowSell: true,
         });
         if (!suggestion) return null;
-        return { goalId: goal.id, ...suggestion };
+        const convertTargetAmount =
+          suggestion.action === 'buy' &&
+          kind === 'quantity' &&
+          progress.remaining > 0
+            ? String(progress.remaining)
+            : undefined;
+        return {
+          goalId: goal.id,
+          action: suggestion.action,
+          message: suggestion.message,
+          convertTargetAmount,
+        };
       })
-      .filter(
-        (row): row is { goalId: string; action: 'buy' | 'sell'; message: string } =>
-          row !== null
-      );
+      .filter((row): row is NonNullable<typeof row> => row !== null);
   }, [asset, assetGoals, snapshots, totalValueToman, currencyMode, usdRate]);
 
   if (!asset) {
@@ -148,6 +196,34 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
     } catch {
       toast.error('خطا در حذف رکورد.');
     }
+  };
+
+  const deleteConvert = async (group: ConvertTransactionGroup) => {
+    if (!window.confirm('آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟')) return;
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', [group.sell.id, group.buy.id]);
+      if (error) throw error;
+      setTransactions((prev) =>
+        prev.filter((tx) => tx.id !== group.sell.id && tx.id !== group.buy.id)
+      );
+    } catch {
+      toast.error('خطا در حذف تبدیل.');
+    }
+  };
+
+  const openConvert = (params?: { targetAmount?: string }) => {
+    const query = new URLSearchParams({
+      type: CONVERT_UI_MODE,
+      assetId: asset.id,
+    });
+    if (params?.targetAmount) {
+      query.set('targetAssetId', asset.id);
+      query.set('targetAmount', params.targetAmount);
+    }
+    router.push(`/transactions/new?${query.toString()}`);
   };
 
   return (
@@ -234,7 +310,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         {assetGoals.length > 0 && (
           <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3">
             <div className="flex items-center gap-2 text-purple-300">
-              <Target size={16} />
+              <TargetIcon size={16} />
               <h3 className="text-sm font-semibold">پیشرفت هدف</h3>
             </div>
             <div className="space-y-3">
@@ -258,16 +334,29 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
               <div className="space-y-2 rounded-xl border border-purple-400/10 bg-purple-500/5 px-3 py-2.5">
                 <p className="text-[10px] font-semibold text-purple-300">پیشنهاد</p>
                 <ul className="space-y-1.5">
-                  {assetGoalSuggestions.map((item) => (
-                    <li
-                      key={item.goalId}
-                      className={`text-[10px] leading-relaxed ${
-                        item.action === 'buy' ? 'text-emerald-300' : 'text-rose-300'
-                      }`}
-                    >
-                      {item.message}
-                    </li>
-                  ))}
+                {assetGoalSuggestions.map((item) => (
+                  <li key={item.goalId}>
+                    {item.action === 'buy' && item.convertTargetAmount ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openConvert({ targetAmount: item.convertTargetAmount })
+                        }
+                        className="text-[10px] leading-relaxed text-emerald-300 hover:text-emerald-200 text-right w-full"
+                      >
+                        {item.message}
+                      </button>
+                    ) : (
+                      <span
+                        className={`text-[10px] leading-relaxed block ${
+                          item.action === 'buy' ? 'text-emerald-300' : 'text-rose-300'
+                        }`}
+                      >
+                        {item.message}
+                      </span>
+                    )}
+                  </li>
+                ))}
                 </ul>
               </div>
             )}
@@ -324,12 +413,26 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
                 تراکنشی ثبت نشده است.
               </div>
             )}
-            {assetTxsSorted.length > 0 && visibleAssetTxs.length === 0 && (
+            {assetTxsSorted.length > 0 && visibleAssetTxs.length === 0 && assetHistoryItems.length === 0 && (
               <div className="text-center text-slate-500 text-sm py-4">
                 تراکنشی با این نوع وجود ندارد.
               </div>
             )}
-            {visibleAssetTxs.map((tx) => {
+            {assetHistoryItems.map((item) => {
+              if (item.kind === 'convert') {
+                return (
+                  <ConvertTransactionCard
+                    key={item.group.operationId}
+                    group={item.group}
+                    assets={assets}
+                    onEdit={() =>
+                      router.push(`/transactions/${item.group.sell.id}/edit`)
+                    }
+                    onDelete={() => void deleteConvert(item.group)}
+                  />
+                );
+              }
+              const tx = item.tx;
               const categoryTitle =
                 (tx.type === 'INCOME' || tx.type === 'EXPENSE') && tx.category_id
                   ? categories.find((c) => c.id === tx.category_id)?.name ?? null
@@ -403,13 +506,24 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         </div>
       </div>
 
-      <button
-        onClick={() => router.push(`/transactions/new?assetId=${asset.id}`)}
-        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2 z-30"
-      >
-        <Plus size={20} />
-        ثبت عملیات جدید
-      </button>
+      <div className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 flex flex-col gap-2 z-30">
+        <button
+          type="button"
+          onClick={() => openConvert()}
+          className="w-full bg-violet-600 hover:bg-violet-500 text-white p-3.5 rounded-2xl font-bold shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all flex justify-center items-center gap-2"
+        >
+          <ArrowLeftRight size={18} />
+          تبدیل این دارایی
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/transactions/new?assetId=${asset.id}`)}
+          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-3.5 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2"
+        >
+          <Plus size={18} />
+          ثبت عملیات جدید
+        </button>
+      </div>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
+import { assetHolding } from '@/features/transactions/utils/convert-transaction';
 
 export type EndpointKind = 'wallet' | 'asset' | 'person';
 
@@ -68,29 +69,12 @@ export function EndpointSheetPicker({
 
   const assetHoldings = useMemo(() => {
     if (!allow.includes('asset')) return new Map<string, number>();
-    // Lightweight fold — we don't need PnL here, just current holdings.
-    // Must support both legacy BUY/SELL rows and polymorphic asset-side
-    // INCOME/EXPENSE rows.
     const map = new Map<string, number>();
-    for (const tx of transactions) {
-      const isAcquire = tx.type === 'BUY' || tx.type === 'INCOME';
-      const isDispose = tx.type === 'SELL' || tx.type === 'EXPENSE';
-      if (!isAcquire && !isDispose) continue;
-
-      const assetId = isAcquire
-        ? tx.target_asset_id ?? tx.asset_id
-        : tx.source_asset_id ?? tx.asset_id;
-      if (!assetId) continue;
-
-      const rawAmount = tx.amount ?? (isAcquire ? tx.target_amount : tx.source_amount);
-      const amount = Number(rawAmount);
-      if (!Number.isFinite(amount) || amount <= 0) continue;
-
-      const next = (map.get(assetId) ?? 0) + (isAcquire ? amount : -amount);
-      map.set(assetId, next);
+    for (const asset of assets) {
+      map.set(asset.id, assetHolding(asset.id, transactions));
     }
     return map;
-  }, [transactions, allow]);
+  }, [assets, transactions, allow]);
 
   const filteredAssets = useMemo(() => {
     if (!allow.includes('asset')) return [];

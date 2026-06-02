@@ -22,7 +22,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -111,11 +110,12 @@ export function ManageAssetsView() {
       ? `${formData.priceSourceId} (نامعتبر)`
       : null;
 
-  if (!user) return null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
+
+  if (!user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +281,7 @@ export function ManageAssetsView() {
     });
   };
 
-  const onDragStart = (_event: DragStartEvent) => {
+  const onDragStart = () => {
     haptic('light');
   };
 

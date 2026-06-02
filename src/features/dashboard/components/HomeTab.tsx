@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -12,7 +12,7 @@ import {
   PieChart,
   RefreshCw,
   Sparkles,
-  Target,
+  TargetIcon,
   TrendingUp,
   Wallet,
 } from 'lucide-react';
@@ -260,7 +260,7 @@ export function HomeTab() {
 
     subDistribution.sort((a, b) => b.valueToman - a.valueToman);
 
-    const goalComparison: HomeGoalRow[] = goals
+    const goalComparison = goals
       .map((goal) => {
         if (goal.target_kind === 'quantity') {
           if (goal.scope !== 'asset') return null;
@@ -349,8 +349,8 @@ export function HomeTab() {
           }),
         };
       })
-      .filter((row): row is HomeGoalRow => row !== null)
-      .sort((a, b) => b.targetValue - a.targetValue);
+      .filter((row) => row !== null) as HomeGoalRow[];
+    goalComparison.sort((a, b) => b.targetValue - a.targetValue);
 
     const buildMaxExpense = (byCategory: Map<string, number>) => {
       const maxEntry = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])[0];
@@ -484,8 +484,11 @@ export function HomeTab() {
     currencyMode === 'USD' ? stats.maxExpenseUsd : stats.maxExpenseToman;
   const displayMaxExpense = activeMaxExpense?.value ?? 0;
 
-  const convertDistribution = (valueToman: number) =>
-    currencyMode === 'USD' && usdRate > 0 ? valueToman / usdRate : valueToman;
+  const convertDistribution = useCallback(
+    (valueToman: number) =>
+      currencyMode === 'USD' && usdRate > 0 ? valueToman / usdRate : valueToman,
+    [currencyMode, usdRate]
+  );
 
   const topAllocationRows = useMemo(() => {
     const total = stats.mainDistribution.reduce((sum, row) => sum + row.valueToman, 0);
@@ -494,7 +497,7 @@ export function HomeTab() {
       value: convertDistribution(row.valueToman),
       percent: total > 0 ? (row.valueToman / total) * 100 : 0,
     }));
-  }, [stats.mainDistribution, currencyMode, usdRate]);
+  }, [stats.mainDistribution, convertDistribution]);
 
   const subAssetChartRows = useMemo(() => {
     return stats.subDistribution.slice(0, 6).map((row) => ({
@@ -502,7 +505,7 @@ export function HomeTab() {
       value: convertDistribution(row.valueToman),
       label: formatCurrency(convertDistribution(row.valueToman), currencyMode),
     }));
-  }, [stats.subDistribution, currencyMode, usdRate]);
+  }, [stats.subDistribution, currencyMode, convertDistribution]);
 
   const mainGroupChartRows = useMemo(() => {
     return stats.mainDistribution.slice(0, 6).map((row) => ({
@@ -510,7 +513,7 @@ export function HomeTab() {
       value: convertDistribution(row.valueToman),
       label: formatCurrency(convertDistribution(row.valueToman), currencyMode),
     }));
-  }, [stats.mainDistribution, currencyMode, usdRate]);
+  }, [stats.mainDistribution, currencyMode, convertDistribution]);
 
   const currentMonthDeadlineSummary = useMemo(() => {
     const currentMonthKey = `${today.jy}/${String(today.jm).padStart(2, '0')}/`;
@@ -960,7 +963,7 @@ function HomeGoalsSection({
       <div className="relative mb-4 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-purple-300">
-            <Target size={16} />
+            <TargetIcon size={16} />
             <p className="text-sm font-bold text-white">هدف‌های سبد</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-500">

@@ -52,8 +52,10 @@ export function PwaInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState<boolean>(() => isStandaloneMode());
 
   useEffect(() => {
-    setDismissed(readDismissedFromStorage());
-    setStorageReady(true);
+    queueMicrotask(() => {
+      setDismissed(readDismissedFromStorage());
+      setStorageReady(true);
+    });
   }, []);
 
   const dismissPermanently = () => {

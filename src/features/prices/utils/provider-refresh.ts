@@ -140,7 +140,7 @@ export async function fetchProviderQuotesDetailed(
   let response: Response;
   try {
     response = await doFetch();
-  } catch (first) {
+  } catch {
     await new Promise((r) => setTimeout(r, 700));
     response = await doFetch();
   }

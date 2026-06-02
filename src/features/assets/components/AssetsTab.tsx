@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Plus, Settings2, Target, TrendingUp } from 'lucide-react';
+import { Activity, Plus, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import type { Asset, Category } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -91,7 +91,7 @@ export function AssetsTab() {
             aria-label="هدف‌ها"
             title="هدف‌ها"
           >
-            <Target size={18} />
+            <TargetIcon size={18} />
           </button>
           <button
             type="button"

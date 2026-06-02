@@ -12,7 +12,6 @@ import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type {
   Loan,
-  LoanInstallment,
   LoanIntervalPeriod,
   LoanType,
   Transaction,

@@ -43,11 +43,12 @@ export function ManagePersonsView() {
     return map;
   }, [persons, transactions]);
 
-  if (!user) return null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
+
+  if (!user) return null;
 
   const reset = () => {
     setEditingId(null);

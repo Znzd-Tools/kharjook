@@ -26,6 +26,7 @@ import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { rollupCategories } from '@/features/reports/utils/category-rollup';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { countConvertOperations } from '@/features/transactions/utils/convert-transaction';
 
 const REPORT_SCOPES: PeriodKind[] = ['month', 'year', 'all'];
 
@@ -91,6 +92,16 @@ export function ReportsIndexView() {
       unrealizedMissingCount,
     };
   }, [assets, dailyPrices, transactions, usdRate, todayStr, scope]);
+
+  const convertCount = useMemo(() => {
+    const period = clampPeriodToToday(currentPeriod(scope));
+    const start = formatJalaali(period.start);
+    const end = formatJalaali(period.end);
+    const inPeriod = transactions.filter(
+      (tx) => tx.date_string >= start && tx.date_string <= end
+    );
+    return countConvertOperations(inPeriod);
+  }, [transactions, scope]);
 
   const scopeLabel = formatCurrentPeriodLabel(scope);
   const cashflowHref = buildReportHref('cashflow', cashflow.period);
@@ -190,6 +201,20 @@ export function ReportsIndexView() {
             </p>
           )}
         </Link>
+
+        {convertCount > 0 && (
+          <div className="bg-[#1A1B26] border border-violet-500/15 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-violet-300">
+              <Coins size={16} />
+              <span className="text-sm font-bold text-white">تبدیل دارایی</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
+            <p className="mt-2 text-2xl font-black text-violet-300">
+              {convertCount.toLocaleString('fa-IR')}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">عملیات تبدیل ثبت‌شده</p>
+          </div>
+        )}
       </main>
     </div>
   );

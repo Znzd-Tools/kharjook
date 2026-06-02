@@ -1,6 +1,6 @@
 'use client';
 
-import { Target } from 'lucide-react';
+import { TargetIcon } from 'lucide-react';
 import type { GoalProgress } from '@/features/goals/utils/goal-progress';
 import {
   computeGoalBarMetricsForKind,
@@ -44,7 +44,7 @@ export function GoalProgressDisplay({
       <div className={`min-w-0 space-y-1 ${className}`}>
         <div className="flex items-center justify-between gap-2">
           <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px] text-purple-300">
-            {showIcon && <Target size={10} className="shrink-0" />}
+            {showIcon && <TargetIcon size={10} className="shrink-0" />}
             <span className="truncate">{label}</span>
           </span>
           <span
@@ -64,7 +64,7 @@ export function GoalProgressDisplay({
       <div className="flex items-start justify-between gap-3">
         {label ? (
           <p className="flex items-center gap-1.5 text-xs text-slate-400">
-            {showIcon && <Target size={12} className="shrink-0 text-purple-300" />}
+            {showIcon && <TargetIcon size={12} className="shrink-0 text-purple-300" />}
             <span>{label}</span>
           </p>
         ) : (

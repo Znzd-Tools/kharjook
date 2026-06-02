@@ -195,6 +195,8 @@ export interface Transaction {
    */
   amount_toman_at_time: number | null;
   amount_usd_at_time: number | null;
+  /** Links paired rows (e.g. convert SELL + BUY). */
+  operation_id?: string | null;
 }
 
 export interface Loan {

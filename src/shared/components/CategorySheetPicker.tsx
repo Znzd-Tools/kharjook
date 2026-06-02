@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Ban, ChevronDown, ChevronLeft, Folder, Search } from 'lucide-react';
 import { BottomSheet } from '@/shared/components/BottomSheet';
 import { haptic } from '@/shared/utils/haptics';
@@ -148,16 +148,21 @@ export function CategorySheetPicker({
   );
   const isSearching = query.trim().length > 0;
 
-  useEffect(() => {
-    if (!value || isSearching) return;
+  const pathExpandedIds = useMemo(() => {
+    if (!value || isSearching) return null;
     const next = new Set<string>();
     let cursor = maps.byId.get(value) ?? null;
     while (cursor?.parent_id) {
       next.add(cursor.parent_id);
       cursor = maps.byId.get(cursor.parent_id) ?? null;
     }
-    if (next.size > 0) setExpandedIds((prev) => (prev.size === 0 ? next : prev));
+    return next.size > 0 ? next : null;
   }, [value, maps, isSearching]);
+
+  const visibleExpandedIds = useMemo(() => {
+    if (expandedIds.size > 0) return expandedIds;
+    return pathExpandedIds ?? expandedIds;
+  }, [expandedIds, pathExpandedIds]);
 
   const commit = (id: string | null) => {
     haptic('selection');
@@ -271,7 +276,7 @@ export function CategorySheetPicker({
                 parentId={null}
                 depth={0}
                 maps={maps}
-                expandedIds={expandedIds}
+                expandedIds={visibleExpandedIds}
                 onToggleExpanded={toggleExpanded}
                 value={value}
                 onSelect={commit}

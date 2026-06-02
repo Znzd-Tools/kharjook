@@ -57,6 +57,18 @@ import {
   type EndpointKind,
 } from '@/features/transactions/components/EndpointSheetPicker';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
+import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
+import {
+  applyMatchBuyValue,
+  assetHolding,
+  buildConvertPayloads,
+  buildInitialConvertForm,
+  CONVERT_UI_MODE,
+  resolveConvertPair,
+  validateConvertForm,
+  type ConvertFormState,
+  type UiTransactionMode,
+} from '@/features/transactions/utils/convert-transaction';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -299,12 +311,39 @@ const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
   },
 };
 
-const TYPE_TABS: TransactionType[] = ['BUY', 'SELL', 'TRANSFER', 'INCOME', 'EXPENSE'];
+const UI_TABS: UiTransactionMode[] = [
+  'BUY',
+  'SELL',
+  CONVERT_UI_MODE,
+  'TRANSFER',
+  'INCOME',
+  'EXPENSE',
+];
+
+const CONVERT_TAB_STYLE: TypeStyle = {
+  label: 'تبدیل',
+  icon: 'C',
+  accentBg: 'bg-violet-600',
+  accentBorder: 'border-violet-500/30',
+  accentText: 'text-violet-400',
+  accentBtnBg: 'bg-violet-600 hover:bg-violet-500',
+  accentBtnShadow: 'shadow-[0_4px_20px_rgba(124,58,237,0.3)]',
+  accentGradient: 'from-violet-500/15 to-transparent',
+};
+
+function styleForUiMode(mode: UiTransactionMode): TypeStyle {
+  if (mode === CONVERT_UI_MODE) return CONVERT_TAB_STYLE;
+  return TYPE_STYLES[mode];
+}
 
 export interface AddTransactionViewProps {
   assetId?: string;
   walletId?: string;
+  targetAssetId?: string;
+  sourceAmount?: string;
+  targetAmount?: string;
   defaultType?: TransactionType;
+  defaultUiMode?: UiTransactionMode;
   transactionId?: string;
 }
 
@@ -413,20 +452,6 @@ function buildInitialForm(
     }
   }
   return f;
-}
-
-function applyTypeSwitch(prev: FormState, type: TransactionType): FormState {
-  if (type === prev.type) return prev;
-  const next = TYPE_SHAPES[type];
-  return {
-    ...prev,
-    type,
-    sourceKind: prev.sourceKind && next.source?.includes(prev.sourceKind) ? prev.sourceKind : null,
-    sourceId:   prev.sourceKind && next.source?.includes(prev.sourceKind) ? prev.sourceId   : null,
-    targetKind: prev.targetKind && next.target?.includes(prev.targetKind) ? prev.targetKind : null,
-    targetId:   prev.targetKind && next.target?.includes(prev.targetKind) ? prev.targetId   : null,
-    categoryId: null,
-  };
 }
 
 /**
@@ -558,27 +583,6 @@ function recomputeTransferTarget(
   }
 
   return next;
-}
-
-/** Holdings of an asset across existing transactions. */
-function assetHolding(assetId: string, transactions: Transaction[]): number {
-  let total = 0;
-  for (const tx of transactions) {
-    const isAcquire = tx.type === 'BUY' || tx.type === 'INCOME';
-    const isDispose = tx.type === 'SELL' || tx.type === 'EXPENSE';
-    if (!isAcquire && !isDispose) continue;
-
-    const txAssetId = isAcquire
-      ? tx.target_asset_id ?? tx.asset_id
-      : tx.source_asset_id ?? tx.asset_id;
-    if (txAssetId !== assetId) continue;
-
-    const rawAmount = tx.amount ?? (isAcquire ? tx.target_amount : tx.source_amount);
-    const amount = Number(rawAmount);
-    if (!Number.isFinite(amount) || amount <= 0) continue;
-    total += isAcquire ? amount : -amount;
-  }
-  return total;
 }
 
 function sourceBalance(
@@ -985,7 +989,11 @@ function buildTradeSnapshots(
 export function AddTransactionView({
   assetId,
   walletId,
+  targetAssetId,
+  sourceAmount,
+  targetAmount,
   defaultType,
+  defaultUiMode,
   transactionId,
 }: AddTransactionViewProps) {
   const router = useRouter();
@@ -1009,9 +1017,27 @@ export function AddTransactionView({
     [transactionId, transactions]
   );
 
+  const convertPair = useMemo(
+    () => (txToEdit ? resolveConvertPair(txToEdit, transactions) : null),
+    [txToEdit, transactions]
+  );
+
+  const initialUiMode: UiTransactionMode =
+    defaultUiMode ??
+    (convertPair ? CONVERT_UI_MODE : defaultType ?? 'BUY');
+
+  const [uiMode, setUiMode] = useState<UiTransactionMode>(initialUiMode);
   const [rows, setRows] = useState<FormState[]>(() => [
     buildInitialForm(txToEdit, { assetId, walletId, defaultType }, usdRate),
   ]);
+  const [convertForm, setConvertForm] = useState<ConvertFormState>(() =>
+    buildInitialConvertForm(
+      { assetId, targetAssetId, sourceAmount, targetAmount },
+      assets,
+      usdRate,
+      convertPair ?? undefined
+    )
+  );
   // Collapsed state lives out-of-band: it's pure UI and we don't want to bloat
   // FormState (which is serialized into the DB payload).
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
@@ -1021,11 +1047,26 @@ export function AddTransactionView({
 
   useEffect(() => {
     if (txToEdit) {
-      setRows([buildInitialForm(txToEdit, {}, usdRate)]);
+      if (convertPair) {
+        setUiMode(CONVERT_UI_MODE);
+        setConvertForm(buildInitialConvertForm({}, assets, usdRate, convertPair));
+      } else {
+        setUiMode(txToEdit.type);
+        setRows([buildInitialForm(txToEdit, {}, usdRate)]);
+      }
       setCollapsed({});
+    } else if (defaultUiMode === CONVERT_UI_MODE) {
+      setUiMode(CONVERT_UI_MODE);
+      setConvertForm(
+        buildInitialConvertForm(
+          { assetId, targetAssetId, sourceAmount, targetAmount },
+          assets,
+          usdRate
+        )
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txToEdit?.id]);
+  }, [txToEdit?.id, convertPair?.sell.id, defaultUiMode]);
 
   if (!user) return null;
   if (transactionId && !txToEdit) {
@@ -1033,13 +1074,24 @@ export function AddTransactionView({
   }
 
   const isEdit = !!txToEdit;
-  const sharedType = rows[0].type;
-  const sharedStyle = TYPE_STYLES[sharedType];
+  const isConvertMode = uiMode === CONVERT_UI_MODE;
+  const isConvertEdit = isEdit && !!convertPair;
+  const sharedType = rows[0]?.type ?? 'BUY';
+  const sharedStyle = styleForUiMode(uiMode);
 
-  const switchType = (type: TransactionType) => {
+  const switchUiMode = (mode: UiTransactionMode) => {
     if (isEdit) return;
-    if (type === sharedType) return;
-    setRows((prev) => prev.map((r) => applyTypeSwitch(r, type)));
+    if (mode === uiMode) return;
+    setUiMode(mode);
+    if (mode === CONVERT_UI_MODE) {
+      setConvertForm(
+        buildInitialConvertForm({ assetId, targetAssetId, sourceAmount, targetAmount }, assets, usdRate)
+      );
+    } else {
+      setRows([
+        buildInitialForm(undefined, { defaultType: mode, assetId, walletId }, usdRate),
+      ]);
+    }
   };
 
   const updateRow = (idx: number, updater: (prev: FormState) => FormState) => {
@@ -1140,6 +1192,69 @@ export function AddTransactionView({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isConvertMode) {
+      const err = validateConvertForm(convertForm, transactions, wallets);
+      if (err) {
+        toast.error(err);
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        const effective = applyMatchBuyValue(convertForm);
+        const operationId = effective.operationId ?? crypto.randomUUID();
+        const [sellPayload, buyPayload] = buildConvertPayloads(
+          effective,
+          user.id,
+          wallets,
+          currencyRates,
+          usdRate,
+          operationId
+        );
+
+        if (isConvertEdit && effective.sellTransactionId && effective.buyTransactionId) {
+          const [sellRes, buyRes] = await Promise.all([
+            supabase
+              .from('transactions')
+              .update(sellPayload)
+              .eq('id', effective.sellTransactionId)
+              .select()
+              .single(),
+            supabase
+              .from('transactions')
+              .update(buyPayload)
+              .eq('id', effective.buyTransactionId)
+              .select()
+              .single(),
+          ]);
+          if (sellRes.error) throw sellRes.error;
+          if (buyRes.error) throw buyRes.error;
+          const updated = [sellRes.data, buyRes.data] as Transaction[];
+          setTransactions((prev) =>
+            prev.map((t) => updated.find((row) => row.id === t.id) ?? t)
+          );
+          await persistTradeSnapshots(updated);
+          toast.success('تبدیل به‌روزرسانی شد.');
+        } else {
+          const { data, error } = await supabase
+            .from('transactions')
+            .insert([sellPayload, buyPayload])
+            .select();
+          if (error) throw error;
+          const inserted = (data ?? []) as Transaction[];
+          setTransactions((prev) => [...inserted.slice().reverse(), ...prev]);
+          await persistTradeSnapshots(inserted);
+          toast.success('تبدیل ثبت شد.');
+        }
+        router.back();
+      } catch (err2) {
+        console.error(err2);
+        toast.error('خطا در ثبت تبدیل.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     for (let i = 0; i < rows.length; i++) {
       const err = validateForm(rows[i], wallets);
       if (err) {
@@ -1219,26 +1334,30 @@ export function AddTransactionView({
         </button>
         <h2 className="text-lg font-bold text-white flex-1">
           {isEdit
-            ? 'ویرایش تراکنش'
-            : rows.length > 1
-              ? `ثبت ${rows.length} تراکنش`
-              : 'ثبت تراکنش جدید'}
+            ? isConvertEdit
+              ? 'ویرایش تبدیل'
+              : 'ویرایش تراکنش'
+            : isConvertMode
+              ? 'تبدیل دارایی'
+              : rows.length > 1
+                ? `ثبت ${rows.length} تراکنش`
+                : 'ثبت تراکنش جدید'}
         </h2>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         {/* Type tabs */}
-        <div className="grid grid-cols-5 gap-1 bg-[#1A1B26] p-1 rounded-xl">
-          {TYPE_TABS.map((t) => {
-            const s = TYPE_STYLES[t];
-            const active = sharedType === t;
+        <div className="grid grid-cols-6 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          {UI_TABS.map((t) => {
+            const s = styleForUiMode(t);
+            const active = uiMode === t;
             return (
               <button
                 key={t}
                 type="button"
-                onClick={() => switchType(t)}
-                disabled={isEdit && t !== sharedType}
-                className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                onClick={() => switchUiMode(t)}
+                disabled={isEdit && t !== uiMode}
+                className={`py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all ${
                   active
                     ? `${s.accentBg} text-white shadow-md`
                     : 'text-slate-400 hover:text-slate-200 disabled:opacity-30'
@@ -1251,10 +1370,22 @@ export function AddTransactionView({
         </div>
         {isEdit && (
           <p className="text-[11px] text-slate-500 -mt-2">
-            نوع تراکنش پس از ثبت قابل تغییر نیست.
+            {isConvertEdit
+              ? 'تبدیل پس از ثبت به‌صورت فروش + خرید ویرایش می‌شود.'
+              : 'نوع تراکنش پس از ثبت قابل تغییر نیست.'}
           </p>
         )}
 
+        {isConvertMode ? (
+          <ConvertTransactionForm
+            form={convertForm}
+            onChange={(updater) => setConvertForm((prev) => updater(prev))}
+            assets={assets}
+            wallets={wallets}
+            transactions={transactions}
+          />
+        ) : (
+          <>
         {/* Rows */}
         <div className="space-y-4">
           {rows.map((form, idx) => (
@@ -1305,6 +1436,8 @@ export function AddTransactionView({
           categories={categories}
           style={sharedStyle}
         />
+          </>
+        )}
 
         <button
           type="submit"
@@ -1314,10 +1447,14 @@ export function AddTransactionView({
           {isSubmitting
             ? 'در حال ارسال...'
             : isEdit
-              ? 'ثبت تغییرات'
-              : rows.length > 1
-                ? `ثبت ${rows.length} تراکنش`
-                : 'ثبت تراکنش'}
+              ? isConvertEdit
+                ? 'ثبت تغییرات تبدیل'
+                : 'ثبت تغییرات'
+              : isConvertMode
+                ? 'ثبت تبدیل'
+                : rows.length > 1
+                  ? `ثبت ${rows.length} تراکنش`
+                  : 'ثبت تراکنش'}
         </button>
       </form>
     </div>

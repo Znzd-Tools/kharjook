@@ -11,7 +11,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -62,11 +61,12 @@ export function ManageWalletsView() {
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [pendingWalletIds, setPendingWalletIds] = useState<Set<string>>(new Set());
 
-  if (!user) return null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
+
+  if (!user) return null;
 
   const resetForm = () => setForm(emptyForm);
 
@@ -249,7 +249,7 @@ export function ManageWalletsView() {
     });
   };
 
-  const onDragStart = (_event: DragStartEvent) => {
+  const onDragStart = () => {
     haptic('light');
   };
 

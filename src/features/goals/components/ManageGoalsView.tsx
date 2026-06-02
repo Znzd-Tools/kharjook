@@ -9,7 +9,7 @@ import {
   Edit3,
   Folder,
   Percent,
-  Target,
+  TargetIcon,
   Trash2,
   X,
 } from 'lucide-react';
@@ -455,7 +455,7 @@ export function ManageGoalsView() {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-purple-300">
-              <Target size={18} />
+              <TargetIcon size={18} />
               <span className="font-semibold">
                 {form.editingId ? 'ویرایش هدف' : 'هدف جدید'}
               </span>

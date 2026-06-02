@@ -20,7 +20,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -139,11 +138,12 @@ export function ManageCategoriesView() {
     [categories, form.parentId]
   );
 
-  if (!user) return null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
+
+  if (!user) return null;
 
   const switchTab = (kind: CategoryKind) => {
     if (kind === activeKind) return;
@@ -396,7 +396,7 @@ export function ManageCategoriesView() {
     haptic('selection');
     void reorderCategorySiblings(String(active.id), String(over.id));
   };
-  const onDragStart = (_event: DragStartEvent) => {
+  const onDragStart = () => {
     haptic('light');
   };
 
