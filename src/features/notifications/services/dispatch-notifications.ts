@@ -12,7 +12,10 @@ import type {
 } from '@/shared/types/domain';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import { buildUserNotificationSnapshot } from '@/features/notifications/utils/build-user-snapshot';
-import { formatTodayCashflowMessage } from '@/features/notifications/telegram/utils/format-today-cashflow';
+import {
+  formatMonthCashflowMessage,
+  formatTodayCashflowMessage,
+} from '@/features/notifications/telegram/utils/format-today-cashflow';
 import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import {
   formatDebtsListMessage,
@@ -177,6 +180,17 @@ export async function sendTodayCashflowForUser(
   const data = await loadUserData(userId);
   const snapshot = buildUserNotificationSnapshot(data);
   const text = formatTodayCashflowMessage(snapshot.today, snapshot.todayUsd);
+  await sendTelegramToConnection(connection, text, options?.replyMarkup);
+}
+
+export async function sendMonthCashflowForUser(
+  userId: string,
+  connection: TelegramConnection,
+  options?: { replyMarkup?: TelegramReplyMarkup }
+): Promise<void> {
+  const data = await loadUserData(userId);
+  const snapshot = buildUserNotificationSnapshot(data);
+  const text = formatMonthCashflowMessage(snapshot.month, snapshot.monthUsd);
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
 }
 

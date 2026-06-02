@@ -1,9 +1,4 @@
 import type { CashflowSummary } from '@/features/notifications/utils/build-user-snapshot';
-import {
-  formatJalaaliHuman,
-  jalaaliWeekday,
-  todayJalaaliInTimezone,
-} from '@/shared/utils/jalali';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
 import {
   formatTelegramMoney,
@@ -11,32 +6,49 @@ import {
   TELEGRAM_SEPARATOR,
   toPersianDigits,
 } from '@/features/notifications/telegram/utils/format-helpers';
+import {
+  clampPeriodToToday,
+  formatPeriodLabel,
+  periodContaining,
+} from '@/shared/utils/period';
+import {
+  formatJalaaliHuman,
+  jalaaliWeekday,
+  todayJalaaliInTimezone,
+} from '@/shared/utils/jalali';
 
-export function formatTodayCashflowMessage(
-  todayToman: CashflowSummary,
-  todayUsd: CashflowSummary
+export type CashflowScope = 'day' | 'month';
+
+function formatCashflowMessage(
+  scope: CashflowScope,
+  toman: CashflowSummary,
+  usd: CashflowSummary
 ): string {
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
-  const weekday = JALALI_WEEKDAY_NAMES[jalaaliWeekday(today)] ?? '';
-  const dateLine = `${toPersianDigits(formatJalaaliHuman(today))} · ${weekday}`;
+  const heading =
+    scope === 'day' ? '📊 درآمد و هزینه امروز' : '📊 درآمد و هزینه این ماه';
+  const dateLine =
+    scope === 'day'
+      ? `${toPersianDigits(formatJalaaliHuman(today))} · ${JALALI_WEEKDAY_NAMES[jalaaliWeekday(today)] ?? ''}`
+      : formatPeriodLabel(clampPeriodToToday(periodContaining('month', today)));
 
   const lines = [
-    '📊 درآمد و هزینه امروز',
+    heading,
     TELEGRAM_SEPARATOR,
     `📅 ${dateLine}`,
     '',
     '🇮🇷 تومان',
-    `💚 درآمد: ${formatTelegramMoney(todayToman.income, 'TOMAN')}`,
-    `🔴 هزینه: ${formatTelegramMoney(todayToman.expense, 'TOMAN')}`,
-    `📈 خالص: ${formatTelegramMoney(todayToman.net, 'TOMAN')}`,
+    `💚 درآمد: ${formatTelegramMoney(toman.income, 'TOMAN')}`,
+    `🔴 هزینه: ${formatTelegramMoney(toman.expense, 'TOMAN')}`,
+    `📈 خالص: ${formatTelegramMoney(toman.net, 'TOMAN')}`,
     '',
     '🇺🇸 دلار',
-    `💚 درآمد: ${formatTelegramMoney(todayUsd.income, 'USD')}`,
-    `🔴 هزینه: ${formatTelegramMoney(todayUsd.expense, 'USD')}`,
-    `📈 خالص: ${formatTelegramMoney(todayUsd.net, 'USD')}`,
+    `💚 درآمد: ${formatTelegramMoney(usd.income, 'USD')}`,
+    `🔴 هزینه: ${formatTelegramMoney(usd.expense, 'USD')}`,
+    `📈 خالص: ${formatTelegramMoney(usd.net, 'USD')}`,
   ];
 
-  const unpriced = todayToman.unpricedCount + todayUsd.unpricedCount;
+  const unpriced = toman.unpricedCount + usd.unpricedCount;
   if (unpriced > 0) {
     lines.push(
       '',
@@ -46,4 +58,18 @@ export function formatTodayCashflowMessage(
 
   lines.push('', TELEGRAM_SEPARATOR);
   return lines.join('\n').trim();
+}
+
+export function formatTodayCashflowMessage(
+  todayToman: CashflowSummary,
+  todayUsd: CashflowSummary
+): string {
+  return formatCashflowMessage('day', todayToman, todayUsd);
+}
+
+export function formatMonthCashflowMessage(
+  monthToman: CashflowSummary,
+  monthUsd: CashflowSummary
+): string {
+  return formatCashflowMessage('month', monthToman, monthUsd);
 }

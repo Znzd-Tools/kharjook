@@ -137,10 +137,10 @@ export function NotificationSettingsSection() {
         <div className="rounded-2xl bg-[#0F1015] border border-white/5 p-4 space-y-2">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <MessageCircle size={14} className="text-sky-400" />
-            <span>منوی بات: گزارش‌ها، قیمت‌ها، درآمد/هزینه امروز</span>
+            <span>منوی بات: درآمد/هزینه، گزارش‌ها، قیمت‌ها</span>
           </div>
           <p className="text-[11px] text-slate-600 leading-relaxed">
-            پرتفوی، اقساط ماه، بروزرسانی/مشاهده قیمت‌ها و گزارش روز — از دکمه‌های بات.
+            درآمد و هزینه (امروز یا ماه)، پرتفوی، اقساط و قیمت‌ها — از دکمه‌های بات.
           </p>
         </div>
       </div>

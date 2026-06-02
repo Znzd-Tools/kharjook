@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { TelegramConnection } from '@/shared/types/domain';
 import {
   refreshAndReportPricesForUser,
+  sendMonthCashflowForUser,
   sendMonthDebtsForUser,
   sendPortfolioForUser,
   sendPricesListForUser,
@@ -10,19 +11,23 @@ import {
 import { sendTelegramMessage } from '@/features/notifications/telegram/utils/telegram-client';
 import {
   ALL_BOT_BUTTONS,
+  BOT_CASHFLOW_MENU_HINT,
   BOT_LINKED_SUCCESS,
   BOT_PRICES_MENU_HINT,
   BOT_REPORTS_MENU_HINT,
   BOT_WELCOME_LINKED,
   BOT_WELCOME_UNLINKED,
   BTN_BACK,
+  BTN_CASHFLOW_MONTH,
+  BTN_CASHFLOW_TODAY,
   BTN_GET_PRICES,
+  BTN_MENU_CASHFLOW,
   BTN_MENU_PRICES,
   BTN_MENU_REPORTS,
   BTN_MONTH_DEBTS,
   BTN_PORTFOLIO,
-  BTN_TODAY_CASHFLOW,
   BTN_UPDATE_PRICES,
+  buildCashflowReplyKeyboard,
   buildMainReplyKeyboard,
   buildPricesReplyKeyboard,
   buildReportsReplyKeyboard,
@@ -58,6 +63,13 @@ async function requireConnection(chatId: number): Promise<TelegramConnection | n
 }
 
 export async function handleBotMessage(chatId: number, text: string): Promise<void> {
+  if (text === BTN_MENU_CASHFLOW) {
+    const connection = await requireConnection(chatId);
+    if (!connection) return;
+    await sendTelegramMessage(chatId, BOT_CASHFLOW_MENU_HINT, buildCashflowReplyKeyboard());
+    return;
+  }
+
   if (text === BTN_MENU_REPORTS) {
     const connection = await requireConnection(chatId);
     if (!connection) return;
@@ -79,12 +91,22 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
     return;
   }
 
-  if (text === BTN_TODAY_CASHFLOW) {
+  if (text === BTN_CASHFLOW_TODAY) {
     const connection = await requireConnection(chatId);
     if (!connection) return;
-    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildMainReplyKeyboard());
+    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildCashflowReplyKeyboard());
     await sendTodayCashflowForUser(connection.user_id, connection, {
-      replyMarkup: buildMainReplyKeyboard(),
+      replyMarkup: buildCashflowReplyKeyboard(),
+    });
+    return;
+  }
+
+  if (text === BTN_CASHFLOW_MONTH) {
+    const connection = await requireConnection(chatId);
+    if (!connection) return;
+    await sendTelegramMessage(chatId, '⏳ در حال محاسبه...', buildCashflowReplyKeyboard());
+    await sendMonthCashflowForUser(connection.user_id, connection, {
+      replyMarkup: buildCashflowReplyKeyboard(),
     });
     return;
   }
