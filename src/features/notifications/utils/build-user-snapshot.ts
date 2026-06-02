@@ -12,9 +12,11 @@ import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import {
   clampPeriodToToday,
-  currentPeriod,
+  periodContaining,
   type Period,
 } from '@/shared/utils/period';
+import { todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
 
 export interface CashflowSummary {
   income: number;
@@ -84,8 +86,9 @@ export function buildUserNotificationSnapshot(input: {
   const usdRate =
     currencyRates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
 
-  const dayPeriod = clampPeriodToToday(currentPeriod('day'));
-  const monthPeriod = clampPeriodToToday(currentPeriod('month'));
+  const todayTehran = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  const dayPeriod: Period = { kind: 'day', start: todayTehran, end: todayTehran };
+  const monthPeriod = clampPeriodToToday(periodContaining('month', todayTehran));
 
   const todayToman = summarizeCashflow(
     transactions,
