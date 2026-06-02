@@ -19,14 +19,16 @@ const USER_AGENT =
 
 const BROWSER_LIKE_HEADERS: Record<string, string> = {
   'accept-language': 'en-US,en;q=0.9,fa;q=0.8',
-  'accept-encoding': 'gzip, deflate, br',
 };
 
 const IS_VERCEL = process.env.VERCEL === '1';
-const ABAN_FETCH_TIMEOUT_MS = IS_VERCEL ? 8_000 : 25_000;
-const ZARPAY_FETCH_TIMEOUT_MS = IS_VERCEL ? 8_500 : 25_000;
+/** Must stay under route `maxDuration` (60s). */
+const ABAN_FETCH_TIMEOUT_MS = 30_000;
+const ZARPAY_STEP_TIMEOUT_MS = 25_000;
+const ZARPAY_VM_SCRIPT_TIMEOUT_MS = 8_000;
 
-const ABORT_RETRY_DELAY_MS = 600;
+const ABORT_RETRY_DELAY_MS = 800;
+const UPSTREAM_RETRY_ATTEMPTS = IS_VERCEL ? 2 : 2;
 
 function isAbortLike(reason: unknown): boolean {
   const msg =
@@ -92,15 +94,19 @@ async function sleep(ms: number): Promise<void> {
 }
 
 async function withUpstreamRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (first) {
-    if (IS_VERCEL) throw first;
-    if (!isAbortLike(first)) throw first;
-    console.warn(`price quotes: ${label} aborted, retrying once`, first);
-    await sleep(ABORT_RETRY_DELAY_MS);
-    return await fn();
+  let last: unknown;
+  for (let attempt = 1; attempt <= UPSTREAM_RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      last = err;
+      const retryable = isAbortLike(err);
+      if (!retryable || attempt >= UPSTREAM_RETRY_ATTEMPTS) throw err;
+      console.warn(`price quotes: ${label} attempt ${attempt} failed, retrying`, err);
+      await sleep(ABORT_RETRY_DELAY_MS * attempt);
+    }
   }
+  throw last;
 }
 
 interface ProviderQuote {
@@ -135,11 +141,11 @@ function tryParseJsonPayload(payload: string): unknown | null {
   }
 }
 
-async function fetchJsonWithTimeout(
+async function fetchTextWithTimeout(
   url: string,
   timeoutMs: number,
   headers?: Record<string, string>
-): Promise<unknown> {
+): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -158,14 +164,23 @@ async function fetchJsonWithTimeout(
     if (!response.ok) {
       throw new Error(`HTTP ${response.status} ${response.statusText} body=${payload.slice(0, 180)}`);
     }
-    const parsed = tryParseJsonPayload(payload);
-    if (!parsed) {
-      throw new Error(`Upstream returned non-JSON payload: ${payload.slice(0, 180)}`);
-    }
-    return parsed;
+    return payload;
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchJsonWithTimeout(
+  url: string,
+  timeoutMs: number,
+  headers?: Record<string, string>
+): Promise<unknown> {
+  const payload = await fetchTextWithTimeout(url, timeoutMs, headers);
+  const parsed = tryParseJsonPayload(payload);
+  if (!parsed) {
+    throw new Error(`Upstream returned non-JSON payload: ${payload.slice(0, 180)}`);
+  }
+  return parsed;
 }
 
 function parseZarpayRows(payload: unknown): ZarpayCoinRow[] {
@@ -231,7 +246,7 @@ function solveZarpayCookieHeader(html: string): string {
   });
 
   for (const code of scripts) {
-    new Script(code).runInContext(context, { timeout: 5000 });
+    new Script(code).runInContext(context, { timeout: ZARPAY_VM_SCRIPT_TIMEOUT_MS });
   }
 
   const header = cookies.map((value) => value.split(';', 1)[0]).join('; ');
@@ -243,57 +258,27 @@ function solveZarpayCookieHeader(html: string): string {
 
 async function fetchZarpayCoinsCore(): Promise<ZarpayCoinRow[]> {
   const url = 'https://zarpay24.com/market/coins/';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ZARPAY_FETCH_TIMEOUT_MS);
-  let parsed: unknown | null = null;
-  try {
-    const first = await fetch(url, {
-      method: 'GET',
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: {
-        'user-agent': USER_AGENT,
-        accept: 'application/json, text/plain, */*',
-        ...BROWSER_LIKE_HEADERS,
-      },
-    });
-    const firstPayload = await first.text();
-    if (!first.ok) {
-      throw new Error(`HTTP ${first.status} ${first.statusText} body=${firstPayload.slice(0, 180)}`);
-    }
-    parsed = tryParseJsonPayload(firstPayload);
-    if (!parsed) {
-      const cookie = solveZarpayCookieHeader(firstPayload);
-      const second = await fetch(url, {
-        method: 'GET',
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: {
-          'user-agent': USER_AGENT,
-          accept: 'application/json, text/plain, */*',
-          ...BROWSER_LIKE_HEADERS,
-          cookie,
-        },
-      });
-      const secondPayload = await second.text();
-      if (!second.ok) {
-        throw new Error(
-          `HTTP ${second.status} ${second.statusText} body=${secondPayload.slice(0, 180)}`
-        );
-      }
-      parsed = tryParseJsonPayload(secondPayload);
-      if (!parsed) {
-        throw new Error(
-          `Zarpay returned non-JSON after challenge: ${secondPayload.slice(0, 180)}`
-        );
-      }
-    }
-  } finally {
-    clearTimeout(timer);
-  }
+  const baseHeaders = {
+    'user-agent': USER_AGENT,
+    accept: 'application/json, text/plain, */*',
+    ...BROWSER_LIKE_HEADERS,
+  };
+
+  const firstPayload = await fetchTextWithTimeout(url, ZARPAY_STEP_TIMEOUT_MS, baseHeaders);
+  let parsed = tryParseJsonPayload(firstPayload);
 
   if (!parsed) {
-    throw new Error('Zarpay response parsing failed');
+    const cookie = solveZarpayCookieHeader(firstPayload);
+    const secondPayload = await fetchTextWithTimeout(url, ZARPAY_STEP_TIMEOUT_MS, {
+      ...baseHeaders,
+      cookie,
+    });
+    parsed = tryParseJsonPayload(secondPayload);
+    if (!parsed) {
+      throw new Error(
+        `Zarpay returned non-JSON after challenge: ${secondPayload.slice(0, 180)}`
+      );
+    }
   }
 
   const rows = parseZarpayRows(parsed);
