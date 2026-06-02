@@ -12,7 +12,7 @@ import { fetchProviderQuotes } from '@/features/prices/services/fetch-provider-q
 import {
   mergeGlobalUsdDollarQuotes,
   type ProviderQuote,
-} from '@/features/prices/utils/provider-refresh';
+} from '@/features/prices/utils/provider-quote-utils';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type {
   Asset,
