@@ -49,6 +49,7 @@ import type {
   Wallet,
 } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
+import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
@@ -1307,6 +1308,9 @@ export function AddTransactionView({
         setTransactions((prev) => [...inserted.slice().reverse(), ...prev]);
         // Best-effort: snapshot trades in parallel with the success toast.
         await persistTradeSnapshots(inserted);
+        fireExpenseAlert(
+          inserted.filter((tx) => tx.type === 'EXPENSE').map((tx) => tx.id)
+        );
         toast.success(
           inserted.length > 1
             ? `${inserted.length} تراکنش ثبت شد.`

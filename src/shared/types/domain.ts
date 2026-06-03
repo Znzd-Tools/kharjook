@@ -248,6 +248,8 @@ export interface NotificationSettings {
   enabled: boolean;
   /** Notify on bot price refresh when held assets move materially. */
   price_alert_enabled: boolean;
+  /** Notify on each expense transaction with today's running total. */
+  expense_alert_enabled: boolean;
   updated_at: string;
 }
 

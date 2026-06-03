@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { Loan, LoanInstallment, Transaction, Wallet } from '@/shared/types/domain';
+import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 
 export type SettleInstallmentResult =
@@ -111,6 +112,8 @@ export async function settleLoanInstallment(input: {
   if (installmentErr) {
     return { ok: false, error: 'به‌روزرسانی قسط ناموفق بود.', code: 'db' };
   }
+
+  await notifyExpenseTransaction(input.userId, createdTx);
 
   return { ok: true, transactionId: createdTx.id };
 }

@@ -59,6 +59,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
 > = {
   enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled,
   price_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
+  expense_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.expense_alert_enabled,
 };
 
 export type { BotNotificationSettings };

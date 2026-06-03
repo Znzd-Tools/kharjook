@@ -61,6 +61,10 @@ export function settingsTogglePriceLabel(enabled: boolean): string {
   return enabled ? '📈 هشدار قیمت: روشن' : '📈 هشدار قیمت: خاموش';
 }
 
+export function settingsToggleExpenseLabel(enabled: boolean): string {
+  return enabled ? '🔴 اعلان هزینه: روشن' : '🔴 اعلان هزینه: خاموش';
+}
+
 export function buildMainReplyKeyboard(): TelegramReplyMarkup {
   return {
     keyboard: [
@@ -108,12 +112,14 @@ export function buildPricesReplyKeyboard(): TelegramReplyMarkup {
 
 export function buildSettingsReplyKeyboard(
   debtEnabled: boolean,
-  priceAlertEnabled: boolean
+  priceAlertEnabled: boolean,
+  expenseAlertEnabled: boolean
 ): TelegramReplyMarkup {
   return {
     keyboard: [
       [{ text: settingsToggleDebtLabel(debtEnabled) }],
       [{ text: settingsTogglePriceLabel(priceAlertEnabled) }],
+      [{ text: settingsToggleExpenseLabel(expenseAlertEnabled) }],
       [{ text: BTN_BACK }],
     ],
     resize_keyboard: true,

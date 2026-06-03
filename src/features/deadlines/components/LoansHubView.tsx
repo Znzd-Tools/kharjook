@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
+import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Loan, LoanInstallment, Transaction } from '@/shared/types/domain';
@@ -381,6 +382,7 @@ export function LoansHubView() {
       if (installmentErr) throw installmentErr;
 
       setTransactions((prev) => [createdTx, ...prev]);
+      fireExpenseAlert([createdTx.id]);
       toast.success('قسط تسویه شد و تراکنش ثبت شد.');
       closeSettle();
       await refresh();

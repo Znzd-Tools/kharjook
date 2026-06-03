@@ -191,7 +191,11 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
     await sendTelegramMessage(
       chatId,
       hintForMenu('settings'),
-      buildSettingsReplyKeyboard(settings.enabled, settings.price_alert_enabled)
+      buildSettingsReplyKeyboard(
+        settings.enabled,
+        settings.price_alert_enabled,
+        settings.expense_alert_enabled
+      )
     );
     return;
   }
@@ -293,7 +297,9 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
 
   if (
     connection &&
-    (text.startsWith('🔔 یادآور قسط:') || text.startsWith('📈 هشدار قیمت:'))
+    (text.startsWith('🔔 یادآور قسط:') ||
+      text.startsWith('📈 هشدار قیمت:') ||
+      text.startsWith('🔴 اعلان هزینه:'))
   ) {
     const settings = await loadBotNotificationSettings(connection.user_id);
     if (text.startsWith('🔔')) {
@@ -303,16 +309,37 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
       await sendTelegramMessage(
         chatId,
         MSG_SETTINGS_SAVED,
-        buildSettingsReplyKeyboard(next.enabled, next.price_alert_enabled)
+        buildSettingsReplyKeyboard(
+          next.enabled,
+          next.price_alert_enabled,
+          next.expense_alert_enabled
+        )
       );
-    } else {
+    } else if (text.startsWith('📈')) {
       const next = await updateBotNotificationSettings(connection.user_id, {
         price_alert_enabled: !settings.price_alert_enabled,
       });
       await sendTelegramMessage(
         chatId,
         MSG_SETTINGS_SAVED,
-        buildSettingsReplyKeyboard(next.enabled, next.price_alert_enabled)
+        buildSettingsReplyKeyboard(
+          next.enabled,
+          next.price_alert_enabled,
+          next.expense_alert_enabled
+        )
+      );
+    } else {
+      const next = await updateBotNotificationSettings(connection.user_id, {
+        expense_alert_enabled: !settings.expense_alert_enabled,
+      });
+      await sendTelegramMessage(
+        chatId,
+        MSG_SETTINGS_SAVED,
+        buildSettingsReplyKeyboard(
+          next.enabled,
+          next.price_alert_enabled,
+          next.expense_alert_enabled
+        )
       );
     }
     return;
@@ -325,7 +352,15 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
     const menu = stack[stack.length - 1] ?? 'main';
     if (menu === 'settings') {
       const settings = await loadBotNotificationSettings(connection.user_id);
-      await sendTelegramMessage(chatId, MSG_USE_MENU, buildSettingsReplyKeyboard(settings.enabled, settings.price_alert_enabled));
+      await sendTelegramMessage(
+        chatId,
+        MSG_USE_MENU,
+        buildSettingsReplyKeyboard(
+          settings.enabled,
+          settings.price_alert_enabled,
+          settings.expense_alert_enabled
+        )
+      );
     } else {
       await sendTelegramMessage(chatId, MSG_USE_MENU, keyboardForMenu(menu));
     }

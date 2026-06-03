@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
-import type { Category, CurrencyRate, Wallet } from '@/shared/types/domain';
+import type { Category, CurrencyRate, Transaction, Wallet } from '@/shared/types/domain';
+import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
@@ -91,7 +92,12 @@ export async function createBotWalletTransaction(input: {
           target_asset_id: null,
         };
 
-  const { error } = await admin.from('transactions').insert(payload);
-  if (error) return { ok: false, error: 'ثبت تراکنش ناموفق بود.' };
+  const { data, error } = await admin.from('transactions').insert(payload).select().single();
+  if (error || !data) return { ok: false, error: 'ثبت تراکنش ناموفق بود.' };
+
+  if (input.type === 'EXPENSE') {
+    await notifyExpenseTransaction(input.userId, data as Transaction);
+  }
+
   return { ok: true };
 }
