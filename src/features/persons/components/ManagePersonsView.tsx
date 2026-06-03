@@ -234,6 +234,7 @@ export function ManagePersonsView() {
               status={status}
               tone={tone}
               balance={balance}
+              onOpen={() => router.push(`/deadlines/persons/${person.id}`)}
               onEdit={() => handleEdit(person)}
               onDelete={() => void handleDelete(person)}
             />
@@ -259,6 +260,7 @@ function SortablePersonRow({
   status,
   tone,
   balance,
+  onOpen,
   onEdit,
   onDelete,
 }: {
@@ -267,6 +269,7 @@ function SortablePersonRow({
   status: string;
   tone: string;
   balance: number;
+  onOpen: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -291,12 +294,16 @@ function SortablePersonRow({
         <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-300 flex items-center justify-center shrink-0">
           <UserRound size={18} />
         </div>
-        <div className="min-w-0">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 text-right"
+        >
           <p className="text-slate-200 font-medium text-sm truncate">{person.name}</p>
           <p className={`text-xs mt-1 ${tone}`} dir="ltr">
             {status} · {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
           </p>
-        </div>
+        </button>
       </div>
       <div className="flex flex-col gap-2">
         <button type="button" onClick={onEdit} className="text-blue-400/60 hover:text-blue-400 p-1.5 bg-blue-500/10 rounded-lg transition-colors">

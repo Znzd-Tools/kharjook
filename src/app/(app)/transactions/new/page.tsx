@@ -22,11 +22,23 @@ export default async function NewTransactionPage({
     targetAssetId?: string;
     sourceAmount?: string;
     targetAmount?: string;
+    personId?: string;
+    personSide?: string;
+    amount?: string;
     type?: string;
   }>;
 }) {
-  const { assetId, walletId, targetAssetId, sourceAmount, targetAmount, type } =
-    await searchParams;
+  const {
+    assetId,
+    walletId,
+    targetAssetId,
+    sourceAmount,
+    targetAmount,
+    personId,
+    personSide,
+    amount,
+    type,
+  } = await searchParams;
 
   let defaultUiMode: UiTransactionMode | undefined;
   let defaultType: TransactionType | undefined;
@@ -44,6 +56,9 @@ export default async function NewTransactionPage({
       targetAssetId={targetAssetId}
       sourceAmount={sourceAmount}
       targetAmount={targetAmount}
+      personId={personId}
+      personSide={personSide === 'source' || personSide === 'target' ? personSide : undefined}
+      settleAmount={amount}
       defaultType={defaultType}
       defaultUiMode={defaultUiMode}
     />

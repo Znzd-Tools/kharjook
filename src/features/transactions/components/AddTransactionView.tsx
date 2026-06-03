@@ -347,6 +347,9 @@ export interface AddTransactionViewProps {
   targetAssetId?: string;
   sourceAmount?: string;
   targetAmount?: string;
+  personId?: string;
+  personSide?: 'source' | 'target';
+  settleAmount?: string;
   defaultType?: TransactionType;
   defaultUiMode?: UiTransactionMode;
   transactionId?: string;
@@ -399,7 +402,14 @@ function walletFromForm(
 
 function buildInitialForm(
   tx: Transaction | undefined,
-  defaults: { assetId?: string; walletId?: string; defaultType?: TransactionType },
+  defaults: {
+    assetId?: string;
+    walletId?: string;
+    defaultType?: TransactionType;
+    personId?: string;
+    personSide?: 'source' | 'target';
+    settleAmount?: string;
+  },
   usdRate: number
 ): FormState {
   if (tx) {
@@ -447,6 +457,29 @@ function buildInitialForm(
       f.targetId = defaults.assetId;
     }
   }
+  if (
+    defaults.personId &&
+    defaults.walletId &&
+    defaults.settleAmount &&
+    defaults.personSide &&
+    type === 'TRANSFER'
+  ) {
+    if (defaults.personSide === 'source') {
+      f.sourceKind = 'person';
+      f.sourceId = defaults.personId;
+      f.targetKind = 'wallet';
+      f.targetId = defaults.walletId;
+    } else {
+      f.sourceKind = 'wallet';
+      f.sourceId = defaults.walletId;
+      f.targetKind = 'person';
+      f.targetId = defaults.personId;
+    }
+    f.sourceAmount = defaults.settleAmount;
+    f.targetAmount = defaults.settleAmount;
+    return f;
+  }
+
   if (defaults.walletId) {
     if (type === 'SELL' || type === 'INCOME') {
       f.targetKind = 'wallet';
@@ -962,6 +995,9 @@ export function AddTransactionView({
   targetAssetId,
   sourceAmount,
   targetAmount,
+  personId,
+  personSide,
+  settleAmount,
   defaultType,
   defaultUiMode,
   transactionId,
@@ -997,8 +1033,17 @@ export function AddTransactionView({
     (convertPair ? CONVERT_UI_MODE : defaultType ?? 'BUY');
 
   const [uiMode, setUiMode] = useState<UiTransactionMode>(initialUiMode);
+  const prefillDefaults = {
+    assetId,
+    walletId,
+    defaultType,
+    personId,
+    personSide,
+    settleAmount,
+  };
+
   const [rows, setRows] = useState<FormState[]>(() => [
-    buildInitialForm(txToEdit, { assetId, walletId, defaultType }, usdRate),
+    buildInitialForm(txToEdit, prefillDefaults, usdRate),
   ]);
   const [convertForm, setConvertForm] = useState<ConvertFormState>(() =>
     buildInitialConvertForm(
@@ -1059,7 +1104,7 @@ export function AddTransactionView({
       );
     } else {
       setRows([
-        buildInitialForm(undefined, { defaultType: mode, assetId, walletId }, usdRate),
+        buildInitialForm(undefined, { ...prefillDefaults, defaultType: mode }, usdRate),
       ]);
     }
   };
