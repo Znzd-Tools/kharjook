@@ -49,6 +49,7 @@ import { TopAllocationCard } from '@/features/dashboard/components/TopAllocation
 import { DistributionChartCard } from '@/features/dashboard/components/DistributionChartCard';
 import { buildYearCashflowByMonth } from '@/features/dashboard/utils/year-cashflow';
 import { CategoryCapsWidget } from '@/features/dashboard/components/CategoryCapsWidget';
+import { GoalsDriftWidget } from '@/features/dashboard/components/GoalsDriftWidget';
 import { PendingChecksWidget } from '@/features/dashboard/components/PendingChecksWidget';
 import type { CategorySpendingCap, Check } from '@/shared/types/domain';
 
@@ -653,6 +654,8 @@ export function HomeTab() {
       />
 
       <CategoryCapsWidget caps={spendingCaps} />
+
+      <GoalsDriftWidget />
 
       <PendingChecksWidget checks={pendingChecks} />
 
