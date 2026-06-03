@@ -35,6 +35,7 @@ import {
 } from '@/features/transactions/utils/convert-transaction';
 import { CopyableDetailRow } from '@/features/wallets/components/CopyableDetailRow';
 import { WalletPaymentDetailsSheet } from '@/features/wallets/components/WalletPaymentDetailsSheet';
+import { WalletSavingsPotsSection } from '@/features/wallets/components/WalletSavingsPotsSection';
 import {
   formatCardNumber,
   formatIban,
@@ -230,6 +231,8 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
             value={`${meta.symbol} ${formatCurrencyAmount(stats.expenseTotal, wallet.currency)}`}
           />
         </div>
+
+        <WalletSavingsPotsSection wallet={wallet} walletBalance={stats.balance} />
 
         <div className="bg-[#1A1B26] rounded-2xl border border-white/5 p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">

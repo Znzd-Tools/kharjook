@@ -98,6 +98,20 @@ export interface Wallet {
   created_at: string;
 }
 
+export interface WalletSavingsPot {
+  id: string;
+  user_id: string;
+  wallet_id: string;
+  name: string;
+  color: string;
+  target_amount: number | null;
+  current_amount: number;
+  archived_at: string | null;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Person {
   id: string;
   user_id: string;
