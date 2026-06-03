@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import {
   BarChart3,
   Coins,
+  FileUp,
   LayoutGrid,
   Repeat,
   Target,
@@ -47,6 +48,12 @@ const LINKS = [
     title: 'تراکنش‌های دوره‌ای',
     subtitle: 'حقوق، اجاره و … — ثبت خودکار',
     icon: Repeat,
+  },
+  {
+    href: '/manage/import',
+    title: 'ورود CSV',
+    subtitle: 'درآمد و هزینه دسته‌ای',
+    icon: FileUp,
   },
   {
     href: '/manage/categories',
