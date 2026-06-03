@@ -27,6 +27,13 @@ import { rollupCategories } from '@/features/reports/utils/category-rollup';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import { effectivePriceAt } from '@/features/reports/utils/price-history';
 import { countConvertOperations } from '@/features/transactions/utils/convert-transaction';
+import { PeriodComparisonCard } from '@/features/reports/components/PeriodComparisonCard';
+import {
+  matchingPriorPeriod,
+  percentChange,
+  priorPeriodCompareLabel,
+  type CompareMetric,
+} from '@/features/reports/utils/period-comparison';
 
 const REPORT_SCOPES: PeriodKind[] = ['month', 'year', 'all'];
 
@@ -102,6 +109,113 @@ export function ReportsIndexView() {
     );
     return countConvertOperations(inPeriod);
   }, [transactions, scope]);
+
+  const periodComparison = useMemo(() => {
+    if (scope === 'all') return null;
+    const current = clampPeriodToToday(currentPeriod(scope));
+    const previous = matchingPriorPeriod(current);
+    if (!previous) return null;
+
+    const rollupNet = (period: typeof current) => {
+      const income = rollupCategories({
+        transactions,
+        categories,
+        wallets,
+        period,
+        kind: 'income',
+        walletId: null,
+        currencyMode,
+      }).total;
+      const expense = rollupCategories({
+        transactions,
+        categories,
+        wallets,
+        period,
+        kind: 'expense',
+        walletId: null,
+        currencyMode,
+      }).total;
+      return { income, expense, net: income - expense };
+    };
+
+    const currentCash = rollupNet(current);
+    const previousCash = rollupNet(previous);
+
+    const assetsTotal = (period: typeof current) => {
+      const periodEndStr = formatJalaali(period.end);
+      let totalToman = 0;
+      let totalUsd = 0;
+      for (const a of assets) {
+        if (a.include_in_profit_loss === false) continue;
+        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+        const s = calculateAssetPeriodStats(a, transactions, period, usdRate, endPrice);
+        totalToman += s.realizedToman;
+        totalUsd += s.realizedUsd;
+        if (s.unrealizedAvailable) {
+          totalToman += s.unrealizedToman;
+          totalUsd += s.unrealizedUsd;
+        }
+      }
+      return currencyMode === 'USD' ? totalUsd : totalToman;
+    };
+
+    const currentAssets = assetsTotal(current);
+    const previousAssets = assetsTotal(previous);
+
+    const cashflowMetrics: CompareMetric[] = [
+      {
+        key: 'income',
+        label: 'درآمد',
+        current: currentCash.income,
+        previous: previousCash.income,
+        deltaPct: percentChange(currentCash.income, previousCash.income),
+        higherIsBetter: true,
+      },
+      {
+        key: 'expense',
+        label: 'هزینه',
+        current: currentCash.expense,
+        previous: previousCash.expense,
+        deltaPct: percentChange(currentCash.expense, previousCash.expense),
+        higherIsBetter: false,
+      },
+      {
+        key: 'net',
+        label: 'مانده',
+        current: currentCash.net,
+        previous: previousCash.net,
+        deltaPct: percentChange(currentCash.net, previousCash.net),
+        higherIsBetter: true,
+      },
+    ];
+
+    const assetsMetrics: CompareMetric[] = [
+      {
+        key: 'pnl',
+        label: 'سود/زیان کل',
+        current: currentAssets,
+        previous: previousAssets,
+        deltaPct: percentChange(currentAssets, previousAssets),
+        higherIsBetter: true,
+      },
+    ];
+
+    return {
+      subtitle: priorPeriodCompareLabel(current.kind),
+      cashflowMetrics,
+      assetsMetrics,
+    };
+  }, [
+    scope,
+    transactions,
+    categories,
+    wallets,
+    currencyMode,
+    assets,
+    dailyPrices,
+    todayStr,
+    usdRate,
+  ]);
 
   const scopeLabel = formatCurrentPeriodLabel(scope);
   const cashflowHref = buildReportHref('cashflow', cashflow.period);
@@ -201,6 +315,23 @@ export function ReportsIndexView() {
             </p>
           )}
         </Link>
+
+        {periodComparison && (
+          <>
+            <PeriodComparisonCard
+              title="مقایسه جریان نقد"
+              subtitle={periodComparison.subtitle}
+              metrics={periodComparison.cashflowMetrics}
+              currencyMode={currencyMode}
+            />
+            <PeriodComparisonCard
+              title="مقایسه سود/زیان دارایی"
+              subtitle={periodComparison.subtitle}
+              metrics={periodComparison.assetsMetrics}
+              currencyMode={currencyMode}
+            />
+          </>
+        )}
 
         {convertCount > 0 && (
           <div className="bg-[#1A1B26] border border-violet-500/15 rounded-2xl p-4">
