@@ -37,6 +37,7 @@ supabase db push
 | `20250608140000_expense_alert_delivery_kind.sql` | Dedup enum for expense alerts |
 | `20250608150000_cashflow_rpc.sql` | SQL aggregates for cashflow |
 | `20250609120000_report_digest_opt_in.sql` | Report digests opt-in (default off) |
+| `20250610120000_telegram_quick_add_prefs.sql` | Bot quick-add prefs + undo |
 
 **Baseline schema:** Core tables (`transactions`, `assets`, `wallets`, …) predate these incremental migrations. To capture full prod schema in git:
 

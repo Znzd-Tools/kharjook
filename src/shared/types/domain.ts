@@ -241,6 +241,8 @@ export interface TelegramConnection {
   linked_at: string;
   menu_stack?: string[] | null;
   bot_flow?: Record<string, unknown> | null;
+  quick_add_prefs?: Record<string, unknown> | null;
+  undo_last?: { transactionId: string; expiresAt: string } | null;
 }
 
 export interface NotificationSettings {

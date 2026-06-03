@@ -24,5 +24,7 @@ export function msgPriceRefreshFailed(detail: string): string {
 export const MSG_SETTLE_OK = '✅ قسط تسویه شد و تراکنش ثبت شد.';
 export const MSG_SETTLE_ALREADY = 'ℹ️ این قسط قبلاً پرداخت شده.';
 export const MSG_TX_SAVED = '✅ تراکنش ثبت شد.';
+export const MSG_TX_UNDONE = '↩️ آخرین تراکنش حذف شد.';
+export const MSG_TX_UNDO_EXPIRED = 'مهلت لغو تمام شده.';
 export const MSG_FLOW_CANCELLED = '❌ عملیات لغو شد.';
 export const MSG_SETTINGS_SAVED = '✅ تنظیمات ذخیره شد.';

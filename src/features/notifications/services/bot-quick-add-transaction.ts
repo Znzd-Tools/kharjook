@@ -12,7 +12,7 @@ export async function createBotWalletTransaction(input: {
   walletId: string;
   categoryId: string;
   note?: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<{ ok: true; transactionId: string } | { ok: false; error: string }> {
   if (!(input.amountToman > 0)) {
     return { ok: false, error: 'مبلغ نامعتبر است.' };
   }
@@ -99,5 +99,5 @@ export async function createBotWalletTransaction(input: {
     await notifyExpenseTransaction(input.userId, data as Transaction);
   }
 
-  return { ok: true };
+  return { ok: true, transactionId: (data as Transaction).id };
 }

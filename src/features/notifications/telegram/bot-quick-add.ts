@@ -2,6 +2,13 @@ import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { Category, TelegramConnection, Wallet } from '@/shared/types/domain';
 import { createBotWalletTransaction } from '@/features/notifications/services/bot-quick-add-transaction';
 import {
+  resolveQuickAddPref,
+  saveQuickAddPref,
+} from '@/features/notifications/services/bot-quick-add-prefs';
+import {
+  saveUndoLast,
+} from '@/features/notifications/services/bot-undo-transaction';
+import {
   clearBotFlow,
   getConnectionByChatId,
   popMenu,
@@ -100,6 +107,119 @@ function categoryInlineKeyboard(categories: Category[]): TelegramInlineMarkup {
   return { inline_keyboard: rows };
 }
 
+function confirmInlineKeyboard(showChange: boolean): TelegramInlineMarkup {
+  const rows: TelegramInlineMarkup['inline_keyboard'] = [
+    [
+      { text: '✅ ثبت', callback_data: 'qa:yes' },
+      { text: '❌ لغو', callback_data: 'qa:cancel' },
+    ],
+  ];
+  if (showChange) {
+    rows.unshift([{ text: '🔄 تغییر کیف/دسته', callback_data: 'qa:change' }]);
+  }
+  return { inline_keyboard: rows };
+}
+
+async function loadWalletName(userId: string, walletId: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('wallets')
+    .select('name')
+    .eq('user_id', userId)
+    .eq('id', walletId)
+    .maybeSingle();
+  return (data as { name?: string } | null)?.name ?? null;
+}
+
+async function loadCategoryName(userId: string, categoryId: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('categories')
+    .select('name')
+    .eq('user_id', userId)
+    .eq('id', categoryId)
+    .maybeSingle();
+  return (data as { name?: string } | null)?.name ?? null;
+}
+
+async function buildConfirmText(
+  flow: QuickAddFlow,
+  userId: string,
+  usedLastPref: boolean
+): Promise<string> {
+  const lines = [
+    BOT_QA_CONFIRM_PROMPT,
+    '',
+    flow.txType === 'INCOME' ? '💚 درآمد' : '🔴 هزینه',
+    `💰 ${formatTelegramMoney(flow.amountToman ?? 0, 'TOMAN')}`,
+  ];
+  if (flow.walletId && flow.categoryId) {
+    const [walletName, categoryName] = await Promise.all([
+      loadWalletName(userId, flow.walletId),
+      loadCategoryName(userId, flow.categoryId),
+    ]);
+    if (walletName) lines.push(`👛 ${walletName}`);
+    if (categoryName) lines.push(`🏷 ${categoryName}`);
+  }
+  if (usedLastPref) {
+    lines.push('', '⚡ کیف و دسته از آخرین ثبت');
+  }
+  return lines.join('\n');
+}
+
+async function promptConfirm(
+  chatId: number,
+  connection: TelegramConnection,
+  flow: QuickAddFlow,
+  messageId: number | undefined,
+  usedLastPref: boolean
+): Promise<void> {
+  const text = await buildConfirmText(flow, connection.user_id, usedLastPref);
+  await editOrSendInline(chatId, messageId, text, confirmInlineKeyboard(usedLastPref));
+}
+
+async function proceedAfterAmount(
+  chatId: number,
+  connection: TelegramConnection,
+  flow: QuickAddFlow,
+  amount: number,
+  messageId?: number
+): Promise<void> {
+  if (!flow.txType) return;
+
+  const pref = await resolveQuickAddPref(connection.user_id, flow.txType);
+  if (pref) {
+    const next: QuickAddFlow = {
+      ...flow,
+      step: 'confirm',
+      amountToman: amount,
+      walletId: pref.walletId,
+      categoryId: pref.categoryId,
+    };
+    await setBotFlow(chatId, next);
+    await promptConfirm(chatId, connection, next, messageId, true);
+    return;
+  }
+
+  const wallets = await loadWallets(connection.user_id);
+  if (wallets.length === 0) {
+    await sendTelegramMessage(chatId, MSG_ERROR_NO_WALLETS, buildQuickAddReplyKeyboard());
+    return;
+  }
+
+  const next: QuickAddFlow = {
+    ...flow,
+    step: 'wallet',
+    amountToman: amount,
+    walletIds: wallets.map((w) => w.id),
+  };
+  await setBotFlow(chatId, next);
+  await sendTelegramInlineMessage(
+    chatId,
+    `👛 کیف پول را انتخاب کنید\n💰 ${formatTelegramMoney(amount, 'TOMAN')}`,
+    walletInlineKeyboard(wallets)
+  );
+}
 async function editOrSendInline(
   chatId: number,
   messageId: number | undefined,
@@ -161,24 +281,7 @@ export async function handleQuickAddMessage(
       return true;
     }
 
-    const wallets = await loadWallets(connection.user_id);
-    if (wallets.length === 0) {
-      await sendTelegramMessage(chatId, MSG_ERROR_NO_WALLETS, buildQuickAddReplyKeyboard());
-      return true;
-    }
-
-    const next: QuickAddFlow = {
-      ...flow,
-      step: 'wallet',
-      amountToman: amount,
-      walletIds: wallets.map((w) => w.id),
-    };
-    await setBotFlow(chatId, next);
-    await sendTelegramInlineMessage(
-      chatId,
-      `👛 کیف پول را انتخاب کنید\n💰 ${formatTelegramMoney(amount, 'TOMAN')}`,
-      walletInlineKeyboard(wallets)
-    );
+    await proceedAfterAmount(chatId, connection, flow, amount);
     return true;
   }
 
@@ -207,6 +310,35 @@ export async function handleQuickAddCallback(
     return true;
   }
 
+  if (data === 'qa:change') {
+    if (!flow.txType || !flow.amountToman) {
+      await answerTelegramCallback(callbackQueryId, 'اطلاعات ناقص است.');
+      return true;
+    }
+    const wallets = await loadWallets(connection.user_id);
+    if (wallets.length === 0) {
+      await answerTelegramCallback(callbackQueryId, MSG_ERROR_NO_WALLETS);
+      return true;
+    }
+    const next: QuickAddFlow = {
+      ...flow,
+      step: 'wallet',
+      walletId: undefined,
+      categoryId: undefined,
+      walletIds: wallets.map((w) => w.id),
+      categoryIds: undefined,
+    };
+    await setBotFlow(chatId, next);
+    await answerTelegramCallback(callbackQueryId);
+    await editOrSendInline(
+      chatId,
+      messageId,
+      `👛 کیف پول را انتخاب کنید\n💰 ${formatTelegramMoney(flow.amountToman, 'TOMAN')}`,
+      walletInlineKeyboard(wallets)
+    );
+    return true;
+  }
+
   if (data === 'qa:yes') {
     if (!flow.txType || !flow.amountToman || !flow.walletId || !flow.categoryId) {
       await answerTelegramCallback(callbackQueryId, 'اطلاعات ناقص است.');
@@ -226,6 +358,16 @@ export async function handleQuickAddCallback(
         messageId,
         result.ok ? `✅ ${MSG_TX_SAVED}` : `❌ ${result.error}`
       );
+    }
+    if (result.ok) {
+      await saveQuickAddPref(connection.user_id, flow.txType, {
+        walletId: flow.walletId,
+        categoryId: flow.categoryId,
+      });
+      await saveUndoLast(connection.user_id, result.transactionId);
+      await sendTelegramInlineMessage(chatId, 'تا ۵ دقیقه می‌توانید این ثبت را لغو کنید:', {
+        inline_keyboard: [[{ text: '↩️ لغو ثبت', callback_data: 'undo:last' }]],
+      });
     }
     await cancelQuickAddFlow(chatId);
     return true;
@@ -278,24 +420,7 @@ export async function handleQuickAddCallback(
     };
     await setBotFlow(chatId, next);
     await answerTelegramCallback(callbackQueryId);
-
-    const summary = [
-      BOT_QA_CONFIRM_PROMPT,
-      '',
-      flow.txType === 'INCOME' ? '💚 درآمد' : '🔴 هزینه',
-      `💰 ${formatTelegramMoney(flow.amountToman, 'TOMAN')}`,
-    ].join('\n');
-
-    const markup: TelegramInlineMarkup = {
-      inline_keyboard: [
-        [
-          { text: '✅ ثبت', callback_data: 'qa:yes' },
-          { text: '❌ لغو', callback_data: 'qa:cancel' },
-        ],
-      ],
-    };
-
-    await editOrSendInline(chatId, messageId, summary, markup);
+    await promptConfirm(chatId, connection, next, messageId, false);
     return true;
   }
 
