@@ -17,10 +17,12 @@ export const TEHRAN_TIMEZONE = 'Asia/Tehran';
 
 export type DebtListItem = {
   installmentId: string;
+  loanId: string;
   loanTitle: string;
   dueDateString: string;
   amountToman: number;
   daysUntilDue: number;
+  reminderDaysBefore: number[];
 };
 
 export type CheckListItem = {
@@ -32,7 +34,7 @@ export type CheckListItem = {
   bankName?: string | null;
 };
 
-export type DebtsListScope = 'today' | 'month' | 'overdue' | 'all';
+export type DebtsListScope = 'today' | 'month' | 'overdue' | 'all' | 'advance';
 
 function dueLabel(daysUntilDue: number): string {
   if (daysUntilDue < 0) return `${toPersianDigits(Math.abs(daysUntilDue))} روز گذشته`;
@@ -59,6 +61,8 @@ export function formatDebtsListMessage(
   const heading =
     scope === 'today'
       ? '⏰ سررسید امروز'
+      : scope === 'advance'
+        ? '📣 یادآوری سررسید'
       : scope === 'month'
         ? '📅 اقساط و چک‌های این ماه'
         : scope === 'overdue'
@@ -69,6 +73,8 @@ export function formatDebtsListMessage(
     const emptyLine =
       scope === 'today'
         ? '✅ امروز قسط یا چکی سررسید ندارید.'
+        : scope === 'advance'
+          ? '✅ یادآوری سررسیدی برای امروز ندارید.'
         : scope === 'month'
           ? '✅ قسط یا چک پرداخت‌نشده‌ای در این ماه ندارید.'
           : scope === 'overdue'

@@ -271,8 +271,8 @@ export interface Loan {
   auto_income_on_create: boolean;
   auto_income_wallet_id: string | null;
   description: string | null;
-  /** @deprecated Per-loan offsets removed; daily digest lists all unpaid installments. */
-  reminder_days_before?: number[];
+  /** Days before due date to send Telegram advance reminders (empty = due-day only). */
+  reminder_days_before: number[];
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

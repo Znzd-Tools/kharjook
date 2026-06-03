@@ -19,6 +19,10 @@ import type {
 } from '@/shared/types/domain';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { buildInstallmentSchedule } from '@/features/deadlines/utils/schedule';
+import {
+  LOAN_REMINDER_DAY_OPTIONS,
+  normalizeReminderDaysBefore,
+} from '@/features/deadlines/utils/loan-reminder-days';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 
@@ -44,6 +48,7 @@ type LoanFormState = {
   intervalPeriod: LoanIntervalPeriod;
   autoIncomeOnCreate: boolean;
   autoIncomeWalletId: string | null;
+  reminderDaysBefore: number[];
 };
 
 function initialState(): LoanFormState {
@@ -63,6 +68,7 @@ function initialState(): LoanFormState {
     intervalPeriod: 'month',
     autoIncomeOnCreate: false,
     autoIncomeWalletId: null,
+    reminderDaysBefore: [3],
   };
 }
 
@@ -121,6 +127,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           intervalPeriod: loan.interval_period,
           autoIncomeOnCreate: loan.auto_income_on_create,
           autoIncomeWalletId: loan.auto_income_wallet_id,
+          reminderDaysBefore: normalizeReminderDaysBefore(loan.reminder_days_before ?? []),
         });
       } catch (error) {
         console.error(error);
@@ -185,6 +192,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           .update({
             title: form.title.trim(),
             description: form.description.trim() || null,
+            reminder_days_before: normalizeReminderDaysBefore(form.reminderDaysBefore),
           })
           .eq('id', loanId);
         if (error) throw error;
@@ -243,6 +251,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         auto_income_wallet_id:
           form.type === 'loan' && form.autoIncomeOnCreate ? form.autoIncomeWalletId : null,
         description: form.description.trim() || null,
+        reminder_days_before: normalizeReminderDaysBefore(form.reminderDaysBefore),
         deleted_at: null,
       };
       const { data: loanData, error: loanErr } = await supabase
@@ -579,6 +588,39 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
+          <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+            علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیرید.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {LOAN_REMINDER_DAY_OPTIONS.map((days) => {
+              const active = form.reminderDaysBefore.includes(days);
+              return (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      reminderDaysBefore: active
+                        ? prev.reminderDaysBefore.filter((d) => d !== days)
+                        : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
+                    }))
+                  }
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    active
+                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                  }`}
+                >
+                  {days} روز قبل
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {previewDates.length > 0 && (
           <div className="bg-[#1A1B26] border border-white/5 rounded-xl p-3">
             <p className="text-xs text-slate-500 mb-2">پیش‌نمایش سررسیدها</p>
@@ -611,7 +653,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
         {isEdit && (
           <p className="text-[11px] text-slate-500 text-center">
-            بعد از ثبت وام فقط عنوان و توضیحات قابل ویرایش است.
+            بعد از ثبت وام فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است.
           </p>
         )}
       </form>

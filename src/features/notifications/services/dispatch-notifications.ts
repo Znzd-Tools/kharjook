@@ -137,10 +137,12 @@ async function loadUnpaidDebtItems(userId: string): Promise<DebtListItem[]> {
     const rate = tomanPerUnit(loan.currency, rates);
     items.push({
       installmentId: row.id,
+      loanId: row.loan_id,
       loanTitle: loan.title,
       dueDateString: row.due_date_string,
       amountToman: row.amount * rate,
       daysUntilDue: daysUntil,
+      reminderDaysBefore: loan.reminder_days_before ?? [],
     });
   }
   return items;
@@ -435,6 +437,35 @@ export async function sendDebtsListForUser(
   return true;
 }
 
+/** Daily cron — advance reminders per loan `reminder_days_before` offsets. */
+export async function sendAdvanceLoanRemindersForUser(
+  userId: string,
+  connection: TelegramConnection
+): Promise<boolean> {
+  const allItems = await loadUnpaidDebtItems(userId);
+  const dueToday: DebtListItem[] = [];
+
+  for (const item of allItems) {
+    if (item.daysUntilDue <= 0) continue;
+    if (!item.reminderDaysBefore.includes(item.daysUntilDue)) continue;
+
+    const dedupKey = `advance:${item.installmentId}:${item.daysUntilDue}`;
+    if (await wasDelivered(userId, 'loan_reminder', dedupKey)) continue;
+
+    dueToday.push(item);
+  }
+
+  if (dueToday.length === 0) return false;
+
+  const text = formatDebtsListMessage(dueToday, 'advance');
+  await sendTelegramToConnection(connection, text);
+
+  for (const item of dueToday) {
+    await markDelivered(userId, 'loan_reminder', `advance:${item.installmentId}:${item.daysUntilDue}`);
+  }
+  return true;
+}
+
 function reportDedupKey(
   interval: ReportNotificationSettings['report_interval'],
   today = todayJalaaliInTimezone(TEHRAN_TIMEZONE)
@@ -571,6 +602,15 @@ export async function processScheduledNotifications(): Promise<{
       } catch (err) {
         errors.push(
           `${conn.user_id}:debts:${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+
+      try {
+        const sentAdvance = await sendAdvanceLoanRemindersForUser(conn.user_id, conn);
+        if (sentAdvance) debtsDigestsSent += 1;
+      } catch (err) {
+        errors.push(
+          `${conn.user_id}:debts-advance:${err instanceof Error ? err.message : String(err)}`
         );
       }
     }
