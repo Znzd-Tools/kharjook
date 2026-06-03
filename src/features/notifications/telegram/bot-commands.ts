@@ -1,5 +1,6 @@
 import { sendCategoryCapsForUser } from '@/features/categories/services/category-cap-alerts';
 import { sendGoalsDriftForUser } from '@/features/goals/services/goal-drift-alerts';
+import { sendPersonsSummaryForUser } from '@/features/persons/services/person-bot-summary';
 import {
   refreshAndReportPricesForUser,
   sendMonthCashflowForUser,
@@ -60,6 +61,7 @@ import {
   BTN_MONTH_DEBTS,
   BTN_OVERDUE_DEBTS,
   BTN_GOALS_DRIFT,
+  BTN_PERSONS_SUMMARY,
   BTN_PORTFOLIO,
   BTN_QUICK_ADD,
   BTN_SMS_IMPORT,
@@ -324,6 +326,13 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
   if (text === BTN_GOALS_DRIFT) {
     await runReportAction(chatId, async (userId, conn) => {
       await sendGoalsDriftForUser(userId, conn, { replyMarkup: keyboardForMenu('reports') });
+    });
+    return;
+  }
+
+  if (text === BTN_PERSONS_SUMMARY) {
+    await runReportAction(chatId, async (userId, conn) => {
+      await sendPersonsSummaryForUser(userId, conn, { replyMarkup: keyboardForMenu('reports') });
     });
     return;
   }
