@@ -21,6 +21,12 @@ import {
   type Period,
 } from '@/shared/utils/period';
 import { PeriodNavHeader } from '@/features/reports/components/PeriodNavHeader';
+import { ReportExportButton } from '@/features/reports/components/ReportExportButton';
+import {
+  buildCashflowCsv,
+  cashflowCsvFilename,
+} from '@/features/reports/utils/export-cashflow-csv';
+import { downloadCsv } from '@/shared/utils/download-csv';
 import {
   rollupCategories,
   type CashflowKind,
@@ -81,6 +87,23 @@ export function CashflowReportView() {
 
   const active = tab === 'income' ? incomeRollup : expenseRollup;
 
+  const exportCsv = () => {
+    const walletLabel =
+      walletId != null
+        ? (wallets.find((w) => w.id === walletId)?.name ?? 'کیف پول')
+        : 'همه کیف‌ها';
+    downloadCsv(
+      cashflowCsvFilename(period),
+      buildCashflowCsv({
+        period,
+        currencyMode,
+        walletLabel,
+        income: incomeRollup,
+        expense: expenseRollup,
+      })
+    );
+  };
+
   const toggle = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -102,6 +125,7 @@ export function CashflowReportView() {
           <ChevronRight size={18} />
         </button>
         <h1 className="flex-1 text-base font-bold text-white">گزارش درآمد و هزینه</h1>
+        <ReportExportButton onClick={exportCsv} />
       </header>
 
       <main className="p-4 space-y-4 pb-24">

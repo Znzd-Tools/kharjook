@@ -33,6 +33,12 @@ import {
   todayJalaali,
 } from '@/shared/utils/jalali';
 import { PeriodNavHeader } from '@/features/reports/components/PeriodNavHeader';
+import { ReportExportButton } from '@/features/reports/components/ReportExportButton';
+import {
+  assetsCsvFilename,
+  buildAssetsCsv,
+} from '@/features/reports/utils/export-assets-csv';
+import { downloadCsv } from '@/shared/utils/download-csv';
 import {
   calculateAssetPeriodStats,
   type AssetPeriodStats,
@@ -161,6 +167,18 @@ export function AssetsReportView() {
     ? 'تا اکنون'
     : `پایان ${formatPeriodLabel(period)}`;
 
+  const exportCsv = () => {
+    downloadCsv(
+      assetsCsvFilename(period),
+      buildAssetsCsv({
+        period,
+        currencyMode,
+        rows: sorted,
+        totals,
+      })
+    );
+  };
+
   return (
     <div className="bg-[#161722] min-h-full">
       <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
@@ -175,6 +193,7 @@ export function AssetsReportView() {
         <h1 className="flex-1 text-base font-bold text-white">
           گزارش سود/زیان دارایی‌ها
         </h1>
+        <ReportExportButton onClick={exportCsv} disabled={sorted.length === 0} />
       </header>
 
       <main className="p-4 space-y-4 pb-24">
