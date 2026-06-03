@@ -272,6 +272,28 @@ export interface NotificationDelivery {
   sent_at: string;
 }
 
+export type CheckStatus = 'pending' | 'cleared' | 'bounced' | 'cancelled';
+
+export interface Check {
+  id: string;
+  user_id: string;
+  title: string;
+  bank_name: string | null;
+  check_number: string | null;
+  amount: number;
+  currency: Currency;
+  due_date_string: string;
+  wallet_id: string | null;
+  category_id: string | null;
+  status: CheckStatus;
+  cleared_at: string | null;
+  paid_transaction_id: string | null;
+  note: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LoanInstallment {
   id: string;
   user_id: string;

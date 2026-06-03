@@ -1,6 +1,7 @@
 import type {
   Asset,
   Category,
+  Check,
   CurrencyRate,
   Loan,
   LoanInstallment,
@@ -27,6 +28,7 @@ import {
   buildInstallmentPayInlineKeyboard,
   installmentDaysUntilDue,
   TEHRAN_TIMEZONE,
+  type CheckListItem,
   type DebtListItem,
   type DebtsListScope,
 } from '@/features/notifications/telegram/utils/format-debts-list';
@@ -142,6 +144,42 @@ async function loadUnpaidDebtItems(userId: string): Promise<DebtListItem[]> {
   return items;
 }
 
+async function loadPendingChecks(userId: string): Promise<CheckListItem[]> {
+  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  const admin = createSupabaseAdminClient();
+  const { data: rows } = await admin
+    .from('checks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .is('deleted_at', null)
+    .order('due_date_string', { ascending: true });
+
+  if (!rows?.length) return [];
+
+  const { data: currencyRates } = await admin
+    .from('currency_rates')
+    .select('*')
+    .eq('user_id', userId);
+  const rates = (currencyRates ?? []) as CurrencyRate[];
+
+  const items: CheckListItem[] = [];
+  for (const row of rows as Check[]) {
+    const daysUntil = installmentDaysUntilDue(row.due_date_string, today);
+    if (daysUntil == null) continue;
+    const rate = tomanPerUnit(row.currency, rates);
+    items.push({
+      checkId: row.id,
+      title: row.title,
+      dueDateString: row.due_date_string,
+      amountToman: row.amount * rate,
+      daysUntilDue: daysUntil,
+      bankName: row.bank_name,
+    });
+  }
+  return items;
+}
+
 async function wasDelivered(
   userId: string,
   kind: NotificationDeliveryKind,
@@ -247,8 +285,10 @@ export async function sendMonthDebtsForUser(
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
   const monthPeriod = periodContaining('month', today);
   let items = await loadUnpaidDebtItems(userId);
+  let checks = await loadPendingChecks(userId);
   items = items.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
-  const text = formatDebtsListMessage(items, 'month');
+  checks = checks.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
+  const text = formatDebtsListMessage(items, 'month', checks);
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
 }
 
@@ -258,8 +298,10 @@ export async function sendOverdueDebtsForUser(
   options?: { replyMarkup?: TelegramReplyMarkup; withPayButtons?: boolean }
 ): Promise<void> {
   let items = await loadUnpaidDebtItems(userId);
+  let checks = await loadPendingChecks(userId);
   items = items.filter((item) => item.daysUntilDue < 0);
-  const text = formatDebtsListMessage(items, 'overdue');
+  checks = checks.filter((item) => item.daysUntilDue < 0);
+  const text = formatDebtsListMessage(items, 'overdue', checks);
   const inline = options?.withPayButtons ? buildInstallmentPayInlineKeyboard(items) : null;
   if (inline) {
     await sendTelegramInlineToConnection(connection, text, inline);
@@ -368,12 +410,14 @@ export async function sendDebtsListForUser(
   }
 
   let items = await loadUnpaidDebtItems(userId);
+  let checks = await loadPendingChecks(userId);
   if (options?.todayOnly) {
     items = items.filter((item) => item.daysUntilDue === 0);
-    if (items.length === 0) return false;
+    checks = checks.filter((item) => item.daysUntilDue === 0);
+    if (items.length === 0 && checks.length === 0) return false;
   }
 
-  const text = formatDebtsListMessage(items, scope);
+  const text = formatDebtsListMessage(items, scope, checks);
   const inline =
     options?.todayOnly && items.length > 0 ? buildInstallmentPayInlineKeyboard(items) : null;
 

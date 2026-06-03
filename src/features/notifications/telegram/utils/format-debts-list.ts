@@ -23,6 +23,15 @@ export type DebtListItem = {
   daysUntilDue: number;
 };
 
+export type CheckListItem = {
+  checkId: string;
+  title: string;
+  dueDateString: string;
+  amountToman: number;
+  daysUntilDue: number;
+  bankName?: string | null;
+};
+
 export type DebtsListScope = 'today' | 'month' | 'overdue' | 'all';
 
 function dueLabel(daysUntilDue: number): string {
@@ -42,46 +51,56 @@ export function installmentDaysUntilDue(
 
 export function formatDebtsListMessage(
   items: DebtListItem[],
-  scope: DebtsListScope = 'all'
+  scope: DebtsListScope = 'all',
+  checks: CheckListItem[] = []
 ): string {
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
   const todayLine = toPersianDigits(formatJalaaliHuman(today));
   const heading =
     scope === 'today'
-      ? '⏰ قسط‌های امروز'
+      ? '⏰ سررسید امروز'
       : scope === 'month'
-        ? '📅 اقساط این ماه'
+        ? '📅 اقساط و چک‌های این ماه'
         : scope === 'overdue'
-          ? '🔴 اقساط معوق'
-          : '📋 بدهی‌ها و اقساط';
+          ? '🔴 معوقات'
+          : '📋 بدهی‌ها، اقساط و چک‌ها';
 
-  if (items.length === 0) {
+  if (items.length === 0 && checks.length === 0) {
     const emptyLine =
       scope === 'today'
-        ? '✅ امروز قسطی سررسید ندارید.'
+        ? '✅ امروز قسط یا چکی سررسید ندارید.'
         : scope === 'month'
-          ? '✅ قسط پرداخت‌نشده‌ای در این ماه ندارید.'
+          ? '✅ قسط یا چک پرداخت‌نشده‌ای در این ماه ندارید.'
           : scope === 'overdue'
-            ? '✅ قسط معوقی ندارید.'
-            : '✅ قسط پرداخت‌نشده‌ای ندارید.';
+            ? '✅ قسط یا چک معوقی ندارید.'
+            : '✅ قسط یا چک پرداخت‌نشده‌ای ندارید.';
     return `${heading}\n${TELEGRAM_SEPARATOR}\n📅 ${todayLine}\n\n${emptyLine}\n${TELEGRAM_SEPARATOR}`;
   }
 
   const sorted = [...items].sort((a, b) =>
     compareJalaaliStrings(a.dueDateString, b.dueDateString)
   );
+  const sortedChecks = [...checks].sort((a, b) =>
+    compareJalaaliStrings(a.dueDateString, b.dueDateString)
+  );
 
   const lines: string[] = [heading, TELEGRAM_SEPARATOR, `📅 ${todayLine}`, ''];
 
   if (scope === 'today') {
-    const total = sorted.reduce((sum, item) => sum + item.amountToman, 0);
-    lines.push(`🟠 ${toPersianDigits(sorted.length)} قسط · ${formatTelegramMoney(total, 'TOMAN')}`);
+    const total =
+      sorted.reduce((sum, item) => sum + item.amountToman, 0) +
+      sortedChecks.reduce((sum, item) => sum + item.amountToman, 0);
+    const count = sorted.length + sortedChecks.length;
+    lines.push(`🟠 ${toPersianDigits(count)} مورد · ${formatTelegramMoney(total, 'TOMAN')}`);
     lines.push('');
   }
 
   if (scope === 'month' || scope === 'overdue') {
-    const total = sorted.reduce((sum, item) => sum + item.amountToman, 0);
-    lines.push(`📌 ${toPersianDigits(sorted.length)} قسط · ${formatTelegramMoney(total, 'TOMAN')}`);
+    const total =
+      sorted.reduce((sum, item) => sum + item.amountToman, 0) +
+      sortedChecks.reduce((sum, item) => sum + item.amountToman, 0);
+    const count = sorted.length + sortedChecks.length;
+    lines.push(`📌 ${toPersianDigits(count)} مورد · ${formatTelegramMoney(total, 'TOMAN')}`);
     lines.push('');
   }
 
@@ -92,6 +111,19 @@ export function formatDebtsListMessage(
       : toPersianDigits(item.dueDateString);
     const icon = item.daysUntilDue < 0 ? '🔴' : item.daysUntilDue === 0 ? '🟠' : '📌';
     lines.push(`${icon} ${item.loanTitle}`);
+    lines.push(`   📅 ${dueHuman} · ${dueLabel(item.daysUntilDue)}`);
+    lines.push(`   💰 ${formatTelegramMoney(item.amountToman, 'TOMAN')}`);
+    lines.push('');
+  }
+
+  for (const item of sortedChecks) {
+    const due = parseJalaali(item.dueDateString);
+    const dueHuman = due
+      ? toPersianDigits(formatJalaaliHuman(due))
+      : toPersianDigits(item.dueDateString);
+    const icon = item.daysUntilDue < 0 ? '🔴' : item.daysUntilDue === 0 ? '🟠' : '📌';
+    const bankSuffix = item.bankName ? ` · ${item.bankName}` : '';
+    lines.push(`${icon} 🧾 ${item.title}${bankSuffix}`);
     lines.push(`   📅 ${dueHuman} · ${dueLabel(item.daysUntilDue)}`);
     lines.push(`   💰 ${formatTelegramMoney(item.amountToman, 'TOMAN')}`);
     lines.push('');

@@ -36,9 +36,9 @@ const DEADLINE_ITEMS: DeadlineItem[] = [
   {
     key: 'checks',
     title: 'چک‌ها',
-    subtitle: 'به‌زودی',
+    subtitle: 'ثبت و پیگیری چک‌های صادره',
     icon: <ReceiptText size={20} />,
-    disabled: true,
+    href: '/deadlines/checks',
   },
 ];
 

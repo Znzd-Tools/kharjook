@@ -26,7 +26,8 @@ export function Shell({ children, modal }: ShellProps) {
   const showNav =
     TAB_ROUTES.has(pathname) ||
     pathname === '/deadlines/loans' ||
-    pathname === '/deadlines/persons';
+    pathname === '/deadlines/persons' ||
+    pathname === '/deadlines/checks';
 
   return (
     <div className="bg-background text-slate-200 min-h-dvh font-sans flex justify-center selection:bg-purple-500/30">
