@@ -36,6 +36,7 @@ supabase db push
 | `20250608130000_expense_alert_default_off.sql` | Expense alerts opt-in (default off) |
 | `20250608140000_expense_alert_delivery_kind.sql` | Dedup enum for expense alerts |
 | `20250608150000_cashflow_rpc.sql` | SQL aggregates for cashflow |
+| `20250609120000_report_digest_opt_in.sql` | Report digests opt-in (default off) |
 
 **Baseline schema:** Core tables (`transactions`, `assets`, `wallets`, …) predate these incremental migrations. To capture full prod schema in git:
 
@@ -55,6 +56,7 @@ Commit the generated snapshot so new contributors can audit RLS and indexes.
    - **Debt reminder** — daily 09:00 Tehran, today's installments only
    - **Price change alert** — after manual price refresh in bot
    - **Expense alert** — opt-in; message on each new expense
+   - **Auto report** — opt-in; daily 9 AM cashflow + portfolio digest
 
 Manual cron test:
 

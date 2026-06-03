@@ -16,7 +16,12 @@ import {
   formatMonthCashflowMessage,
   formatTodayCashflowMessage,
 } from '@/features/notifications/telegram/utils/format-today-cashflow';
-import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { formatScheduledReportMessage } from '@/features/notifications/telegram/utils/format-scheduled-report';
+import {
+  DEFAULT_REPORT_SETTINGS,
+  type ReportNotificationSettings,
+} from '@/features/notifications/services/report-notification-settings';
+import { formatJalaali, jalaaliWeekday, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import {
   formatDebtsListMessage,
   buildInstallmentPayInlineKeyboard,
@@ -60,6 +65,13 @@ export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
   enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled,
   price_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
   expense_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.expense_alert_enabled,
+  report_enabled: DEFAULT_REPORT_SETTINGS.report_enabled,
+  report_interval: DEFAULT_REPORT_SETTINGS.report_interval,
+  report_day_of_week: DEFAULT_REPORT_SETTINGS.report_day_of_week,
+  show_portfolio_irt: DEFAULT_REPORT_SETTINGS.show_portfolio_irt,
+  show_portfolio_usd: DEFAULT_REPORT_SETTINGS.show_portfolio_usd,
+  show_cashflow_irt: DEFAULT_REPORT_SETTINGS.show_cashflow_irt,
+  show_cashflow_usd: DEFAULT_REPORT_SETTINGS.show_cashflow_usd,
 };
 
 export type { BotNotificationSettings };
@@ -377,9 +389,66 @@ export async function sendDebtsListForUser(
   return true;
 }
 
+function reportDedupKey(
+  interval: ReportNotificationSettings['report_interval'],
+  today = todayJalaaliInTimezone(TEHRAN_TIMEZONE)
+): string {
+  if (interval === 'weekly') {
+    const weekStart = periodContaining('week', today);
+    return `weekly:${formatJalaali(weekStart.start)}`;
+  }
+  return `daily:${formatJalaali(today)}`;
+}
+
+function shouldSendReportToday(settings: ReportNotificationSettings): boolean {
+  if (!settings.report_enabled) return false;
+  if (settings.report_interval === 'daily') return true;
+  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  return jalaaliWeekday(today) === settings.report_day_of_week;
+}
+
+export async function sendScheduledReportForUser(
+  userId: string,
+  connection: TelegramConnection,
+  settings: ReportNotificationSettings,
+  options?: { skipDedup?: boolean }
+): Promise<boolean> {
+  if (!shouldSendReportToday(settings)) return false;
+
+  const hasContent =
+    settings.show_cashflow_irt ||
+    settings.show_cashflow_usd ||
+    settings.show_portfolio_irt ||
+    settings.show_portfolio_usd;
+  if (!hasContent) return false;
+
+  const dedupKey = reportDedupKey(settings.report_interval);
+  if (!options?.skipDedup && (await wasDelivered(userId, 'daily_report', dedupKey))) {
+    return false;
+  }
+
+  const data = await loadUserData(userId);
+  const snapshot = buildUserNotificationSnapshot(data);
+  const text = formatScheduledReportMessage({
+    interval: settings.report_interval,
+    snapshot,
+    showPortfolioIrt: settings.show_portfolio_irt,
+    showPortfolioUsd: settings.show_portfolio_usd,
+    showCashflowIrt: settings.show_cashflow_irt,
+    showCashflowUsd: settings.show_cashflow_usd,
+  });
+
+  await sendTelegramToConnection(connection, text);
+  if (!options?.skipDedup) {
+    await markDelivered(userId, 'daily_report', dedupKey);
+  }
+  return true;
+}
+
 /** Daily cron at 09:00 Tehran — today's installments only, skip if none. */
 export async function processScheduledNotifications(): Promise<{
   debtsDigestsSent: number;
+  reportsDigestsSent: number;
   errors: string[];
 }> {
   const admin = createSupabaseAdminClient();
@@ -390,39 +459,80 @@ export async function processScheduledNotifications(): Promise<{
 
   const activeConnections = (connections ?? []) as TelegramConnection[];
   if (activeConnections.length === 0) {
-    return { debtsDigestsSent: 0, errors: [] };
+    return { debtsDigestsSent: 0, reportsDigestsSent: 0, errors: [] };
   }
 
   const userIds = activeConnections.map((conn) => conn.user_id);
   const { data: settingsRows } = await admin
     .from('notification_settings')
-    .select('user_id, enabled')
+    .select(
+      'user_id, enabled, report_enabled, report_interval, report_day_of_week, show_portfolio_irt, show_portfolio_usd, show_cashflow_irt, show_cashflow_usd'
+    )
     .in('user_id', userIds);
 
   const enabledByUser = new Map<string, boolean>();
+  const reportByUser = new Map<string, ReportNotificationSettings>();
   for (const row of settingsRows ?? []) {
-    const settings = row as { user_id: string; enabled: boolean };
+    const settings = row as {
+      user_id: string;
+      enabled: boolean;
+      report_enabled?: boolean;
+      report_interval?: ReportNotificationSettings['report_interval'];
+      report_day_of_week?: number;
+      show_portfolio_irt?: boolean;
+      show_portfolio_usd?: boolean;
+      show_cashflow_irt?: boolean;
+      show_cashflow_usd?: boolean;
+    };
     enabledByUser.set(settings.user_id, settings.enabled);
+    reportByUser.set(settings.user_id, {
+      report_enabled: settings.report_enabled ?? DEFAULT_REPORT_SETTINGS.report_enabled,
+      report_interval: settings.report_interval ?? DEFAULT_REPORT_SETTINGS.report_interval,
+      report_day_of_week:
+        settings.report_day_of_week ?? DEFAULT_REPORT_SETTINGS.report_day_of_week,
+      show_portfolio_irt:
+        settings.show_portfolio_irt ?? DEFAULT_REPORT_SETTINGS.show_portfolio_irt,
+      show_portfolio_usd:
+        settings.show_portfolio_usd ?? DEFAULT_REPORT_SETTINGS.show_portfolio_usd,
+      show_cashflow_irt:
+        settings.show_cashflow_irt ?? DEFAULT_REPORT_SETTINGS.show_cashflow_irt,
+      show_cashflow_usd:
+        settings.show_cashflow_usd ?? DEFAULT_REPORT_SETTINGS.show_cashflow_usd,
+    });
   }
 
   let debtsDigestsSent = 0;
+  let reportsDigestsSent = 0;
   const errors: string[] = [];
 
   for (const conn of activeConnections) {
     const enabled = enabledByUser.get(conn.user_id) ?? BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled;
-    if (!enabled) continue;
+    if (enabled) {
+      try {
+        const sent = await sendDebtsListForUser(conn.user_id, conn, { todayOnly: true });
+        if (sent) debtsDigestsSent += 1;
+      } catch (err) {
+        errors.push(
+          `${conn.user_id}:debts:${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
 
-    try {
-      const sent = await sendDebtsListForUser(conn.user_id, conn, { todayOnly: true });
-      if (sent) debtsDigestsSent += 1;
-    } catch (err) {
-      errors.push(
-        `${conn.user_id}: ${err instanceof Error ? err.message : String(err)}`
-      );
+    const reportSettings =
+      reportByUser.get(conn.user_id) ?? DEFAULT_REPORT_SETTINGS;
+    if (reportSettings.report_enabled) {
+      try {
+        const sent = await sendScheduledReportForUser(conn.user_id, conn, reportSettings);
+        if (sent) reportsDigestsSent += 1;
+      } catch (err) {
+        errors.push(
+          `${conn.user_id}:report:${err instanceof Error ? err.message : String(err)}`
+        );
+      }
     }
   }
 
-  return { debtsDigestsSent, errors };
+  return { debtsDigestsSent, reportsDigestsSent, errors };
 }
 
 export { loadUnpaidDebtItems };

@@ -5,6 +5,7 @@ import {
   Bell,
   BellOff,
   CalendarClock,
+  Mail,
   MessageCircle,
   Receipt,
   TrendingUp,
@@ -15,9 +16,11 @@ type NotificationSettings = {
   enabled: boolean;
   price_alert_enabled: boolean;
   expense_alert_enabled: boolean;
+  report_enabled: boolean;
+  report_interval: 'daily' | 'weekly';
 };
 
-type ToggleKey = keyof NotificationSettings;
+type ToggleKey = 'enabled' | 'price_alert_enabled' | 'expense_alert_enabled' | 'report_enabled';
 
 const TOGGLE_META: Record<
   ToggleKey,
@@ -27,7 +30,7 @@ const TOGGLE_META: Record<
     activeLabel: string;
     inactiveLabel: string;
     icon: typeof Bell;
-    accent: 'amber' | 'sky' | 'rose';
+    accent: 'amber' | 'sky' | 'rose' | 'violet';
     description: string;
   }
 > = {
@@ -61,6 +64,16 @@ const TOGGLE_META: Record<
     description:
       'با ثبت هر هزینه (در اپ یا بات)، مبلغ و جمع هزینه امروز در تلگرام ارسال می‌شود.',
   },
+  report_enabled: {
+    title: 'گزارش خودکار',
+    subtitle: 'درآمد/هزینه و ارزش پرتفوی',
+    activeLabel: 'فعال — ۹:۰۰ صبح',
+    inactiveLabel: 'غیرفعال',
+    icon: Mail,
+    accent: 'violet',
+    description:
+      'هر روز ساعت ۹ صبح (وقت تهران) خلاصه درآمد/هزینه امروز و ارزش پرتفوی در تلگرام ارسال می‌شود.',
+  },
 };
 
 const ACCENT_STYLES = {
@@ -84,6 +97,13 @@ const ACCENT_STYLES = {
     toggleOn: 'bg-rose-500/10 border-rose-500/25 hover:bg-rose-500/15',
     switchOn: 'bg-rose-500',
     iconAccent: 'text-rose-400',
+  },
+  violet: {
+    iconOn: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
+    badgeOn: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
+    toggleOn: 'bg-violet-500/10 border-violet-500/25 hover:bg-violet-500/15',
+    switchOn: 'bg-violet-500',
+    iconAccent: 'text-violet-400',
   },
 } as const;
 
@@ -220,7 +240,12 @@ export function NotificationSettingsSection() {
     );
   }
 
-  const toggleKeys: ToggleKey[] = ['enabled', 'price_alert_enabled', 'expense_alert_enabled'];
+  const toggleKeys: ToggleKey[] = [
+    'enabled',
+    'price_alert_enabled',
+    'expense_alert_enabled',
+    'report_enabled',
+  ];
 
   return (
     <section className="overflow-hidden bg-[#1A1B26] border border-white/5 rounded-3xl">

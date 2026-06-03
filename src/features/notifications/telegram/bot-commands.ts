@@ -14,6 +14,10 @@ import {
   updateBotNotificationSettings,
 } from '@/features/notifications/services/bot-notification-settings';
 import {
+  loadReportNotificationSettings,
+  updateReportNotificationSettings,
+} from '@/features/notifications/services/report-notification-settings';
+import {
   getConnectionByChatId,
   getMenuStack,
   hintForMenu,
@@ -87,6 +91,19 @@ async function requireConnection(chatId: number) {
   const connection = await getConnectionByChatId(chatId);
   if (!connection) await sendUnlinkedPrompt(chatId);
   return connection;
+}
+
+async function settingsKeyboardForUser(userId: string) {
+  const [botSettings, reportSettings] = await Promise.all([
+    loadBotNotificationSettings(userId),
+    loadReportNotificationSettings(userId),
+  ]);
+  return buildSettingsReplyKeyboard(
+    botSettings.enabled,
+    botSettings.price_alert_enabled,
+    botSettings.expense_alert_enabled,
+    reportSettings.report_enabled
+  );
 }
 
 async function openSubmenu(chatId: number, menu: 'cashflow' | 'reports' | 'prices' | 'settings'): Promise<void> {
@@ -186,16 +203,11 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
   if (text === BTN_MENU_SETTINGS) {
     const conn = await requireConnection(chatId);
     if (!conn) return;
-    const settings = await loadBotNotificationSettings(conn.user_id);
     await pushMenu(chatId, 'settings');
     await sendTelegramMessage(
       chatId,
       hintForMenu('settings'),
-      buildSettingsReplyKeyboard(
-        settings.enabled,
-        settings.price_alert_enabled,
-        settings.expense_alert_enabled
-      )
+      await settingsKeyboardForUser(conn.user_id)
     );
     return;
   }
@@ -299,49 +311,33 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
     connection &&
     (text.startsWith('🔔 یادآور قسط:') ||
       text.startsWith('📈 هشدار قیمت:') ||
-      text.startsWith('🔴 اعلان هزینه:'))
+      text.startsWith('🔴 اعلان هزینه:') ||
+      text.startsWith('📬 گزارش خودکار:'))
   ) {
     const settings = await loadBotNotificationSettings(connection.user_id);
     if (text.startsWith('🔔')) {
-      const next = await updateBotNotificationSettings(connection.user_id, {
+      await updateBotNotificationSettings(connection.user_id, {
         enabled: !settings.enabled,
       });
-      await sendTelegramMessage(
-        chatId,
-        MSG_SETTINGS_SAVED,
-        buildSettingsReplyKeyboard(
-          next.enabled,
-          next.price_alert_enabled,
-          next.expense_alert_enabled
-        )
-      );
     } else if (text.startsWith('📈')) {
-      const next = await updateBotNotificationSettings(connection.user_id, {
+      await updateBotNotificationSettings(connection.user_id, {
         price_alert_enabled: !settings.price_alert_enabled,
       });
-      await sendTelegramMessage(
-        chatId,
-        MSG_SETTINGS_SAVED,
-        buildSettingsReplyKeyboard(
-          next.enabled,
-          next.price_alert_enabled,
-          next.expense_alert_enabled
-        )
-      );
-    } else {
-      const next = await updateBotNotificationSettings(connection.user_id, {
+    } else if (text.startsWith('🔴')) {
+      await updateBotNotificationSettings(connection.user_id, {
         expense_alert_enabled: !settings.expense_alert_enabled,
       });
-      await sendTelegramMessage(
-        chatId,
-        MSG_SETTINGS_SAVED,
-        buildSettingsReplyKeyboard(
-          next.enabled,
-          next.price_alert_enabled,
-          next.expense_alert_enabled
-        )
-      );
+    } else {
+      const report = await loadReportNotificationSettings(connection.user_id);
+      await updateReportNotificationSettings(connection.user_id, {
+        report_enabled: !report.report_enabled,
+      });
     }
+    await sendTelegramMessage(
+      chatId,
+      MSG_SETTINGS_SAVED,
+      await settingsKeyboardForUser(connection.user_id)
+    );
     return;
   }
 
@@ -351,15 +347,10 @@ export async function handleBotMessage(chatId: number, text: string): Promise<vo
     const stack = await getMenuStack(chatId);
     const menu = stack[stack.length - 1] ?? 'main';
     if (menu === 'settings') {
-      const settings = await loadBotNotificationSettings(connection.user_id);
       await sendTelegramMessage(
         chatId,
         MSG_USE_MENU,
-        buildSettingsReplyKeyboard(
-          settings.enabled,
-          settings.price_alert_enabled,
-          settings.expense_alert_enabled
-        )
+        await settingsKeyboardForUser(connection.user_id)
       );
     } else {
       await sendTelegramMessage(chatId, MSG_USE_MENU, keyboardForMenu(menu));

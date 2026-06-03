@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
 import { DEFAULT_NOTIFICATION_SETTINGS } from '@/features/notifications/services/dispatch-notifications';
+import { DEFAULT_REPORT_SETTINGS } from '@/features/notifications/services/report-notification-settings';
+import type { NotificationReportInterval } from '@/shared/types/domain';
 import {
   requireAuthUser,
   unauthorized,
@@ -15,7 +17,9 @@ export async function GET() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('notification_settings')
-    .select('enabled, price_alert_enabled, expense_alert_enabled, updated_at')
+    .select(
+      'enabled, price_alert_enabled, expense_alert_enabled, report_enabled, report_interval, updated_at'
+    )
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -28,6 +32,8 @@ export async function GET() {
     enabled?: boolean;
     price_alert_enabled?: boolean;
     expense_alert_enabled?: boolean;
+    report_enabled?: boolean;
+    report_interval?: NotificationReportInterval;
     updated_at?: string | null;
   } | null;
 
@@ -38,6 +44,8 @@ export async function GET() {
         row?.price_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
       expense_alert_enabled:
         row?.expense_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.expense_alert_enabled,
+      report_enabled: row?.report_enabled ?? DEFAULT_REPORT_SETTINGS.report_enabled,
+      report_interval: row?.report_interval ?? DEFAULT_REPORT_SETTINGS.report_interval,
       updated_at: row?.updated_at ?? null,
     },
   });
@@ -51,12 +59,16 @@ export async function PUT(request: Request) {
     enabled?: boolean;
     price_alert_enabled?: boolean;
     expense_alert_enabled?: boolean;
+    report_enabled?: boolean;
+    report_interval?: NotificationReportInterval;
   };
 
   const supabase = await createSupabaseServerClient();
   const { data: existing, error: loadError } = await supabase
     .from('notification_settings')
-    .select('enabled, price_alert_enabled, expense_alert_enabled')
+    .select(
+      'enabled, price_alert_enabled, expense_alert_enabled, report_enabled, report_interval'
+    )
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -69,6 +81,8 @@ export async function PUT(request: Request) {
     enabled?: boolean;
     price_alert_enabled?: boolean;
     expense_alert_enabled?: boolean;
+    report_enabled?: boolean;
+    report_interval?: NotificationReportInterval;
   } | null;
 
   const current = {
@@ -77,6 +91,8 @@ export async function PUT(request: Request) {
       row?.price_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
     expense_alert_enabled:
       row?.expense_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.expense_alert_enabled,
+    report_enabled: row?.report_enabled ?? DEFAULT_REPORT_SETTINGS.report_enabled,
+    report_interval: row?.report_interval ?? DEFAULT_REPORT_SETTINGS.report_interval,
   };
 
   const next = {
@@ -89,6 +105,10 @@ export async function PUT(request: Request) {
       body.expense_alert_enabled !== undefined
         ? body.expense_alert_enabled
         : current.expense_alert_enabled,
+    report_enabled:
+      body.report_enabled !== undefined ? body.report_enabled : current.report_enabled,
+    report_interval:
+      body.report_interval !== undefined ? body.report_interval : current.report_interval,
   };
 
   const { data, error } = await supabase
@@ -99,11 +119,15 @@ export async function PUT(request: Request) {
         enabled: next.enabled,
         price_alert_enabled: next.price_alert_enabled,
         expense_alert_enabled: next.expense_alert_enabled,
+        report_enabled: next.report_enabled,
+        report_interval: next.report_interval,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )
-    .select('enabled, price_alert_enabled, expense_alert_enabled, updated_at')
+    .select(
+      'enabled, price_alert_enabled, expense_alert_enabled, report_enabled, report_interval, updated_at'
+    )
     .single();
 
   if (error) {

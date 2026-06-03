@@ -123,6 +123,7 @@ export async function POST(request: Request) {
       enabled: true,
       price_alert_enabled: false,
       expense_alert_enabled: false,
+      report_enabled: false,
       updated_at: new Date().toISOString(),
     });
 

@@ -18,6 +18,7 @@ export type TransactionType =
 export type CategoryKind = 'asset' | 'income' | 'expense';
 export type LoanType = 'expense' | 'loan';
 export type LoanIntervalPeriod = 'day' | 'week' | 'month' | 'year';
+export type NotificationReportInterval = 'daily' | 'weekly';
 export type NotificationDeliveryKind = 'daily_report' | 'loan_reminder' | 'expense_alert';
 export type GoalScope = 'asset' | 'asset_group';
 export type GoalTargetKind = 'quantity' | 'allocation_percent';
@@ -250,6 +251,14 @@ export interface NotificationSettings {
   price_alert_enabled: boolean;
   /** Notify on each expense transaction with today's running total. */
   expense_alert_enabled: boolean;
+  /** Scheduled cashflow/portfolio digest in Telegram. */
+  report_enabled: boolean;
+  report_interval: NotificationReportInterval;
+  report_day_of_week: number;
+  show_portfolio_irt: boolean;
+  show_portfolio_usd: boolean;
+  show_cashflow_irt: boolean;
+  show_cashflow_usd: boolean;
   updated_at: string;
 }
 

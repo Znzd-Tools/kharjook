@@ -110,16 +110,22 @@ export function buildPricesReplyKeyboard(): TelegramReplyMarkup {
   };
 }
 
+export function settingsToggleReportLabel(enabled: boolean): string {
+  return enabled ? '📬 گزارش خودکار: روشن' : '📬 گزارش خودکار: خاموش';
+}
+
 export function buildSettingsReplyKeyboard(
   debtEnabled: boolean,
   priceAlertEnabled: boolean,
-  expenseAlertEnabled: boolean
+  expenseAlertEnabled: boolean,
+  reportEnabled: boolean
 ): TelegramReplyMarkup {
   return {
     keyboard: [
       [{ text: settingsToggleDebtLabel(debtEnabled) }],
       [{ text: settingsTogglePriceLabel(priceAlertEnabled) }],
       [{ text: settingsToggleExpenseLabel(expenseAlertEnabled) }],
+      [{ text: settingsToggleReportLabel(reportEnabled) }],
       [{ text: BTN_BACK }],
     ],
     resize_keyboard: true,
