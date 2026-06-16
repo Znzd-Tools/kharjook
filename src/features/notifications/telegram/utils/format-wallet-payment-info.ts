@@ -20,7 +20,7 @@ export function formatWalletPaymentInfoMessage(wallet: Wallet): string {
   ];
 
   if (wallet.account_owner_name) {
-    lines.push('👤 <b>نام صاحب حساب</b>', `<code>${escapeHtml(wallet.account_owner_name)}</code>`, '');
+    lines.push('👤 <b>نام صاحب حساب</b>', `${escapeHtml(wallet.account_owner_name)}`, '');
   }
   if (wallet.card_number) {
     lines.push('💳 <b>شماره کارت</b>', `<code>${escapeHtml(wallet.card_number)}</code>`, '');
@@ -31,8 +31,6 @@ export function formatWalletPaymentInfoMessage(wallet: Wallet): string {
   if (wallet.iban) {
     lines.push('🔢 <b>شبا</b>', `<code>${escapeHtml(wallet.iban)}</code>`, '');
   }
-
-  lines.push('👇 برای کپی روی دکمه بزنید یا روی متن ضربه بزنید.', TELEGRAM_SEPARATOR);
   return lines.join('\n').trim();
 }
 
