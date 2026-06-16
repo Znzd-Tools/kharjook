@@ -77,21 +77,27 @@ export function AssetsReportView() {
   // asset; with hundreds of snapshots × tens of assets still well under a
   // frame. Memoization keeps it off the render hot path.
   const allStats = useMemo(() => {
+    const periodStartStr = formatJalaali(period.start);
     const periodEndStr = formatJalaali(period.end);
     return assets
       .filter((a) => a.include_in_profit_loss !== false)
       .map((a) => {
-      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
-      return {
-        asset: a,
-        stats: calculateAssetPeriodStats(
-          a,
-          transactions,
-          period,
-          usdRate,
-          endPrice
-        ),
-      };
+        const startPrice =
+          period.kind === 'all'
+            ? null
+            : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
+        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+        return {
+          asset: a,
+          stats: calculateAssetPeriodStats(
+            a,
+            transactions,
+            period,
+            usdRate,
+            endPrice,
+            startPrice
+          ),
+        };
       });
   }, [assets, transactions, period, usdRate, dailyPrices, todayStr]);
 
@@ -138,10 +144,10 @@ export function AssetsReportView() {
     for (const { stats } of visible) {
       realizedToman += stats.realizedToman;
       realizedUsd += stats.realizedUsd;
-      if (stats.unrealizedAvailable) {
-        unrealizedToman += stats.unrealizedToman;
-        unrealizedUsd += stats.unrealizedUsd;
-      } else {
+      if (stats.periodUnrealizedAvailable) {
+        unrealizedToman += stats.periodUnrealizedToman;
+        unrealizedUsd += stats.periodUnrealizedUsd;
+      } else if (stats.currentHoldings > 0 || stats.endHoldings > 0) {
         unrealizedMissingCount += 1;
       }
       invalidTradeCount += stats.invalidTradeCount;
@@ -457,8 +463,9 @@ function AssetRow({
   const [open, setOpen] = useState(false);
   const hasActivity = stats.hadActivity;
   const realizedPrimary = currencyMode === 'USD' ? stats.realizedUsd : stats.realizedToman;
-  const unrealizedPrimary = currencyMode === 'USD' ? stats.unrealizedUsd : stats.unrealizedToman;
-  const totalPrimary = stats.unrealizedAvailable
+  const unrealizedPrimary =
+    currencyMode === 'USD' ? stats.periodUnrealizedUsd : stats.periodUnrealizedToman;
+  const totalPrimary = stats.periodUnrealizedAvailable
     ? realizedPrimary + unrealizedPrimary
     : hasActivity
       ? realizedPrimary
@@ -479,12 +486,12 @@ function AssetRow({
         : 'text-rose-400';
 
   const staleHint = useMemo(() => {
-    if (!stats.unrealizedAvailable) return null;
+    if (!stats.periodUnrealizedAvailable) return null;
     if (!stats.periodEndPriceSourceDate) return null;
     const src = parseJalaali(stats.periodEndPriceSourceDate);
     if (!src) return null;
     return stats.periodEndPriceSourceDate;
-  }, [stats.periodEndPriceSourceDate, stats.unrealizedAvailable]);
+  }, [stats.periodEndPriceSourceDate, stats.periodUnrealizedAvailable]);
   const decimals = assetDecimals(asset);
 
   return (
@@ -577,7 +584,7 @@ function AssetRow({
                 </span>
               }
             />
-            {stats.unrealizedAvailable ? (
+            {stats.periodUnrealizedAvailable ? (
               <MiniFact
                 label="باز"
                 value={

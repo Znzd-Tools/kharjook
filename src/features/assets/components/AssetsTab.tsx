@@ -10,6 +10,8 @@ import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
+import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
 import {
   buildAssetSnapshots,
   calculateAssetGoalProgress,
@@ -21,8 +23,20 @@ import { goalValueKindFromGoal } from '@/features/goals/utils/goal-progress-disp
 
 export function AssetsTab() {
   const router = useRouter();
-  const { assets, categories, transactions, goals, isLoadingData } = useData();
+  const { assets, categories, transactions, goals, dailyPrices, isLoadingData } = useData();
   const { currencyMode, usdRate } = useUI();
+  const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
+
+  const ytdByAssetId = useMemo(() => {
+    const summary = computeYtdUnrealizedSummary(
+      assets,
+      transactions,
+      dailyPrices,
+      usdRate,
+      todayStr
+    );
+    return new Map(summary.rows.map((row) => [row.asset.id, row.stats]));
+  }, [assets, transactions, dailyPrices, usdRate, todayStr]);
 
   const groupedAssets = useMemo(() => {
     const map = new Map<
@@ -165,15 +179,18 @@ export function AssetsTab() {
                   currencyMode,
                   usdRate
                 );
+                const ytdStats = ytdByAssetId.get(asset.id);
                 const displayValue =
                   currencyMode === 'USD'
                     ? stats.currentValueUsd
                     : stats.currentValueToman;
-                const displayProfit =
-                  currencyMode === 'USD'
-                    ? stats.profitLossUsd
-                    : stats.profitLossToman;
-                const isProfit = displayProfit >= 0;
+                const ytdAvailable = ytdStats?.periodUnrealizedAvailable ?? false;
+                const displayProfit = ytdAvailable
+                  ? currencyMode === 'USD'
+                    ? ytdStats!.periodUnrealizedUsd
+                    : ytdStats!.periodUnrealizedToman
+                  : null;
+                const isProfit = (displayProfit ?? 0) >= 0;
                 const decimals = assetDecimals(asset);
                 const assetGoals = assetGoalsByAsset.get(asset.id) ?? [];
 
@@ -237,13 +254,22 @@ export function AssetsTab() {
                       <p className="font-bold text-slate-200" dir="ltr">
                         {formatCurrency(displayValue, currencyMode)}
                       </p>
-                      <p
-                        className={`text-xs mt-1 font-medium ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}
-                        dir="ltr"
-                      >
-                        {isProfit ? '+' : ''}
-                        {formatCurrency(displayProfit, currencyMode)}
-                      </p>
+                      {displayProfit !== null ? (
+                        <p
+                          className={`text-xs mt-1 font-medium ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}
+                          dir="ltr"
+                        >
+                          {isProfit ? '+' : ''}
+                          {formatCurrency(displayProfit, currencyMode)}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] mt-1 text-amber-400/80">
+                          باز امسال: —
+                        </p>
+                      )}
+                      {displayProfit !== null && (
+                        <p className="text-[9px] text-slate-600 mt-0.5">باز امسال</p>
+                      )}
                     </div>
                   </div>
                 );

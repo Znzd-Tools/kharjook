@@ -58,11 +58,11 @@ export function buildAssetsCsv(input: {
   ];
 
   for (const { asset, stats } of rows) {
-    const totalToman = stats.unrealizedAvailable
-      ? stats.realizedToman + stats.unrealizedToman
+    const totalToman = stats.periodUnrealizedAvailable
+      ? stats.realizedToman + stats.periodUnrealizedToman
       : stats.realizedToman;
-    const totalUsd = stats.unrealizedAvailable
-      ? stats.realizedUsd + stats.unrealizedUsd
+    const totalUsd = stats.periodUnrealizedAvailable
+      ? stats.realizedUsd + stats.periodUnrealizedUsd
       : stats.realizedUsd;
 
     header.push([
@@ -71,8 +71,8 @@ export function buildAssetsCsv(input: {
       stats.endHoldings,
       stats.realizedToman,
       stats.realizedUsd,
-      stats.unrealizedAvailable ? stats.unrealizedToman : '',
-      stats.unrealizedAvailable ? stats.unrealizedUsd : '',
+      stats.periodUnrealizedAvailable ? stats.periodUnrealizedToman : '',
+      stats.periodUnrealizedAvailable ? stats.periodUnrealizedUsd : '',
       totalToman,
       totalUsd,
       stats.bought.count,
@@ -80,7 +80,7 @@ export function buildAssetsCsv(input: {
       stats.bought.avgPriceToman,
       stats.sold.avgPriceToman,
       stats.periodEndPriceToman,
-      stats.unrealizedAvailable ? 'بله' : 'خیر',
+      stats.periodUnrealizedAvailable ? 'بله' : 'خیر',
     ]);
   }
 

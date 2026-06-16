@@ -32,8 +32,7 @@ import {
   parseJalaali,
   todayJalaali,
 } from '@/shared/utils/jalali';
-import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
 import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
 import {
   computeGoalDelta,
@@ -160,12 +159,11 @@ export function HomeTab() {
   const today = useMemo(() => todayJalaali(), []);
   const todayStr = useMemo(() => formatJalaali(today), [today]);
   const monthPeriod = useMemo(() => clampPeriodToToday(currentPeriod('month')), []);
-  const yearPeriod = useMemo(() => clampPeriodToToday(currentPeriod('year')), []);
 
   const stats = useMemo(() => {
     let assetsValueToman = 0;
-    let yearProfitToman = 0;
-    let yearProfitUsd = 0;
+    let yearUnrealizedToman = 0;
+    let yearUnrealizedUsd = 0;
     let yearUnrealizedMissingCount = 0;
     let monthIncomeToman = 0;
     let monthIncomeUsd = 0;
@@ -263,27 +261,18 @@ export function HomeTab() {
     });
 
     const totalPortfolioToman = assetsValueToman + cashToman;
-    const yearEnd = formatJalaali(yearPeriod.end);
 
-    for (const asset of assets) {
-      if (asset.include_in_profit_loss === false) continue;
-      const periodEndPrice = effectivePriceAt(asset, yearEnd, dailyPrices, todayStr);
-      const periodStats = calculateAssetPeriodStats(
-        asset,
-        transactions,
-        yearPeriod,
-        usdRate,
-        periodEndPrice
-      );
-      yearProfitToman += periodStats.realizedToman;
-      yearProfitUsd += periodStats.realizedUsd;
-      if (periodStats.unrealizedAvailable) {
-        yearProfitToman += periodStats.unrealizedToman;
-        yearProfitUsd += periodStats.unrealizedUsd;
-      } else {
-        yearUnrealizedMissingCount += 1;
-      }
-    }
+    const ytdSummary = computeYtdUnrealizedSummary(
+      assets,
+      transactions,
+      dailyPrices,
+      usdRate,
+      todayStr
+    );
+    yearUnrealizedToman = ytdSummary.totalToman;
+    yearUnrealizedUsd = ytdSummary.totalUsd;
+    yearUnrealizedMissingCount =
+      ytdSummary.missingStartPriceCount + ytdSummary.missingEndPriceCount;
 
     const mainDistribution = Array.from(mainDistributionMap.entries())
       .map(([catId, valueToman]) => ({
@@ -405,8 +394,8 @@ export function HomeTab() {
     return {
       totalPortfolioToman,
       cashToman,
-      yearProfitToman,
-      yearProfitUsd,
+      yearUnrealizedToman,
+      yearUnrealizedUsd,
       yearUnrealizedMissingCount,
       monthIncomeToman,
       monthIncomeUsd,
@@ -432,7 +421,6 @@ export function HomeTab() {
     usdRate,
     todayStr,
     monthPeriod,
-    yearPeriod,
   ]);
 
   const priceTickerItems = useMemo((): PriceTickerItem[] => {
@@ -514,8 +502,8 @@ export function HomeTab() {
     stats.totalPortfolioToman > 0
       ? (stats.cashToman / stats.totalPortfolioToman) * 100
       : 0;
-  const displayYearProfit =
-    currencyMode === 'USD' ? stats.yearProfitUsd : stats.yearProfitToman;
+  const displayYearUnrealized =
+    currencyMode === 'USD' ? stats.yearUnrealizedUsd : stats.yearUnrealizedToman;
   const displayMonthBalance =
     currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
   const activeMaxExpense =
@@ -770,13 +758,13 @@ export function HomeTab() {
         <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
           <div
             className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
-              displayYearProfit >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
+              displayYearUnrealized >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
             }`}
           />
           <div className="relative flex items-start gap-3">
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                displayYearProfit >= 0
+                displayYearUnrealized >= 0
                   ? 'bg-emerald-400/10 text-emerald-300'
                   : 'bg-rose-400/10 text-rose-300'
               }`}
@@ -784,15 +772,15 @@ export function HomeTab() {
               <TrendingUp size={16} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-400 mb-1">سود سال جاری</p>
+              <p className="text-xs text-slate-400 mb-1">سود/زیان باز امسال</p>
               <p
                 className={`truncate text-xl font-black ${
-                  displayYearProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'
+                  displayYearUnrealized >= 0 ? 'text-emerald-300' : 'text-rose-300'
                 }`}
                 dir="ltr"
               >
-                {displayYearProfit >= 0 ? '+' : ''}
-                {formatCurrency(displayYearProfit, currencyMode)}
+                {displayYearUnrealized >= 0 ? '+' : ''}
+                {formatCurrency(displayYearUnrealized, currencyMode)}
               </p>
             </div>
           </div>

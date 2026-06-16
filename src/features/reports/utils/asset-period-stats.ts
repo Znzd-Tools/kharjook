@@ -19,14 +19,14 @@
  *    tx's own `usd_rate` (falling back to today's rate only if missing).
  *  - Avg buy/sell *for the period* is quantity-weighted over txs dated
  *    inside the period. INCOME rolls into `bought`; EXPENSE into `sold`.
- *  - Unrealized P/L is marked to the PRICE-AT-PERIOD-END, not the live
- *    price. The caller must resolve that via `effectivePriceAt` (see
- *    `price-history.ts`) and pass it in. When the caller has no price
- *    for that date we signal `unrealizedAvailable = false` rather than
- *    silently fabricating a number — accurate > convenient for a
- *    finance app. If the position is flat at period end (endHoldings
- *    = 0), unrealized is trivially 0 and `unrealizedAvailable = true`
- *    regardless of price.
+ *  - Period unrealized P/L = mark-to-market of holdings at period end
+ *    minus the remaining period baseline. Opening holdings (units held
+ *    before `period.start`) enter the baseline at `periodStartPrice`,
+ *    not lifetime cost. In-period buys add at tx cost; in-period sells
+ *    drain the baseline pool by average cost.
+ *  - Absolute open P/L at period end (`unrealizedToman`) is kept for
+ *    reference: endHoldings × endPrice − endCostBasis (lifetime basis
+ *    snapshot at period end).
  */
 
 import type { Asset, Transaction } from '@/shared/types/domain';
@@ -49,6 +49,8 @@ export interface AssetPeriodStats {
   sold: SideAggregate;
   realizedToman: number; // booked from period SELLs only
   realizedUsd: number;
+  /** Units held immediately before the first in-period tx (or at period start). */
+  startHoldings: number;
   /** Holdings + cost basis at the end of the period. */
   endHoldings: number;
   endCostBasisToman: number;
@@ -62,13 +64,20 @@ export interface AssetPeriodStats {
   currentAvgCostToman: number;
   currentAvgCostUsd: number;
   /**
-   * Mark-to-market at period end: endHoldings × price-at-period-end
-   * minus endCostBasis.
+   * True period unrealized P/L: evalHoldings × price-at-period-end
+   * minus remaining period baseline (opening @ start price + in-period
+   * buys, net of in-period sells).
    *
-   * `unrealizedAvailable` is false ONLY when the position at period end
-   * was non-zero AND no snapshot price existed on or before that date.
-   * When false, `unrealizedToman/Usd` are 0 (placeholders — callers must
-   * gate on the availability flag before displaying).
+   * Unavailable when opening holdings existed at period start but no
+   * start price was supplied, or when eval holdings are non-zero and
+   * no end price exists.
+   */
+  periodUnrealizedToman: number;
+  periodUnrealizedUsd: number;
+  periodUnrealizedAvailable: boolean;
+  /**
+   * Absolute open P/L at period end using lifetime cost basis snapshot:
+   * endHoldings × price-at-period-end − endCostBasis.
    */
   unrealizedToman: number;
   unrealizedUsd: number;
@@ -104,6 +113,7 @@ export function emptyAssetPeriodStats(assetId: string): AssetPeriodStats {
     sold: emptySide(),
     realizedToman: 0,
     realizedUsd: 0,
+    startHoldings: 0,
     endHoldings: 0,
     endCostBasisToman: 0,
     endCostBasisUsd: 0,
@@ -114,6 +124,9 @@ export function emptyAssetPeriodStats(assetId: string): AssetPeriodStats {
     currentCostBasisUsd: 0,
     currentAvgCostToman: 0,
     currentAvgCostUsd: 0,
+    periodUnrealizedToman: 0,
+    periodUnrealizedUsd: 0,
+    periodUnrealizedAvailable: true,
     unrealizedToman: 0,
     unrealizedUsd: 0,
     unrealizedAvailable: true,
@@ -204,6 +217,29 @@ function isDisposeForAsset(tx: Transaction, assetId: string): boolean {
   return false;
 }
 
+function drainPeriodPool(
+  poolUnits: number,
+  poolCostToman: number,
+  poolCostUsd: number,
+  drainAmount: number
+): { units: number; costToman: number; costUsd: number } {
+  if (drainAmount <= 0 || poolUnits <= 0) {
+    return { units: poolUnits, costToman: poolCostToman, costUsd: poolCostUsd };
+  }
+  const avgT = poolCostToman / poolUnits;
+  const avgU = poolCostUsd / poolUnits;
+  const drain = Math.min(drainAmount, poolUnits);
+  let units = poolUnits - drain;
+  let costToman = poolCostToman - drain * avgT;
+  let costUsd = poolCostUsd - drain * avgU;
+  if (units <= 1e-6) {
+    units = 0;
+    costToman = 0;
+    costUsd = 0;
+  }
+  return { units, costToman, costUsd };
+}
+
 export function calculateAssetPeriodStats(
   asset: Asset,
   transactions: Transaction[],
@@ -212,18 +248,21 @@ export function calculateAssetPeriodStats(
   /**
    * Price of the asset AT THE END OF `period`, resolved by the caller
    * via `effectivePriceAt`. Pass `null` when no snapshot exists — we
-   * will flag `unrealizedAvailable = false` unless the period-end
-   * position is flat (in which case unrealized is trivially 0).
+   * will flag `periodUnrealizedAvailable = false` unless holdings are
+   * flat at evaluation.
    */
-  periodEndPrice: EffectivePrice | null
+  periodEndPrice: EffectivePrice | null,
+  /**
+   * Price at `period.start` for valuing opening holdings. Required when
+   * `startHoldings > 0`. Pass `null` only when opening holdings are zero
+   * or period kind is `all` (no pre-period baseline).
+   */
+  periodStartPrice: EffectivePrice | null = null
 ): AssetPeriodStats {
   if (asset.include_in_profit_loss === false) {
     return emptyAssetPeriodStats(asset.id);
   }
 
-  // Filter to every asset-touching tx: BUY/SELL plus asset-side
-  // INCOME/EXPENSE (which `buildPayload` writes with `asset_id`, `amount`,
-  // `price_toman`, `usd_rate` populated so the replay math is uniform).
   const assetTxs = transactions.filter((tx) => {
     if (isAcquireForAsset(tx, asset.id)) return true;
     if (isDisposeForAsset(tx, asset.id)) return true;
@@ -237,9 +276,6 @@ export function calculateAssetPeriodStats(
     const da = parseDateToNumber(a.date_string);
     const db = parseDateToNumber(b.date_string);
     if (da !== db) return da - db;
-    // Same-day convention: acquisitions (BUY / asset-INCOME) before
-    // disposals (SELL / asset-EXPENSE) so a same-day buy-then-sell
-    // cost-bases correctly.
     const ra = acquireRank(a);
     const rb = acquireRank(b);
     if (ra !== rb) return ra - rb;
@@ -247,6 +283,7 @@ export function calculateAssetPeriodStats(
   });
 
   const stats = emptyAssetPeriodStats(asset.id);
+  const startNum = jalaaliToNumber(period.start);
   const endNum = jalaaliToNumber(period.end);
 
   let units = 0;
@@ -256,7 +293,27 @@ export function calculateAssetPeriodStats(
   let endUnits = 0;
   let endCostToman = 0;
   let endCostUsd = 0;
-  let snapshotted = false;
+  let endSnapshotted = false;
+
+  let periodPoolUnits = 0;
+  let periodPoolCostToman = 0;
+  let periodPoolCostUsd = 0;
+  let periodPoolInitialized = false;
+  let missingStartPrice = false;
+
+  const initPeriodPool = () => {
+    if (periodPoolInitialized) return;
+    periodPoolInitialized = true;
+    stats.startHoldings = units;
+    if (units <= 0) return;
+    if (periodStartPrice) {
+      periodPoolUnits = units;
+      periodPoolCostToman = units * periodStartPrice.priceToman;
+      periodPoolCostUsd = units * periodStartPrice.priceUsd;
+    } else {
+      missingStartPrice = true;
+    }
+  };
 
   for (const tx of sorted) {
     const trade = readTrade(tx, usdRateFallback);
@@ -266,13 +323,16 @@ export function calculateAssetPeriodStats(
     }
     const { amount, priceToman, priceUsd } = trade;
 
-    // Snapshot end-of-period state the moment we step past the period.
     const txNum = parseDateToNumber(tx.date_string);
-    if (!snapshotted && txNum > endNum) {
+    if (txNum >= startNum) {
+      initPeriodPool();
+    }
+
+    if (!endSnapshotted && txNum > endNum) {
       endUnits = units;
       endCostToman = costToman;
       endCostUsd = costUsd;
-      snapshotted = true;
+      endSnapshotted = true;
     }
 
     const inPeriod = isInPeriod(tx.date_string, period);
@@ -284,6 +344,10 @@ export function calculateAssetPeriodStats(
       costUsd += amount * priceUsd;
 
       if (inPeriod) {
+        initPeriodPool();
+        periodPoolUnits += amount;
+        periodPoolCostToman += amount * priceToman;
+        periodPoolCostUsd += amount * priceUsd;
         stats.bought.units += amount;
         stats.bought.totalToman += amount * priceToman;
         stats.bought.totalUsd += amount * priceUsd;
@@ -297,6 +361,7 @@ export function calculateAssetPeriodStats(
       if (amount > units + 1e-6) stats.oversellCount += 1;
 
       if (inPeriod) {
+        initPeriodPool();
         stats.realizedToman += drain * (priceToman - avgT);
         stats.realizedUsd += drain * (priceUsd - avgU);
         stats.sold.units += amount;
@@ -304,14 +369,22 @@ export function calculateAssetPeriodStats(
         stats.sold.totalUsd += amount * priceUsd;
         stats.sold.count += 1;
         stats.hadActivity = true;
+
+        const drained = drainPeriodPool(
+          periodPoolUnits,
+          periodPoolCostToman,
+          periodPoolCostUsd,
+          drain
+        );
+        periodPoolUnits = drained.units;
+        periodPoolCostToman = drained.costToman;
+        periodPoolCostUsd = drained.costUsd;
       }
 
       units -= drain;
       costToman -= drain * avgT;
       costUsd -= drain * avgU;
 
-      // Kill FP noise when the position goes flat (mirrors
-      // calculate-asset-stats).
       if (units <= 1e-6) {
         units = 0;
         costToman = 0;
@@ -320,9 +393,11 @@ export function calculateAssetPeriodStats(
     }
   }
 
-  // If every tx was in-or-before the period, the snapshot equals the
-  // final state after replay.
-  if (!snapshotted) {
+  if (!periodPoolInitialized) {
+    initPeriodPool();
+  }
+
+  if (!endSnapshotted) {
     endUnits = units;
     endCostToman = costToman;
     endCostUsd = costUsd;
@@ -340,12 +415,11 @@ export function calculateAssetPeriodStats(
   stats.currentAvgCostToman = units > 0 ? costToman / units : 0;
   stats.currentAvgCostUsd = units > 0 ? costUsd / units : 0;
 
-  // ----- Unrealized at period end -----
-  //
-  // Three cases, in priority order:
-  //  (a) Flat at period end → unrealized is trivially 0, available.
-  //  (b) Non-zero holdings + price available → compute mark-to-market.
-  //  (c) Non-zero holdings + no price → flag unavailable; values stay 0.
+  const evalHoldings = units;
+  const evalPoolCostToman = periodPoolCostToman;
+  const evalPoolCostUsd = periodPoolCostUsd;
+
+  // Absolute open P/L at period-end holdings snapshot (lifetime cost basis).
   if (endUnits <= 0) {
     stats.unrealizedAvailable = true;
     stats.unrealizedToman = 0;
@@ -362,6 +436,31 @@ export function calculateAssetPeriodStats(
     stats.periodEndPriceIsLive = periodEndPrice.isLive;
   } else {
     stats.unrealizedAvailable = false;
+  }
+
+  // True period unrealized at evaluation (current holdings for live periods).
+  if (evalHoldings <= 0) {
+    stats.periodUnrealizedAvailable = true;
+    stats.periodUnrealizedToman = 0;
+    stats.periodUnrealizedUsd = 0;
+  } else if (missingStartPrice) {
+    stats.periodUnrealizedAvailable = false;
+  } else if (periodEndPrice) {
+    stats.periodUnrealizedAvailable = true;
+    stats.periodUnrealizedToman =
+      evalHoldings * periodEndPrice.priceToman - evalPoolCostToman;
+    stats.periodUnrealizedUsd =
+      evalHoldings * periodEndPrice.priceUsd - evalPoolCostUsd;
+    if (stats.periodEndPriceToman === null) {
+      stats.periodEndPriceToman = periodEndPrice.priceToman;
+      stats.periodEndPriceUsd = periodEndPrice.priceUsd;
+      stats.periodEndPriceSourceDate = periodEndPrice.isLive
+        ? null
+        : periodEndPrice.sourceDate;
+      stats.periodEndPriceIsLive = periodEndPrice.isLive;
+    }
+  } else {
+    stats.periodUnrealizedAvailable = false;
   }
 
   finalizeSide(stats.bought);

@@ -69,26 +69,32 @@ export function ReportsIndexView() {
 
   const assetsSummary = useMemo(() => {
     const period = clampPeriodToToday(currentPeriod(scope));
+    const periodStartStr = formatJalaali(period.start);
     const periodEndStr = formatJalaali(period.end);
     let totalToman = 0;
     let totalUsd = 0;
     let unrealizedMissingCount = 0;
     for (const a of assets) {
       if (a.include_in_profit_loss === false) continue;
+      const startPrice =
+        period.kind === 'all'
+          ? null
+          : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
       const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
       const s = calculateAssetPeriodStats(
         a,
         transactions,
         period,
         usdRate,
-        endPrice
+        endPrice,
+        startPrice
       );
       totalToman += s.realizedToman;
       totalUsd += s.realizedUsd;
-      if (s.unrealizedAvailable) {
-        totalToman += s.unrealizedToman;
-        totalUsd += s.unrealizedUsd;
-      } else {
+      if (s.periodUnrealizedAvailable) {
+        totalToman += s.periodUnrealizedToman;
+        totalUsd += s.periodUnrealizedUsd;
+      } else if (s.currentHoldings > 0 || s.endHoldings > 0) {
         unrealizedMissingCount += 1;
       }
     }
@@ -142,18 +148,30 @@ export function ReportsIndexView() {
     const previousCash = rollupNet(previous);
 
     const assetsTotal = (period: typeof current) => {
+      const periodStartStr = formatJalaali(period.start);
       const periodEndStr = formatJalaali(period.end);
       let totalToman = 0;
       let totalUsd = 0;
       for (const a of assets) {
         if (a.include_in_profit_loss === false) continue;
+        const startPrice =
+          period.kind === 'all'
+            ? null
+            : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
         const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
-        const s = calculateAssetPeriodStats(a, transactions, period, usdRate, endPrice);
+        const s = calculateAssetPeriodStats(
+          a,
+          transactions,
+          period,
+          usdRate,
+          endPrice,
+          startPrice
+        );
         totalToman += s.realizedToman;
         totalUsd += s.realizedUsd;
-        if (s.unrealizedAvailable) {
-          totalToman += s.unrealizedToman;
-          totalUsd += s.unrealizedUsd;
+        if (s.periodUnrealizedAvailable) {
+          totalToman += s.periodUnrealizedToman;
+          totalUsd += s.periodUnrealizedUsd;
         }
       }
       return currencyMode === 'USD' ? totalUsd : totalToman;

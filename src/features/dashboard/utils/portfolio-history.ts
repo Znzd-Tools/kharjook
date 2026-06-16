@@ -258,25 +258,28 @@ export function ytdCumulativeProfitMonthlySeries(
           }
         : today;
     const period: Period = { kind: 'month', start: yearStart, end };
+    const startStr = formatJalaali(yearStart);
     const endStr = formatJalaali(end);
     let profitToman = 0;
     let profitUsd = 0;
 
     for (const asset of assets) {
       if (asset.include_in_profit_loss === false) continue;
+      const startPrice = effectivePriceAt(asset, startStr, dailyPrices, todayStr);
       const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
       const s = calculateAssetPeriodStats(
         asset,
         transactions,
         period,
         usdRate,
-        endPrice
+        endPrice,
+        startPrice
       );
       profitToman += s.realizedToman;
       profitUsd += s.realizedUsd;
-      if (s.unrealizedAvailable) {
-        profitToman += s.unrealizedToman;
-        profitUsd += s.unrealizedUsd;
+      if (s.periodUnrealizedAvailable) {
+        profitToman += s.periodUnrealizedToman;
+        profitUsd += s.periodUnrealizedUsd;
       }
     }
 

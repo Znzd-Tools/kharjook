@@ -10,8 +10,10 @@ import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
+import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { sortTransactionsNewestFirst } from '@/shared/utils/sort-transactions';
+import { ytdUnrealizedForAsset } from '@/features/reports/utils/ytd-unrealized';
 import { DetailCard } from '@/features/assets/components/DetailCard';
 import {
   buildAssetSnapshots,
@@ -49,6 +51,8 @@ const TYPE_LABELS: Record<string, string> = {
   EXPENSE: 'هزینه',
 };
 
+type PnlScope = 'lifetime' | 'year';
+
 export interface AssetDetailsViewProps {
   assetId: string;
 }
@@ -56,10 +60,12 @@ export interface AssetDetailsViewProps {
 export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
   const toast = useToast();
-  const { assets, categories, transactions, goals, setTransactions, wallets } = useData();
+  const { assets, categories, transactions, goals, dailyPrices, setTransactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
   const [txSearchQuery, setTxSearchQuery] = useState('');
+  const [pnlScope, setPnlScope] = useState<PnlScope>('year');
+  const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
   const asset = assets.find((a) => a.id === assetId);
 
@@ -175,6 +181,11 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
       .filter((row): row is NonNullable<typeof row> => row !== null);
   }, [asset, assetGoals, snapshots, totalValueToman, currencyMode, usdRate]);
 
+  const ytdStats = useMemo(() => {
+    if (!asset) return null;
+    return ytdUnrealizedForAsset(asset, transactions, dailyPrices, usdRate, todayStr);
+  }, [asset, transactions, dailyPrices, usdRate, todayStr]);
+
   if (!asset) {
     return (
       <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
@@ -190,20 +201,45 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
 
   const displayValue =
     currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
-  const displayProfit =
-    currencyMode === 'USD' ? stats.profitLossUsd : stats.profitLossToman;
-  const isProfit = displayProfit >= 0;
+
+  const headerProfitAvailable = ytdStats?.periodUnrealizedAvailable ?? false;
+  const headerProfit = headerProfitAvailable && ytdStats
+    ? currencyMode === 'USD'
+      ? ytdStats.periodUnrealizedUsd
+      : ytdStats.periodUnrealizedToman
+    : null;
+  const isHeaderProfit = (headerProfit ?? 0) >= 0;
+  const ytdBaselineToman =
+    ytdStats && ytdStats.periodEndPriceToman && ytdStats.startHoldings > 0
+      ? ytdStats.startHoldings * ytdStats.periodEndPriceToman
+      : stats.totalCostToman;
+  const headerProfitPercent =
+    headerProfitAvailable && ytdStats && ytdBaselineToman > 0
+      ? (ytdStats.periodUnrealizedToman / ytdBaselineToman) * 100
+      : 0;
 
   const displayRealized =
-    currencyMode === 'USD'
-      ? stats.realizedProfitUsd
-      : stats.realizedProfitToman;
+    pnlScope === 'year' && ytdStats
+      ? currencyMode === 'USD'
+        ? ytdStats.realizedUsd
+        : ytdStats.realizedToman
+      : currencyMode === 'USD'
+        ? stats.realizedProfitUsd
+        : stats.realizedProfitToman;
   const isRealizedProfit = displayRealized >= 0;
 
+  const unrealizedAvailable =
+    pnlScope === 'year'
+      ? (ytdStats?.periodUnrealizedAvailable ?? false)
+      : true;
   const displayUnrealized =
-    currencyMode === 'USD'
-      ? stats.unrealizedProfitUsd
-      : stats.unrealizedProfitToman;
+    pnlScope === 'year' && ytdStats
+      ? currencyMode === 'USD'
+        ? ytdStats.periodUnrealizedUsd
+        : ytdStats.periodUnrealizedToman
+      : currencyMode === 'USD'
+        ? stats.unrealizedProfitUsd
+        : stats.unrealizedProfitToman;
   const isUnrealizedProfit = displayUnrealized >= 0;
   const pnlExcluded = asset.include_in_profit_loss === false;
   const balanceExcluded = asset.include_in_balance === false;
@@ -274,14 +310,19 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           <h2 className="text-3xl font-bold text-white mb-2" dir="ltr">
             {formatCurrency(displayValue, currencyMode)}
           </h2>
-          <div
-            className={`inline-flex items-center gap-1 text-sm font-medium ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}
-            dir="ltr"
-          >
-            {isProfit ? '+' : ''}
-            {formatCurrency(displayProfit, currencyMode)} (
-            {stats.profitLossPercent.toFixed(2)}%)
-          </div>
+          {headerProfit !== null ? (
+            <div
+              className={`inline-flex items-center gap-1 text-sm font-medium ${isHeaderProfit ? 'text-emerald-400' : 'text-rose-400'}`}
+              dir="ltr"
+            >
+              {isHeaderProfit ? '+' : ''}
+              {formatCurrency(headerProfit, currencyMode)} (
+              {headerProfitPercent.toFixed(2)}%)
+            </div>
+          ) : (
+            <p className="text-sm text-amber-400/80">سود/زیان باز امسال: —</p>
+          )}
+          <p className="text-[10px] text-slate-500 mt-1">سود/زیان باز · امسال</p>
           {balanceExcluded && (
             <p className="text-[11px] text-sky-300/80 mt-2">
               این دارایی در «ارزش کل سبد» و پراکندگی داشبورد لحاظ نمی‌شود؛ ارزش
@@ -301,10 +342,38 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           )}
         </div>
 
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">سود/زیان</p>
+          <div className="flex rounded-lg border border-white/10 overflow-hidden text-[10px]">
+            <button
+              type="button"
+              onClick={() => setPnlScope('year')}
+              className={`px-2.5 py-1 font-semibold transition ${
+                pnlScope === 'year'
+                  ? 'bg-purple-500/25 text-purple-200'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              امسال
+            </button>
+            <button
+              type="button"
+              onClick={() => setPnlScope('lifetime')}
+              className={`px-2.5 py-1 font-semibold transition ${
+                pnlScope === 'lifetime'
+                  ? 'bg-purple-500/25 text-purple-200'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              از ابتدا
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5">
             <p className="text-slate-500 text-xs mb-1">
-              سود/زیان محقق شده (فروش)
+              سود/زیان محقق شده ({pnlScope === 'year' ? 'امسال' : 'از ابتدا'})
             </p>
             <p
               className={`font-bold text-sm ${isRealizedProfit ? 'text-emerald-400' : 'text-rose-400'}`}
@@ -316,15 +385,19 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           </div>
           <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5">
             <p className="text-slate-500 text-xs mb-1">
-              سود/زیان مانده (ارزش روز)
+              سود/زیان مانده ({pnlScope === 'year' ? 'امسال' : 'ارزش روز'})
             </p>
-            <p
-              className={`font-bold text-sm ${isUnrealizedProfit ? 'text-emerald-400' : 'text-rose-400'}`}
-              dir="ltr"
-            >
-              {isUnrealizedProfit ? '+' : ''}
-              {formatCurrency(displayUnrealized, currencyMode)}
-            </p>
+            {unrealizedAvailable ? (
+              <p
+                className={`font-bold text-sm ${isUnrealizedProfit ? 'text-emerald-400' : 'text-rose-400'}`}
+                dir="ltr"
+              >
+                {isUnrealizedProfit ? '+' : ''}
+                {formatCurrency(displayUnrealized, currencyMode)}
+              </p>
+            ) : (
+              <p className="text-sm text-amber-400/80">—</p>
+            )}
           </div>
         </div>
 
