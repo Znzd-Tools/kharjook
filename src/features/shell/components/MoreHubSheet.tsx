@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import {
   BarChart3,
+  Calculator,
   Coins,
   FileUp,
   LayoutGrid,
@@ -36,6 +37,12 @@ const LINKS = [
     title: 'مدیریت دارایی‌ها',
     subtitle: 'افزودن، ویرایش و مرتب‌سازی',
     icon: Coins,
+  },
+  {
+    href: '/plan',
+    title: 'برنامه هزینه',
+    subtitle: 'پیش‌بینی هزینه‌های ماهانه',
+    icon: Calculator,
   },
   {
     href: '/manage/goals',

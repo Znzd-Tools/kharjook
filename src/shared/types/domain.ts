@@ -131,6 +131,23 @@ export interface RecurringTransaction {
   updated_at: string;
 }
 
+export type ExpensePlanSourceType = 'manual' | 'installment' | 'recurring' | 'check';
+
+export interface ExpensePlanItem {
+  id: string;
+  user_id: string;
+  month_start_string: string;
+  title: string;
+  amount_toman: number;
+  category_id: string | null;
+  note: string | null;
+  source_type: ExpensePlanSourceType;
+  source_id: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Person {
   id: string;
   user_id: string;
