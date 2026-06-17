@@ -11,4 +11,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-export const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    detectSessionInUrl: false,
+  },
+});
