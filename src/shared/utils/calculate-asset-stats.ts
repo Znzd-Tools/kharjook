@@ -25,7 +25,7 @@ function resolvePriceUsd(
 export function calculateAssetStats(
   asset: Asset,
   transactions: Transaction[],
-  _currencyMode: CurrencyMode,
+  currencyMode: CurrencyMode,
   usdRate: number
 ): AssetStats {
   const isAcquireType = (tx: Transaction) =>
@@ -54,7 +54,8 @@ export function calculateAssetStats(
   let totalCostUsd = 0;
   let realizedProfitToman = 0;
   let realizedProfitUsd = 0;
-  let historicalCostToman = 0; // Used for accurate ROI percentage
+  let historicalCostToman = 0;
+  let historicalCostUsd = 0;
 
   // Bulletproof sort: Oldest to Newest, handling same-day trades logically
   const sortedTxs = [...assetTxs].sort((a, b) => {
@@ -90,6 +91,7 @@ export function calculateAssetStats(
       totalCostToman += txCostToman;
       totalCostUsd += amount * priceUsd;
       historicalCostToman += txCostToman;
+      historicalCostUsd += amount * priceUsd;
     } else {
       if (totalAmount > 0) {
         const avgCostToman = totalCostToman / totalAmount;
@@ -131,11 +133,14 @@ export function calculateAssetStats(
   const profitLossToman = realizedProfitToman + unrealizedProfitToman;
   const profitLossUsd = realizedProfitUsd + unrealizedProfitUsd;
 
-  // Accurate Lifetime ROI percentage
   const profitLossPercent =
-    historicalCostToman > 0
-      ? (profitLossToman / historicalCostToman) * 100
-      : 0;
+    currencyMode === 'USD'
+      ? historicalCostUsd > 0
+        ? (profitLossUsd / historicalCostUsd) * 100
+        : 0
+      : historicalCostToman > 0
+        ? (profitLossToman / historicalCostToman) * 100
+        : 0;
 
   const includePnl = asset.include_in_profit_loss ?? true;
 

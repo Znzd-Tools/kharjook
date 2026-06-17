@@ -45,6 +45,10 @@ import {
 } from '@/features/reports/utils/asset-period-stats';
 import { effectivePriceAt } from '@/features/reports/utils/price-history';
 import type { Asset } from '@/shared/types/domain';
+import {
+  filterAssetsForList,
+  type ZeroValueFilter,
+} from '@/features/assets/utils/asset-list-filters';
 
 export function AssetsReportView() {
   const router = useRouter();
@@ -57,6 +61,8 @@ export function AssetsReportView() {
     [searchParams]
   );
   const assetFilter = searchParams.get('asset') || null;
+  const zeroValueFilter: ZeroValueFilter =
+    searchParams.get('zeros') === 'show' ? 'show' : 'hide';
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
   const pushParams = (patch: Record<string, string | null>) => {
@@ -72,6 +78,26 @@ export function AssetsReportView() {
     pushParams({ period, d });
   };
   const setAsset = (id: string | null) => pushParams({ asset: id });
+  const setZeroValueFilter = (filter: ZeroValueFilter) =>
+    pushParams({ zeros: filter === 'show' ? 'show' : null });
+
+  const listAssets = useMemo(() => {
+    const filtered = filterAssetsForList(
+      assets,
+      transactions,
+      currencyMode,
+      usdRate,
+      zeroValueFilter
+    );
+    if (
+      assetFilter &&
+      !filtered.some((asset) => asset.id === assetFilter)
+    ) {
+      const selected = assets.find((asset) => asset.id === assetFilter);
+      if (selected) return [...filtered, selected];
+    }
+    return filtered;
+  }, [assets, transactions, currencyMode, usdRate, zeroValueFilter, assetFilter]);
 
   // Compute per-asset stats once. Price lookup is O(n) in dailyPrices per
   // asset; with hundreds of snapshots × tens of assets still well under a
@@ -81,6 +107,7 @@ export function AssetsReportView() {
     const periodEndStr = formatJalaali(period.end);
     return assets
       .filter((a) => a.include_in_profit_loss !== false)
+      .filter((a) => listAssets.some((visible) => visible.id === a.id))
       .map((a) => {
         const startPrice =
           period.kind === 'all'
@@ -99,7 +126,7 @@ export function AssetsReportView() {
           ),
         };
       });
-  }, [assets, transactions, period, usdRate, dailyPrices, todayStr]);
+  }, [assets, transactions, period, usdRate, dailyPrices, todayStr, listAssets]);
 
   const visible = assetFilter
     ? allStats.filter((x) => x.asset.id === assetFilter)
@@ -206,9 +233,11 @@ export function AssetsReportView() {
         <PeriodNavHeader period={period} onChange={setPeriod} />
 
         <AssetFilterChips
-          assets={assets}
+          assets={listAssets}
           value={assetFilter}
           onChange={setAsset}
+          zeroValueFilter={zeroValueFilter}
+          onZeroValueFilterChange={setZeroValueFilter}
         />
 
         <SummaryCard
@@ -268,40 +297,85 @@ function AssetFilterChips({
   assets,
   value,
   onChange,
+  zeroValueFilter,
+  onZeroValueFilterChange,
 }: {
   assets: Asset[];
   value: string | null;
   onChange: (v: string | null) => void;
+  zeroValueFilter: ZeroValueFilter;
+  onZeroValueFilterChange: (v: ZeroValueFilter) => void;
 }) {
-  if (assets.length === 0) return null;
   return (
-    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
-      <button
-        type="button"
-        onClick={() => onChange(null)}
-        className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
-          value === null
-            ? 'bg-purple-500/20 border-purple-500/40 text-white'
-            : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
-        }`}
-      >
-        همه دارایی‌ها
-      </button>
-      {assets.map((a) => (
-        <button
-          key={a.id}
-          type="button"
-          onClick={() => onChange(a.id)}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
-            value === a.id
-              ? 'bg-purple-500/20 border-purple-500/40 text-white'
-              : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
-          }`}
-        >
-          {a.name}
-        </button>
-      ))}
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
+        {assets.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+                value === null
+                  ? 'bg-purple-500/20 border-purple-500/40 text-white'
+                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+              }`}
+            >
+              همه دارایی‌ها
+            </button>
+            {assets.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onChange(a.id)}
+                className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+                  value === a.id
+                    ? 'bg-purple-500/20 border-purple-500/40 text-white'
+                    : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                {a.name}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
+        <ZeroValueChip
+          active={zeroValueFilter === 'hide'}
+          onClick={() => onZeroValueFilterChange('hide')}
+          label="بدون صفر"
+        />
+        <ZeroValueChip
+          active={zeroValueFilter === 'show'}
+          onClick={() => onZeroValueFilterChange('show')}
+          label="شامل صفر"
+        />
+      </div>
     </div>
+  );
+}
+
+function ZeroValueChip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+        active
+          ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-100'
+          : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

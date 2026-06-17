@@ -209,13 +209,23 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
       : ytdStats.periodUnrealizedToman
     : null;
   const isHeaderProfit = (headerProfit ?? 0) >= 0;
-  const ytdBaselineToman =
-    ytdStats && ytdStats.periodEndPriceToman && ytdStats.startHoldings > 0
-      ? ytdStats.startHoldings * ytdStats.periodEndPriceToman
-      : stats.totalCostToman;
+  const ytdBaseline =
+    currencyMode === 'USD'
+      ? ytdStats && ytdStats.periodEndPriceUsd && ytdStats.startHoldings > 0
+        ? ytdStats.startHoldings * ytdStats.periodEndPriceUsd
+        : stats.totalCostUsd
+      : ytdStats && ytdStats.periodEndPriceToman && ytdStats.startHoldings > 0
+        ? ytdStats.startHoldings * ytdStats.periodEndPriceToman
+        : stats.totalCostToman;
+  const headerUnrealized =
+    headerProfitAvailable && ytdStats
+      ? currencyMode === 'USD'
+        ? ytdStats.periodUnrealizedUsd
+        : ytdStats.periodUnrealizedToman
+      : 0;
   const headerProfitPercent =
-    headerProfitAvailable && ytdStats && ytdBaselineToman > 0
-      ? (ytdStats.periodUnrealizedToman / ytdBaselineToman) * 100
+    headerProfitAvailable && ytdStats && ytdBaseline > 0
+      ? (headerUnrealized / ytdBaseline) * 100
       : 0;
 
   const displayRealized =

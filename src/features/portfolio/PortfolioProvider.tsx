@@ -348,18 +348,82 @@ export function PortfolioProvider({
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        return;
+      }
+
       const nextUser = session?.user ?? null;
-      // Tab-focus token refresh can emit auth events with a new user object
-      // reference but the same identity. Ignore those to avoid re-fetching
-      // all initial data unnecessarily.
-      setUser((prev) => {
-        if (prev?.id === nextUser?.id) return prev;
-        return nextUser;
-      });
+      if (nextUser) {
+        setUser((prev) => (prev?.id === nextUser.id ? prev : nextUser));
+        return;
+      }
+
+      // Refresh races can emit a null session while cookies still hold a valid user.
+      if (
+        event === 'TOKEN_REFRESHED' ||
+        event === 'INITIAL_SESSION' ||
+        event === 'SIGNED_IN'
+      ) {
+        const {
+          data: { user: recovered },
+        } = await supabase.auth.getUser();
+        if (recovered) {
+          setUser((prev) => (prev?.id === recovered.id ? prev : recovered));
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const recoverSession = async () => {
+      const {
+        data: { user: freshUser },
+        error,
+      } = await supabase.auth.getUser();
+      if (freshUser) {
+        setUser((prev) => (prev?.id === freshUser.id ? prev : freshUser));
+        return;
+      }
+      if (!error) return;
+
+      try {
+        await fetch(window.location.origin, {
+          method: 'HEAD',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const retry = await supabase.auth.getUser();
+        if (retry.data.user) {
+          setUser((prev) =>
+            prev?.id === retry.data.user!.id ? prev : retry.data.user
+          );
+        }
+      } catch {
+        // Ignore transient network failures during background recovery.
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void recoverSession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    const intervalId = window.setInterval(() => {
+      void recoverSession();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(intervalId);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
