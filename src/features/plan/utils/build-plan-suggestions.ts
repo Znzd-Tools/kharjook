@@ -54,6 +54,7 @@ export function buildPlanSuggestions(input: {
 }): PlanSuggestion[] {
   const { period, items, installments, loans, checks, recurring, currencyRates } = input;
   const loansById = new Map(loans.map((loan) => [loan.id, loan]));
+  const installmentSuggestions: Array<{ dueDate: string; suggestion: PlanSuggestion }> = [];
   const out: PlanSuggestion[] = [];
 
   for (const installment of installments) {
@@ -68,15 +69,18 @@ export function buildPlanSuggestions(input: {
     const amountToman = amountInCurrencyToToman(remaining, loan.currency, currencyRates);
     if (amountToman <= 0) continue;
 
-    out.push({
-      key: `installment:${installment.id}`,
-      sourceType: 'installment',
-      sourceId: installment.id,
-      title: loan.title,
-      subtitle: `قسط ${installment.sequence_no} · ${installment.due_date_string}`,
-      amountToman,
-      categoryId: loan.category_id,
-      note: installment.note,
+    installmentSuggestions.push({
+      dueDate: installment.due_date_string,
+      suggestion: {
+        key: `installment:${installment.id}`,
+        sourceType: 'installment',
+        sourceId: installment.id,
+        title: loan.title,
+        subtitle: `قسط ${installment.sequence_no} · ${installment.due_date_string}`,
+        amountToman,
+        categoryId: loan.category_id,
+        note: installment.note,
+      },
     });
   }
 
@@ -125,7 +129,12 @@ export function buildPlanSuggestions(input: {
     });
   }
 
-  return out.sort((a, b) => b.amountToman - a.amountToman);
+  const sortedInstallments = installmentSuggestions
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .map((row) => row.suggestion);
+
+  const nonInstallments = out.sort((a, b) => b.amountToman - a.amountToman);
+  return [...sortedInstallments, ...nonInstallments];
 }
 
 export function planItemsTotalToman(items: ExpensePlanItem[]): number {
