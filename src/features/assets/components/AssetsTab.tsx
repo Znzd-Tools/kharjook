@@ -11,7 +11,7 @@ import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
-import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
+import { computeYtdUnrealizedSummary, ytdPnlDisplay } from '@/features/reports/utils/ytd-unrealized';
 import type { AssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import {
   buildAssetSnapshots,
@@ -350,13 +350,14 @@ function AssetListRow({
   const stats = calculateAssetStats(asset, transactions, currencyMode, usdRate);
   const displayValue =
     currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
-  const ytdAvailable = ytdStats?.periodUnrealizedAvailable ?? false;
-  const displayProfit = ytdAvailable
-    ? currencyMode === 'USD'
-      ? ytdStats!.periodUnrealizedUsd
-      : ytdStats!.periodUnrealizedToman
-    : null;
+  const ytd = ytdStats ? ytdPnlDisplay(ytdStats, currencyMode) : null;
+  const displayProfit = ytd?.total ?? null;
   const isProfit = (displayProfit ?? 0) >= 0;
+  const showOpenBreakdown =
+    ytd &&
+    ytd.open !== null &&
+    ytd.realized !== 0 &&
+    ytd.open !== 0;
   const decimals = assetDecimals(asset);
 
   return (
@@ -415,10 +416,20 @@ function AssetListRow({
             {formatCurrency(displayProfit, currencyMode)}
           </p>
         ) : (
-          <p className="text-[10px] mt-1 text-amber-400/80">باز امسال: —</p>
+          <p className="text-[10px] mt-1 text-amber-400/80">امسال: —</p>
         )}
         {displayProfit !== null && (
-          <p className="text-[9px] text-slate-600 mt-0.5">باز امسال</p>
+          <p className="text-[9px] text-slate-600 mt-0.5">
+            {ytd?.isPartial ? 'امسال · بدون باز' : 'امسال'}
+          </p>
+        )}
+        {showOpenBreakdown && ytd && (
+          <p className="text-[9px] text-slate-600 mt-0.5" dir="ltr">
+            {ytd.realized >= 0 ? '+' : ''}
+            {formatCurrency(ytd.realized, currencyMode)} ·{' '}
+            {ytd.open! >= 0 ? '+' : ''}
+            {formatCurrency(ytd.open!, currencyMode)} باز
+          </p>
         )}
       </div>
     </div>

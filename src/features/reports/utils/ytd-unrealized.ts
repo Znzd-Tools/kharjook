@@ -1,4 +1,4 @@
-import type { Asset, DailyPrice, Transaction } from '@/shared/types/domain';
+import type { Asset, CurrencyMode, DailyPrice, Transaction } from '@/shared/types/domain';
 import {
   calculateAssetPeriodStats,
   type AssetPeriodStats,
@@ -19,10 +19,67 @@ export interface AssetYtdUnrealizedRow {
 export interface YtdUnrealizedSummary {
   period: Period;
   rows: AssetYtdUnrealizedRow[];
+  /** Total YTD P/L (realized + open when available). */
   totalToman: number;
   totalUsd: number;
+  totalRealizedToman: number;
+  totalRealizedUsd: number;
+  totalOpenToman: number;
+  totalOpenUsd: number;
+  /** Assets with YTD activity where open P/L could not be included in the total. */
+  partialTotalCount: number;
   missingStartPriceCount: number;
   missingEndPriceCount: number;
+}
+
+export interface YtdPnlDisplay {
+  total: number | null;
+  realized: number;
+  open: number | null;
+  /** Open portion missing; total may be realized-only. */
+  isPartial: boolean;
+  unavailable: boolean;
+}
+
+export function ytdPnlDisplay(
+  stats: AssetPeriodStats,
+  currencyMode: CurrencyMode
+): YtdPnlDisplay {
+  const realized =
+    currencyMode === 'USD' ? stats.realizedUsd : stats.realizedToman;
+  const open = stats.periodUnrealizedAvailable
+    ? currencyMode === 'USD'
+      ? stats.periodUnrealizedUsd
+      : stats.periodUnrealizedToman
+    : null;
+
+  if (stats.periodUnrealizedAvailable) {
+    return {
+      total: realized + open!,
+      realized,
+      open,
+      isPartial: false,
+      unavailable: false,
+    };
+  }
+
+  if (stats.hadActivity) {
+    return {
+      total: realized,
+      realized,
+      open: null,
+      isPartial: stats.currentHoldings > 0,
+      unavailable: false,
+    };
+  }
+
+  return {
+    total: null,
+    realized,
+    open: null,
+    isPartial: stats.currentHoldings > 0,
+    unavailable: true,
+  };
 }
 
 export function currentJalaliYearPeriod(): Period {
@@ -30,7 +87,7 @@ export function currentJalaliYearPeriod(): Period {
 }
 
 /**
- * Per-asset true current-Jalali-year unrealized P/L and portfolio totals.
+ * Per-asset current-Jalali-year P/L (realized + open) and portfolio totals.
  * Assets with `include_in_profit_loss === false` are excluded.
  */
 export function computeYtdUnrealizedSummary(
@@ -47,6 +104,11 @@ export function computeYtdUnrealizedSummary(
   const rows: AssetYtdUnrealizedRow[] = [];
   let totalToman = 0;
   let totalUsd = 0;
+  let totalRealizedToman = 0;
+  let totalRealizedUsd = 0;
+  let totalOpenToman = 0;
+  let totalOpenUsd = 0;
+  let partialTotalCount = 0;
   let missingStartPriceCount = 0;
   let missingEndPriceCount = 0;
 
@@ -73,9 +135,18 @@ export function computeYtdUnrealizedSummary(
       missingEndPriceCount += 1;
     }
 
+    totalRealizedToman += stats.realizedToman;
+    totalRealizedUsd += stats.realizedUsd;
+
     if (stats.periodUnrealizedAvailable) {
-      totalToman += stats.periodUnrealizedToman;
-      totalUsd += stats.periodUnrealizedUsd;
+      totalOpenToman += stats.periodUnrealizedToman;
+      totalOpenUsd += stats.periodUnrealizedUsd;
+      totalToman += stats.realizedToman + stats.periodUnrealizedToman;
+      totalUsd += stats.realizedUsd + stats.periodUnrealizedUsd;
+    } else if (stats.hadActivity) {
+      totalToman += stats.realizedToman;
+      totalUsd += stats.realizedUsd;
+      if (stats.currentHoldings > 0) partialTotalCount += 1;
     }
   }
 
@@ -84,6 +155,11 @@ export function computeYtdUnrealizedSummary(
     rows,
     totalToman,
     totalUsd,
+    totalRealizedToman,
+    totalRealizedUsd,
+    totalOpenToman,
+    totalOpenUsd,
+    partialTotalCount,
     missingStartPriceCount,
     missingEndPriceCount,
   };

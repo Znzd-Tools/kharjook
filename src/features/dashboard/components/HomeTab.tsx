@@ -162,8 +162,9 @@ export function HomeTab() {
 
   const stats = useMemo(() => {
     let assetsValueToman = 0;
-    let yearUnrealizedToman = 0;
-    let yearUnrealizedUsd = 0;
+    let yearPnlToman = 0;
+    let yearPnlUsd = 0;
+    let yearPnlPartialCount = 0;
     let yearUnrealizedMissingCount = 0;
     let monthIncomeToman = 0;
     let monthIncomeUsd = 0;
@@ -269,8 +270,9 @@ export function HomeTab() {
       usdRate,
       todayStr
     );
-    yearUnrealizedToman = ytdSummary.totalToman;
-    yearUnrealizedUsd = ytdSummary.totalUsd;
+    yearPnlToman = ytdSummary.totalToman;
+    yearPnlUsd = ytdSummary.totalUsd;
+    yearPnlPartialCount = ytdSummary.partialTotalCount;
     yearUnrealizedMissingCount =
       ytdSummary.missingStartPriceCount + ytdSummary.missingEndPriceCount;
 
@@ -394,8 +396,9 @@ export function HomeTab() {
     return {
       totalPortfolioToman,
       cashToman,
-      yearUnrealizedToman,
-      yearUnrealizedUsd,
+      yearPnlToman,
+      yearPnlUsd,
+      yearPnlPartialCount,
       yearUnrealizedMissingCount,
       monthIncomeToman,
       monthIncomeUsd,
@@ -502,8 +505,8 @@ export function HomeTab() {
     stats.totalPortfolioToman > 0
       ? (stats.cashToman / stats.totalPortfolioToman) * 100
       : 0;
-  const displayYearUnrealized =
-    currencyMode === 'USD' ? stats.yearUnrealizedUsd : stats.yearUnrealizedToman;
+  const displayYearPnl =
+    currencyMode === 'USD' ? stats.yearPnlUsd : stats.yearPnlToman;
   const displayMonthBalance =
     currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
   const activeMaxExpense =
@@ -758,13 +761,13 @@ export function HomeTab() {
         <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
           <div
             className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
-              displayYearUnrealized >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
+              displayYearPnl >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
             }`}
           />
           <div className="relative flex items-start gap-3">
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                displayYearUnrealized >= 0
+                displayYearPnl >= 0
                   ? 'bg-emerald-400/10 text-emerald-300'
                   : 'bg-rose-400/10 text-rose-300'
               }`}
@@ -772,22 +775,25 @@ export function HomeTab() {
               <TrendingUp size={16} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-400 mb-1">سود/زیان باز امسال</p>
+              <p className="text-xs text-slate-400 mb-1">سود/زیان امسال</p>
               <p
                 className={`truncate text-xl font-black ${
-                  displayYearUnrealized >= 0 ? 'text-emerald-300' : 'text-rose-300'
+                  displayYearPnl >= 0 ? 'text-emerald-300' : 'text-rose-300'
                 }`}
                 dir="ltr"
               >
-                {displayYearUnrealized >= 0 ? '+' : ''}
-                {formatCurrency(displayYearUnrealized, currencyMode)}
+                {displayYearPnl >= 0 ? '+' : ''}
+                {formatCurrency(displayYearPnl, currencyMode)}
               </p>
             </div>
           </div>
-          {stats.yearUnrealizedMissingCount > 0 && (
+          {(stats.yearUnrealizedMissingCount > 0 || stats.yearPnlPartialCount > 0) && (
             <p className="relative text-[10px] text-amber-400/80 mt-3">
-              {formatDisplayNumber(stats.yearUnrealizedMissingCount)} دارایی بدون قیمت تاریخی؛
-              عدد کل ناقص است.
+              {stats.yearUnrealizedMissingCount > 0 &&
+                `${formatDisplayNumber(stats.yearUnrealizedMissingCount)} دارایی بدون قیمت تاریخی؛`}
+              {stats.yearPnlPartialCount > 0 &&
+                ` ${formatDisplayNumber(stats.yearPnlPartialCount)} دارایی فقط با سود محقق‌شده.`}
+              {stats.yearUnrealizedMissingCount > 0 && ' عدد کل ممکن است ناقص باشد.'}
             </p>
           )}
         </div>
