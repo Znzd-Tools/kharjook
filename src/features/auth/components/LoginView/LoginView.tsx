@@ -2,13 +2,22 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Lock, RefreshCw, User as UserIcon, Wallet } from 'lucide-react';
+import { Lock, Fingerprint, RefreshCw, User as UserIcon, Wallet } from 'lucide-react';
 import useLoginView from './useLoginView';
 
 export function LoginView() {
-	const {error,handleLogin,isSubmitting,password,
-		email,setPassword,setEmail
-	} = useLoginView()
+	const {
+    error,
+    handleLogin,
+    handlePasskeyLogin,
+    isSubmitting,
+    isPasskeySubmitting,
+    passkeySupported,
+    password,
+    email,
+    setPassword,
+    setEmail,
+  } = useLoginView()
 	const searchParams = useSearchParams();
 	// Set by RegisterView when email confirmation is required — harmless no-op
 	// when confirmation is off (redirect in that path never fires).
@@ -81,7 +90,7 @@ export function LoginView() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isPasskeySubmitting}
             className="w-full bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.3)] transition-all mt-6 active:scale-95 disabled:opacity-50 flex justify-center items-center"
           >
             {isSubmitting ? (
@@ -90,6 +99,24 @@ export function LoginView() {
               'ورود به حساب'
             )}
           </button>
+
+          {passkeySupported ? (
+            <button
+              type="button"
+              onClick={() => void handlePasskeyLogin()}
+              disabled={isSubmitting || isPasskeySubmitting}
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white p-4 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2"
+            >
+              {isPasskeySubmitting ? (
+                <RefreshCw size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <Fingerprint size={18} />
+                  ورود با بیومتریک
+                </>
+              )}
+            </button>
+          ) : null}
 
           <p className="text-center text-xs text-slate-500 pt-2">
             حساب نداری؟{' '}

@@ -6,6 +6,7 @@ import { useAuth } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { TelegramConnectionSection } from '@/features/settings/components/TelegramConnectionSection';
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
+import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
 
 export function SettingsTab() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export function SettingsTab() {
         </div>
 
         <TelegramConnectionSection />
+        <PasskeySettingsSection />
         <NotificationSettingsSection />
 
         <button

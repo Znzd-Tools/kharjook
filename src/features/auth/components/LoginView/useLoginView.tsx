@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/shared/lib/supabase/client';
+import { mapPasskeyError, signInWithPasskey } from '@/features/auth/services/passkey-auth';
+import { browserSupportsWebAuthn } from '@/features/auth/utils/webauthn-support';
 
 const useLoginView = () => {
   const router = useRouter();
@@ -10,6 +12,8 @@ const useLoginView = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasskeySubmitting, setIsPasskeySubmitting] = useState(false);
+  const passkeySupported = browserSupportsWebAuthn();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,26 @@ const useLoginView = () => {
     router.refresh();
   };
 
+  const handlePasskeyLogin = async () => {
+    setIsPasskeySubmitting(true);
+    setError('');
+    try {
+      const session = await signInWithPasskey();
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+      if (sessionError) throw sessionError;
+      router.replace('/');
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setError(mapPasskeyError(err));
+    } finally {
+      setIsPasskeySubmitting(false);
+    }
+  };
+
   return {
     email,
     setEmail,
@@ -42,7 +66,10 @@ const useLoginView = () => {
     error,
     setError,
     handleLogin,
+    handlePasskeyLogin,
     isSubmitting,
+    isPasskeySubmitting,
+    passkeySupported,
     setIsSubmitting,
   };
 };
