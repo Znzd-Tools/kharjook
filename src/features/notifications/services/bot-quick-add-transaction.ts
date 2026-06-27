@@ -75,7 +75,7 @@ export async function createBotWalletTransaction(input: {
     usd_rate: wallet.currency === 'IRT' ? null : usdRate,
   };
 
-  const payload =
+  const payload: Record<string, unknown> =
     input.type === 'INCOME'
       ? {
           ...base,
