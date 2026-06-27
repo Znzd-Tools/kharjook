@@ -49,17 +49,28 @@ export function mapPasskeyError(error: unknown): string {
         return 'ورود بیومتریک لغو شد.';
       case 'not_authenticated':
         return 'ابتدا وارد حساب شو.';
+      case 'rp_id_mismatch':
+        return 'تنظیمات Passkey در Supabase اشتباه است: Relying Party ID باید kharjook.vercel.app باشد، نه vercel.app.';
       default:
         return error.message || 'خطا در ورود بیومتریک.';
     }
   }
 
-  if (error instanceof DOMException && error.name === 'AbortError') {
-    return 'ورود بیومتریک لغو شد.';
+  if (error instanceof DOMException) {
+    if (error.name === 'AbortError' || error.name === 'NotAllowedError') {
+      return 'ورود بیومتریک لغو شد.';
+    }
+    if (error.name === 'SecurityError') {
+      return 'تنظیمات Passkey در Supabase با دامنه سایت همخوان نیست. Relying Party ID را روی kharjook.vercel.app بگذار.';
+    }
+    if (error.message) return error.message;
   }
 
-  if (error instanceof DOMException && error.name === 'NotAllowedError') {
-    return 'ورود بیومتریک لغو شد.';
+  if (error instanceof Error) {
+    if (error.message === 'webauthn_level3_unsupported') {
+      return 'مرورگر یا دستگاه از ورود بیومتریک پشتیبانی نمی‌کند.';
+    }
+    return error.message || 'خطا در ورود بیومتریک.';
   }
 
   return 'خطا در ورود بیومتریک.';
@@ -158,11 +169,26 @@ export async function registerPasskey(accessToken: string): Promise<PasskeyRecor
     '@/features/auth/utils/webauthn-serialize'
   );
 
-  const credential = (await navigator.credentials.create({
-    publicKey: deserializeCreationOptions(
-      optionsRes.options as PublicKeyCredentialCreationOptionsJSON
-    ),
-  })) as PublicKeyCredential | null;
+  let credential: PublicKeyCredential | null;
+  try {
+    credential = (await navigator.credentials.create({
+      publicKey: deserializeCreationOptions(
+        optionsRes.options as PublicKeyCredentialCreationOptionsJSON
+      ),
+    })) as PublicKeyCredential | null;
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === 'SecurityError' &&
+      optionsRes.options &&
+      'rp' in optionsRes.options &&
+      typeof window !== 'undefined' &&
+      window.location.hostname !== (optionsRes.options as PublicKeyCredentialCreationOptionsJSON).rp.id
+    ) {
+      throw new PasskeyAuthError('rp_id_mismatch');
+    }
+    throw error;
+  }
 
   if (!credential) {
     throw new PasskeyAuthError('user_cancelled');
