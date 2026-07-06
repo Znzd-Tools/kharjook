@@ -51,7 +51,8 @@ import { buildYearCashflowByMonth } from '@/features/dashboard/utils/year-cashfl
 import { CategoryCapsWidget } from '@/features/dashboard/components/CategoryCapsWidget';
 import { GoalsDriftWidget } from '@/features/dashboard/components/GoalsDriftWidget';
 import { PendingChecksWidget } from '@/features/dashboard/components/PendingChecksWidget';
-import type { CategorySpendingCap, Check } from '@/shared/types/domain';
+import { PendingSubscriptionsWidget } from '@/features/dashboard/components/PendingSubscriptionsWidget';
+import type { CategorySpendingCap, Check, Subscription } from '@/shared/types/domain';
 
 export type HomeGoalRow = {
   id: string;
@@ -84,6 +85,7 @@ export function HomeTab() {
   >([]);
   const [spendingCaps, setSpendingCaps] = useState<CategorySpendingCap[]>([]);
   const [pendingChecks, setPendingChecks] = useState<Check[]>([]);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -109,6 +111,24 @@ export function HomeTab() {
         .order('due_date_string', { ascending: true });
       if (!mounted) return;
       setPendingChecks((data ?? []) as Check[]);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    void (async () => {
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .is('deleted_at', null)
+        .eq('status', 'active')
+        .order('next_due_date_string', { ascending: true });
+      if (!mounted) return;
+      setActiveSubscriptions((data ?? []) as Subscription[]);
     })();
     return () => {
       mounted = false;
@@ -650,6 +670,8 @@ export function HomeTab() {
       <GoalsDriftWidget />
 
       <PendingChecksWidget checks={pendingChecks} />
+
+      <PendingSubscriptionsWidget subscriptions={activeSubscriptions} />
 
       <div className="grid grid-cols-2 gap-3">
         <MetricCard

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   HandCoins,
   ReceiptText,
+  Repeat,
 } from 'lucide-react';
 
 type DeadlineItem = {
@@ -39,6 +40,13 @@ const DEADLINE_ITEMS: DeadlineItem[] = [
     subtitle: 'ثبت و پیگیری چک‌های صادره',
     icon: <ReceiptText size={20} />,
     href: '/deadlines/checks',
+  },
+  {
+    key: 'subscriptions',
+    title: 'اشتراک‌ها',
+    subtitle: 'مدیریت اشتراک‌های دوره‌ای',
+    icon: <Repeat size={20} />,
+    href: '/deadlines/subscriptions',
   },
 ];
 

@@ -131,7 +131,46 @@ export interface RecurringTransaction {
   updated_at: string;
 }
 
-export type ExpensePlanSourceType = 'manual' | 'installment' | 'recurring' | 'check';
+export type ExpensePlanSourceType =
+  | 'manual'
+  | 'installment'
+  | 'recurring'
+  | 'check'
+  | 'subscription';
+
+export type SubscriptionStatus = 'active' | 'cancelled';
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  platform: string;
+  amount: number;
+  currency: Currency;
+  interval_number: number;
+  interval_period: LoanIntervalPeriod;
+  next_due_date_string: string;
+  wallet_id: string | null;
+  category_id: string | null;
+  status: SubscriptionStatus;
+  cancelled_at: string | null;
+  reminder_days_before: number[];
+  note: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  user_id: string;
+  subscription_id: string;
+  due_date_string: string;
+  amount: number;
+  currency: Currency;
+  transaction_id: string;
+  paid_at: string;
+  created_at: string;
+}
 
 export interface ExpensePlanItem {
   id: string;

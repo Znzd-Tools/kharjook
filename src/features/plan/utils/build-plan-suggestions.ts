@@ -6,9 +6,13 @@ import type {
   Loan,
   LoanInstallment,
   RecurringTransaction,
+  Subscription,
 } from '@/shared/types/domain';
 import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
-import { recurringDueDatesInPeriod } from '@/features/plan/utils/recurring-due-in-period';
+import {
+  recurringDueDatesInPeriod,
+  subscriptionDueDatesInPeriod,
+} from '@/features/plan/utils/recurring-due-in-period';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import type { Period } from '@/shared/utils/period';
 
@@ -25,7 +29,7 @@ export type PlanSuggestion = {
 
 function amountInCurrencyToToman(
   amount: number,
-  currency: Loan['currency'] | Check['currency'],
+  currency: Loan['currency'] | Check['currency'] | Subscription['currency'],
   currencyRates: CurrencyRate[]
 ): number {
   const rate = tomanPerUnit(currency, currencyRates);
@@ -50,9 +54,11 @@ export function buildPlanSuggestions(input: {
   loans: Loan[];
   checks: Check[];
   recurring: RecurringTransaction[];
+  subscriptions: Subscription[];
   currencyRates: CurrencyRate[];
 }): PlanSuggestion[] {
-  const { period, items, installments, loans, checks, recurring, currencyRates } = input;
+  const { period, items, installments, loans, checks, recurring, subscriptions, currencyRates } =
+    input;
   const loansById = new Map(loans.map((loan) => [loan.id, loan]));
   const installmentSuggestions: Array<{ dueDate: string; suggestion: PlanSuggestion }> = [];
   const out: PlanSuggestion[] = [];
@@ -122,6 +128,30 @@ export function buildPlanSuggestions(input: {
       sourceType: 'recurring',
       sourceId: row.id,
       title: row.title,
+      subtitle: dueLabel,
+      amountToman,
+      categoryId: row.category_id,
+      note: row.note,
+    });
+  }
+
+  for (const row of subscriptions) {
+    if (row.status !== 'active' || row.deleted_at) continue;
+    const dueDates = subscriptionDueDatesInPeriod(row, period);
+    if (dueDates.length === 0) continue;
+    if (isSuggestionAlreadyAdded(items, 'subscription', row.id)) continue;
+
+    const amountToman = amountInCurrencyToToman(row.amount, row.currency, currencyRates) * dueDates.length;
+    if (amountToman <= 0) continue;
+
+    const dueLabel =
+      dueDates.length === 1 ? dueDates[0]! : `${dueDates.length} بار در این ماه`;
+
+    out.push({
+      key: `subscription:${row.id}`,
+      sourceType: 'subscription',
+      sourceId: row.id,
+      title: row.platform,
       subtitle: dueLabel,
       amountToman,
       categoryId: row.category_id,

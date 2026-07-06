@@ -25,6 +25,7 @@ import type {
   Loan,
   LoanInstallment,
   RecurringTransaction,
+  Subscription,
 } from '@/shared/types/domain';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
@@ -53,6 +54,7 @@ const SOURCE_LABELS: Record<Exclude<ExpensePlanSourceType, 'manual'>, string> = 
   installment: 'قسط',
   recurring: 'دوره‌ای',
   check: 'چک',
+  subscription: 'اشتراک',
 };
 
 function emptyManualForm(): ManualFormState {
@@ -92,6 +94,7 @@ export function ExpensePlanView() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [checks, setChecks] = useState<Check[]>([]);
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manualForm, setManualForm] = useState<ManualFormState>(emptyManualForm);
@@ -113,7 +116,8 @@ export function ExpensePlanView() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const [itemsRes, loanRes, installmentRes, checkRes, recurringRes] = await Promise.all([
+      const [itemsRes, loanRes, installmentRes, checkRes, recurringRes, subscriptionRes] =
+        await Promise.all([
         supabase
           .from('expense_plan_items')
           .select('*')
@@ -132,6 +136,11 @@ export function ExpensePlanView() {
           .select('*')
           .is('deleted_at', null)
           .eq('is_active', true),
+        supabase
+          .from('subscriptions')
+          .select('*')
+          .is('deleted_at', null)
+          .eq('status', 'active'),
       ]);
 
       if (itemsRes.error) throw itemsRes.error;
@@ -139,12 +148,14 @@ export function ExpensePlanView() {
       if (installmentRes.error) throw installmentRes.error;
       if (checkRes.error) throw checkRes.error;
       if (recurringRes.error) throw recurringRes.error;
+      if (subscriptionRes.error) throw subscriptionRes.error;
 
       setItems((itemsRes.data ?? []) as ExpensePlanItem[]);
       setLoans((loanRes.data ?? []) as Loan[]);
       setInstallments((installmentRes.data ?? []) as LoanInstallment[]);
       setChecks((checkRes.data ?? []) as Check[]);
       setRecurring((recurringRes.data ?? []) as RecurringTransaction[]);
+      setSubscriptions((subscriptionRes.data ?? []) as Subscription[]);
     } catch (error) {
       console.error(error);
       toast.error('خطا در دریافت برنامه هزینه.');
@@ -166,9 +177,10 @@ export function ExpensePlanView() {
         loans,
         checks,
         recurring,
+        subscriptions,
         currencyRates,
       }),
-    [targetPeriod, items, installments, loans, checks, recurring, currencyRates]
+    [targetPeriod, items, installments, loans, checks, recurring, subscriptions, currencyRates]
   );
 
   const totalToman = useMemo(() => planItemsTotalToman(items), [items]);

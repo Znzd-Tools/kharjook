@@ -1,4 +1,4 @@
-import type { LoanIntervalPeriod, RecurringTransaction } from '@/shared/types/domain';
+import type { LoanIntervalPeriod, RecurringTransaction, Subscription } from '@/shared/types/domain';
 import { addIntervalDate } from '@/features/deadlines/utils/schedule';
 import { compareJalaaliStrings } from '@/features/notifications/utils/jalali-days';
 import {
@@ -29,22 +29,23 @@ function subtractIntervalDate(
   return { jy: nextYear, jm: date.jm, jd: Math.min(date.jd, monthLength) };
 }
 
-/** All due-date strings for a recurring row that fall inside `period`. */
-export function recurringDueDatesInPeriod(
-  row: RecurringTransaction,
-  period: Period
-): string[] {
-  if (!row.is_active || row.deleted_at) return [];
+type DueDatesAnchor = {
+  dateString: string;
+  intervalNumber: number;
+  intervalPeriod: LoanIntervalPeriod;
+  endDateString?: string | null;
+};
 
-  const anchor = parseJalaali(row.next_due_date_string);
-  if (!anchor) return [];
+function dueDatesInPeriod(anchor: DueDatesAnchor, period: Period): string[] {
+  const parsedAnchor = parseJalaali(anchor.dateString);
+  if (!parsedAnchor) return [];
 
   const periodStart = formatJalaali(period.start);
-  let cursor = anchor;
+  let cursor = parsedAnchor;
   for (let i = 0; i < 500; i += 1) {
     const cursorStr = formatJalaali(cursor);
     if (compareJalaaliStrings(cursorStr, periodStart) < 0) {
-      cursor = addIntervalDate(cursor, row.interval_number, row.interval_period);
+      cursor = addIntervalDate(cursor, anchor.intervalNumber, anchor.intervalPeriod);
       continue;
     }
     break;
@@ -53,7 +54,7 @@ export function recurringDueDatesInPeriod(
   const dates: string[] = [];
   let dueStr = formatJalaali(cursor);
   for (let i = 0; i < 500; i += 1) {
-    if (row.end_date_string && compareJalaaliStrings(dueStr, row.end_date_string) > 0) {
+    if (anchor.endDateString && compareJalaaliStrings(dueStr, anchor.endDateString) > 0) {
       break;
     }
     if (isInPeriod(dueStr, period)) {
@@ -65,11 +66,41 @@ export function recurringDueDatesInPeriod(
     const parsed = parseJalaali(dueStr);
     if (!parsed) break;
     dueStr = formatJalaali(
-      addIntervalDate(parsed, row.interval_number, row.interval_period)
+      addIntervalDate(parsed, anchor.intervalNumber, anchor.intervalPeriod)
     );
   }
 
   return dates;
+}
+
+/** All due-date strings for a recurring row that fall inside `period`. */
+export function recurringDueDatesInPeriod(
+  row: RecurringTransaction,
+  period: Period
+): string[] {
+  if (!row.is_active || row.deleted_at) return [];
+  return dueDatesInPeriod(
+    {
+      dateString: row.next_due_date_string,
+      intervalNumber: row.interval_number,
+      intervalPeriod: row.interval_period,
+      endDateString: row.end_date_string,
+    },
+    period
+  );
+}
+
+/** All due-date strings for an active subscription that fall inside `period`. */
+export function subscriptionDueDatesInPeriod(row: Subscription, period: Period): string[] {
+  if (row.status !== 'active' || row.deleted_at) return [];
+  return dueDatesInPeriod(
+    {
+      dateString: row.next_due_date_string,
+      intervalNumber: row.interval_number,
+      intervalPeriod: row.interval_period,
+    },
+    period
+  );
 }
 
 /** Walk backward from anchor until just before period start (for recurring scan). */

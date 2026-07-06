@@ -7,6 +7,7 @@ import type {
   LoanInstallment,
   NotificationDeliveryKind,
   NotificationSettings,
+  Subscription,
   TelegramConnection,
   Transaction,
   Wallet,
@@ -34,6 +35,7 @@ import {
   type CheckListItem,
   type DebtListItem,
   type DebtsListScope,
+  type SubscriptionListItem,
 } from '@/features/notifications/telegram/utils/format-debts-list';
 import {
   sendTelegramInlineMessage,
@@ -186,6 +188,42 @@ async function loadPendingChecks(userId: string): Promise<CheckListItem[]> {
   return items;
 }
 
+async function loadUpcomingSubscriptions(userId: string): Promise<SubscriptionListItem[]> {
+  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  const admin = createSupabaseAdminClient();
+  const { data: rows } = await admin
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('next_due_date_string', { ascending: true });
+
+  if (!rows?.length) return [];
+
+  const { data: currencyRates } = await admin
+    .from('currency_rates')
+    .select('*')
+    .eq('user_id', userId);
+  const rates = (currencyRates ?? []) as CurrencyRate[];
+
+  const items: SubscriptionListItem[] = [];
+  for (const row of rows as Subscription[]) {
+    const daysUntil = installmentDaysUntilDue(row.next_due_date_string, today);
+    if (daysUntil == null) continue;
+    const rate = tomanPerUnit(row.currency, rates);
+    items.push({
+      subscriptionId: row.id,
+      platform: row.platform,
+      dueDateString: row.next_due_date_string,
+      amountToman: row.amount * rate,
+      daysUntilDue: daysUntil,
+      reminderDaysBefore: row.reminder_days_before ?? [],
+    });
+  }
+  return items;
+}
+
 async function wasDelivered(
   userId: string,
   kind: NotificationDeliveryKind,
@@ -292,9 +330,11 @@ export async function sendMonthDebtsForUser(
   const monthPeriod = periodContaining('month', today);
   let items = await loadUnpaidDebtItems(userId);
   let checks = await loadPendingChecks(userId);
+  let subscriptions = await loadUpcomingSubscriptions(userId);
   items = items.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
   checks = checks.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
-  const text = formatDebtsListMessage(items, 'month', checks);
+  subscriptions = subscriptions.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
+  const text = formatDebtsListMessage(items, 'month', checks, subscriptions);
   await sendTelegramToConnection(connection, text, options?.replyMarkup);
 }
 
@@ -305,9 +345,11 @@ export async function sendOverdueDebtsForUser(
 ): Promise<void> {
   let items = await loadUnpaidDebtItems(userId);
   let checks = await loadPendingChecks(userId);
+  let subscriptions = await loadUpcomingSubscriptions(userId);
   items = items.filter((item) => item.daysUntilDue < 0);
   checks = checks.filter((item) => item.daysUntilDue < 0);
-  const text = formatDebtsListMessage(items, 'overdue', checks);
+  subscriptions = subscriptions.filter((item) => item.daysUntilDue < 0);
+  const text = formatDebtsListMessage(items, 'overdue', checks, subscriptions);
   const inline = options?.withPayButtons ? buildInstallmentPayInlineKeyboard(items) : null;
   if (inline) {
     await sendTelegramInlineToConnection(connection, text, inline);
@@ -417,13 +459,15 @@ export async function sendDebtsListForUser(
 
   let items = await loadUnpaidDebtItems(userId);
   let checks = await loadPendingChecks(userId);
+  let subscriptions = await loadUpcomingSubscriptions(userId);
   if (options?.todayOnly) {
     items = items.filter((item) => item.daysUntilDue === 0);
     checks = checks.filter((item) => item.daysUntilDue === 0);
-    if (items.length === 0 && checks.length === 0) return false;
+    subscriptions = subscriptions.filter((item) => item.daysUntilDue === 0);
+    if (items.length === 0 && checks.length === 0 && subscriptions.length === 0) return false;
   }
 
-  const text = formatDebtsListMessage(items, scope, checks);
+  const text = formatDebtsListMessage(items, scope, checks, subscriptions);
   const inline =
     options?.todayOnly && items.length > 0 ? buildInstallmentPayInlineKeyboard(items) : null;
 
@@ -439,13 +483,15 @@ export async function sendDebtsListForUser(
   return true;
 }
 
-/** Daily cron — advance reminders per loan `reminder_days_before` offsets. */
+/** Daily cron — advance reminders per loan/subscription `reminder_days_before` offsets. */
 export async function sendAdvanceLoanRemindersForUser(
   userId: string,
   connection: TelegramConnection
 ): Promise<boolean> {
   const allItems = await loadUnpaidDebtItems(userId);
+  const allSubscriptions = await loadUpcomingSubscriptions(userId);
   const dueToday: DebtListItem[] = [];
+  const dueSubscriptions: SubscriptionListItem[] = [];
 
   for (const item of allItems) {
     if (item.daysUntilDue <= 0) continue;
@@ -457,13 +503,30 @@ export async function sendAdvanceLoanRemindersForUser(
     dueToday.push(item);
   }
 
-  if (dueToday.length === 0) return false;
+  for (const item of allSubscriptions) {
+    if (item.daysUntilDue <= 0) continue;
+    if (!item.reminderDaysBefore.includes(item.daysUntilDue)) continue;
 
-  const text = formatDebtsListMessage(dueToday, 'advance');
+    const dedupKey = `advance:sub:${item.subscriptionId}:${item.daysUntilDue}`;
+    if (await wasDelivered(userId, 'loan_reminder', dedupKey)) continue;
+
+    dueSubscriptions.push(item);
+  }
+
+  if (dueToday.length === 0 && dueSubscriptions.length === 0) return false;
+
+  const text = formatDebtsListMessage(dueToday, 'advance', [], dueSubscriptions);
   await sendTelegramToConnection(connection, text);
 
   for (const item of dueToday) {
     await markDelivered(userId, 'loan_reminder', `advance:${item.installmentId}:${item.daysUntilDue}`);
+  }
+  for (const item of dueSubscriptions) {
+    await markDelivered(
+      userId,
+      'loan_reminder',
+      `advance:sub:${item.subscriptionId}:${item.daysUntilDue}`
+    );
   }
   return true;
 }
