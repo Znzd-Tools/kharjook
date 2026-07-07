@@ -92,3 +92,20 @@ export function monthKeyFromPeriod(period: Period): string {
   const { jy, jm } = period.start;
   return `${jy}/${String(jm).padStart(2, '0')}`;
 }
+
+export function sumCategoryCapsToman(
+  caps: Pick<CategorySpendingCap, 'category_id' | 'monthly_limit_toman'>[],
+  categories: Category[],
+  kind: Category['kind'] = 'expense'
+): number {
+  const scopedIds = new Set(
+    categories.filter((category) => category.kind === kind).map((category) => category.id)
+  );
+  let total = 0;
+  for (const cap of caps) {
+    if (!scopedIds.has(cap.category_id)) continue;
+    const limitToman = Number(cap.monthly_limit_toman);
+    if (Number.isFinite(limitToman) && limitToman > 0) total += limitToman;
+  }
+  return total;
+}

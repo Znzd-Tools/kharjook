@@ -19,6 +19,7 @@ import { useToast } from '@/shared/components/Toast';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import type {
+  CategorySpendingCap,
   Check,
   ExpensePlanItem,
   ExpensePlanSourceType,
@@ -27,6 +28,7 @@ import type {
   RecurringTransaction,
   Subscription,
 } from '@/shared/types/domain';
+import { sumCategoryCapsToman } from '@/features/categories/utils/category-spending-caps';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import {
@@ -95,6 +97,7 @@ export function ExpensePlanView() {
   const [checks, setChecks] = useState<Check[]>([]);
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [spendingCaps, setSpendingCaps] = useState<CategorySpendingCap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manualForm, setManualForm] = useState<ManualFormState>(emptyManualForm);
@@ -116,8 +119,15 @@ export function ExpensePlanView() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const [itemsRes, loanRes, installmentRes, checkRes, recurringRes, subscriptionRes] =
-        await Promise.all([
+      const [
+        itemsRes,
+        loanRes,
+        installmentRes,
+        checkRes,
+        recurringRes,
+        subscriptionRes,
+        capsRes,
+      ] = await Promise.all([
         supabase
           .from('expense_plan_items')
           .select('*')
@@ -141,6 +151,7 @@ export function ExpensePlanView() {
           .select('*')
           .is('deleted_at', null)
           .eq('status', 'active'),
+        supabase.from('category_spending_caps').select('*'),
       ]);
 
       if (itemsRes.error) throw itemsRes.error;
@@ -149,6 +160,7 @@ export function ExpensePlanView() {
       if (checkRes.error) throw checkRes.error;
       if (recurringRes.error) throw recurringRes.error;
       if (subscriptionRes.error) throw subscriptionRes.error;
+      if (capsRes.error) throw capsRes.error;
 
       setItems((itemsRes.data ?? []) as ExpensePlanItem[]);
       setLoans((loanRes.data ?? []) as Loan[]);
@@ -156,6 +168,7 @@ export function ExpensePlanView() {
       setChecks((checkRes.data ?? []) as Check[]);
       setRecurring((recurringRes.data ?? []) as RecurringTransaction[]);
       setSubscriptions((subscriptionRes.data ?? []) as Subscription[]);
+      setSpendingCaps((capsRes.data ?? []) as CategorySpendingCap[]);
     } catch (error) {
       console.error(error);
       toast.error('خطا در دریافت برنامه هزینه.');
@@ -184,6 +197,10 @@ export function ExpensePlanView() {
   );
 
   const totalToman = useMemo(() => planItemsTotalToman(items), [items]);
+  const capsTotalToman = useMemo(
+    () => sumCategoryCapsToman(spendingCaps, categories, 'expense'),
+    [spendingCaps, categories]
+  );
 
   const displayAmount = useCallback(
     (toman: number) => {
@@ -482,15 +499,28 @@ export function ExpensePlanView() {
         </button>
       </div>
 
-      <section className="bg-linear-to-br from-purple-600/20 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 text-center space-y-1">
-        <p className="text-xs text-purple-200/80">جمع برآورد هزینه</p>
-        <p className="text-3xl font-bold text-white" dir="ltr">
-          {displayAmount(totalToman)}
-        </p>
-        <p className="text-[11px] text-slate-400">
-          {items.length} آیتم
-          {suggestions.length > 0 ? ` · ${suggestions.length} پیشنهاد` : ''}
-        </p>
+      <section className="bg-linear-to-br from-purple-600/20 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 text-center space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs text-purple-200/80">جمع برآورد هزینه</p>
+          <p className="text-3xl font-bold text-white" dir="ltr">
+            {displayAmount(totalToman)}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {items.length} آیتم
+            {suggestions.length > 0 ? ` · ${suggestions.length} پیشنهاد` : ''}
+          </p>
+        </div>
+        {capsTotalToman > 0 ? (
+          <div className="pt-3 border-t border-purple-500/20 space-y-1">
+            <p className="text-xs text-purple-200/70">جمع سقف دسته‌های هزینه</p>
+            <p className="text-xl font-semibold text-purple-100" dir="ltr">
+              {displayAmount(capsTotalToman)}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              برآورد بر اساس سقف‌های تنظیم‌شده در دسته‌بندی‌ها
+            </p>
+          </div>
+        ) : null}
       </section>
 
       {isLoading ? (
