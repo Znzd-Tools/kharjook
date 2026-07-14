@@ -22,10 +22,14 @@ import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type { Subscription, SubscriptionStatus, Transaction } from '@/shared/types/domain';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
-import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
 import { subscriptionDueDatesInPeriod } from '@/features/plan/utils/recurring-due-in-period';
 import { intervalLabel } from '@/features/transactions/utils/recurring-transaction-label';
+import { SubscriptionAmountDisplay } from '@/features/deadlines/components/SubscriptionAmountDisplay';
+import {
+  formatSubscriptionNativeAmount,
+  subscriptionAmountToToman,
+} from '@/features/deadlines/utils/subscription-amount-display';
 import {
   currentPeriod,
   formatPeriodLabel,
@@ -40,16 +44,6 @@ const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   active: 'فعال',
   cancelled: 'لغو شده',
 };
-
-function subscriptionAmountToToman(
-  amount: number,
-  currency: Subscription['currency'],
-  currencyRates: ReturnType<typeof useData>['currencyRates']
-): number {
-  const rate = tomanPerUnit(currency, currencyRates);
-  if (!(rate > 0)) return 0;
-  return amount * rate;
-}
 
 export function SubscriptionsHubView() {
   const router = useRouter();
@@ -99,16 +93,6 @@ export function SubscriptionsHubView() {
     return rows.filter((row) => row.status === 'active');
   }, [filter, rows]);
 
-  const displayAmount = useCallback(
-    (row: Subscription) => {
-      const toman = subscriptionAmountToToman(row.amount, row.currency, currencyRates);
-      if (!(toman > 0)) return row.amount;
-      if (currencyMode === 'USD' && usdRate > 0) return toman / usdRate;
-      return toman;
-    },
-    [currencyMode, currencyRates, usdRate]
-  );
-
   const monthlySummary = useMemo(() => {
     const activeRows = rows.filter((row) => row.status === 'active');
     const lineItems = activeRows
@@ -124,6 +108,8 @@ export function SubscriptionsHubView() {
           platform: row.platform,
           count: dueDates.length,
           displayTotal,
+          currency: row.currency,
+          nativeTotal: row.amount * dueDates.length,
         };
       })
       .filter((row): row is NonNullable<typeof row> => row != null);
@@ -330,7 +316,12 @@ export function SubscriptionsHubView() {
                   </p>
                 </div>
                 <span className="text-[11px] text-slate-300 shrink-0" dir="ltr">
-                  {formatCurrency(item.displayTotal, currencyMode)}
+                  <p>{formatCurrency(item.displayTotal, currencyMode)}</p>
+                  {item.currency !== 'IRT' && (
+                    <p className="text-[10px] text-slate-500">
+                      {formatSubscriptionNativeAmount(item.nativeTotal, item.currency)}
+                    </p>
+                  )}
                 </span>
               </div>
             ))}
@@ -417,9 +408,16 @@ export function SubscriptionsHubView() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white/3 rounded-xl p-2.5">
                     <p className="text-slate-500">مبلغ</p>
-                    <p className="text-slate-200 mt-1" dir="ltr">
-                      {formatCurrency(displayAmount(row), currencyMode)}
-                    </p>
+                    <div className="mt-1">
+                      <SubscriptionAmountDisplay
+                        amount={row.amount}
+                        currency={row.currency}
+                        currencyRates={currencyRates}
+                        currencyMode={currencyMode}
+                        usdRate={usdRate}
+                        primaryClassName="text-slate-200 text-xs"
+                      />
+                    </div>
                   </div>
                   <div className="bg-white/3 rounded-xl p-2.5">
                     <p className="text-slate-500">سررسید بعدی</p>

@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Repeat } from 'lucide-react';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import type { Subscription } from '@/shared/types/domain';
-import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
-import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
 import { toPersianDigits } from '@/shared/utils/format-display-number';
+import { SubscriptionAmountDisplay } from '@/features/deadlines/components/SubscriptionAmountDisplay';
 
 function dueHint(daysUntil: number | null): string {
   if (daysUntil == null) return '';
@@ -39,23 +38,20 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
       .sort((a, b) => a.next_due_date_string.localeCompare(b.next_due_date_string))
       .slice(0, 5)
       .map((row) => {
-        const rate = tomanPerUnit(row.currency, currencyRates);
-        const toman = row.amount * (rate > 0 ? rate : 0);
-        const displayAmount =
-          currencyMode === 'USD' && usdRate > 0 ? toman / usdRate : toman;
         const daysUntil = daysBetweenJalaali(todayStr, row.next_due_date_string);
         const due = parseJalaali(row.next_due_date_string);
         return {
           id: row.id,
           platform: row.platform,
+          amount: row.amount,
+          currency: row.currency,
           dueLabel: due ? formatJalaaliHuman(due) : row.next_due_date_string,
           dueHint: dueHint(daysUntil),
           dueTone: dueTone(daysUntil),
-          amountLabel: formatCurrency(displayAmount, currencyMode),
           daysUntil,
         };
       });
-  }, [currencyMode, currencyRates, subscriptions, todayStr, usdRate]);
+  }, [subscriptions, todayStr]);
 
   const activeCount = useMemo(
     () => subscriptions.filter((row) => row.status === 'active').length,
@@ -106,9 +102,16 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
                 <p className={`text-[10px] mt-0.5 ${row.dueTone}`}>{row.dueHint}</p>
               )}
             </div>
-            <span className="text-xs font-bold text-slate-300 shrink-0" dir="ltr">
-              {row.amountLabel}
-            </span>
+            <SubscriptionAmountDisplay
+              amount={row.amount}
+              currency={row.currency}
+              currencyRates={currencyRates}
+              currencyMode={currencyMode}
+              usdRate={usdRate}
+              primaryClassName="text-xs font-bold text-slate-300"
+              secondaryClassName="text-[10px] text-slate-500"
+              align="end"
+            />
           </button>
         ))}
       </div>
