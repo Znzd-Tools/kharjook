@@ -37,6 +37,9 @@ type TelegramUpdate = {
 
 export async function POST(request: Request) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!webhookSecret && process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 503 });
+  }
   if (webhookSecret) {
     const header = request.headers.get('x-telegram-bot-api-secret-token');
     if (header !== webhookSecret) {

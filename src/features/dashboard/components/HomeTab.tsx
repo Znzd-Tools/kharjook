@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -16,7 +16,6 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
@@ -52,7 +51,6 @@ import { CategoryCapsWidget } from '@/features/dashboard/components/CategoryCaps
 import { GoalsDriftWidget } from '@/features/dashboard/components/GoalsDriftWidget';
 import { PendingChecksWidget } from '@/features/dashboard/components/PendingChecksWidget';
 import { PendingSubscriptionsWidget } from '@/features/dashboard/components/PendingSubscriptionsWidget';
-import type { CategorySpendingCap, Check, Subscription } from '@/shared/types/domain';
 
 export type HomeGoalRow = {
   id: string;
@@ -77,104 +75,16 @@ export function HomeTab() {
     dailyPrices,
     goals,
     isLoadingData,
+    dataFetchError,
+    refresh,
     refreshAll,
+    spendingCaps,
+    checks: pendingChecks,
+    activeSubscriptions,
+    upcomingDeadlines,
   } = useData();
   const { currencyMode, usdRate } = useUI();
-  const [upcomingDeadlines, setUpcomingDeadlines] = useState<
-    Array<LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }>
-  >([]);
-  const [spendingCaps, setSpendingCaps] = useState<CategorySpendingCap[]>([]);
-  const [pendingChecks, setPendingChecks] = useState<Check[]>([]);
-  const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-    void (async () => {
-      const { data } = await supabase.from('category_spending_caps').select('*');
-      if (!mounted) return;
-      setSpendingCaps((data ?? []) as CategorySpendingCap[]);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-    void (async () => {
-      const { data } = await supabase
-        .from('checks')
-        .select('*')
-        .is('deleted_at', null)
-        .order('due_date_string', { ascending: true });
-      if (!mounted) return;
-      setPendingChecks((data ?? []) as Check[]);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-    void (async () => {
-      const { data } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .is('deleted_at', null)
-        .eq('status', 'active')
-        .order('next_due_date_string', { ascending: true });
-      if (!mounted) return;
-      setActiveSubscriptions((data ?? []) as Subscription[]);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-    void (async () => {
-      const { data } = await supabase
-        .from('loan_installments')
-        .select('*')
-        .eq('is_paid', false)
-        .order('due_date_string', { ascending: true })
-        .limit(120);
-      if (!mounted) return;
-      const installments = ((data ?? []) as LoanInstallment[]);
-      if (installments.length === 0) {
-        setUpcomingDeadlines([]);
-        return;
-      }
-      const loanIds = Array.from(new Set(installments.map((item) => item.loan_id)));
-      const { data: loansData } = await supabase
-        .from('loans')
-        .select('id,title,currency')
-        .in('id', loanIds);
-      if (!mounted) return;
-      const loanMap = new Map(
-        ((loansData ?? []) as Pick<Loan, 'id' | 'title' | 'currency'>[]).map((loan) => [
-          loan.id,
-          loan,
-        ])
-      );
-      setUpcomingDeadlines(
-        installments.map((item) => ({
-          ...item,
-          loanTitle: loanMap.get(item.loan_id)?.title,
-          loanCurrency: loanMap.get(item.loan_id)?.currency,
-        }))
-      );
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const today = useMemo(() => todayJalaali(), []);
   const todayStr = useMemo(() => formatJalaali(today), [today]);
@@ -600,6 +510,18 @@ export function HomeTab() {
 
   return (
     <div className="p-6 space-y-5 animate-in fade-in duration-300">
+      {dataFetchError && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 px-4 py-3">
+          <p className="text-xs text-rose-300">خطا در دریافت اطلاعات از سرور.</p>
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="shrink-0 text-xs font-medium text-rose-200 hover:text-white px-3 py-1.5 rounded-lg bg-rose-500/20 transition-colors"
+          >
+            تلاش مجدد
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-white">داشبورد</h2>
         <div className="flex items-center gap-2">
@@ -608,13 +530,16 @@ export function HomeTab() {
           </span>
           <button
             type="button"
-            onClick={() => void refreshAll()}
-            disabled={isLoadingData}
+            onClick={() => {
+              setIsRefreshing(true);
+              void refreshAll().finally(() => setIsRefreshing(false));
+            }}
+            disabled={isLoadingData || isRefreshing}
             className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 inline-flex items-center justify-center disabled:opacity-50"
-            aria-label="refresh-prices-and-data"
+            aria-label="بروزرسانی قیمت‌ها و داده‌ها"
             title="بروزرسانی قیمت‌ها"
           >
-            <RefreshCw size={14} className={isLoadingData ? 'animate-spin' : undefined} />
+            <RefreshCw size={14} className={isLoadingData || isRefreshing ? 'animate-spin' : undefined} />
           </button>
         </div>
       </div>

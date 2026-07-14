@@ -36,13 +36,18 @@ import type {
   Asset,
   AuthUser,
   Category,
+  CategorySpendingCap,
+  Check,
   CurrencyMode,
   CurrencyRate,
   DailyPrice,
   Goal,
+  Loan,
+  LoanInstallment,
   Person,
   PriceSourceRecord,
   PriceSourceSetting,
+  Subscription,
   Transaction,
   Wallet,
 } from '@/shared/types/domain';
@@ -75,8 +80,16 @@ interface DataValue {
   priceSources: PriceSourceRecord[];
   priceSourceCatalog: PriceSource[];
   isLoadingData: boolean;
+  /** True when the last data fetch failed. */
+  dataFetchError: boolean;
   /** False while background pages of transactions are still loading. */
   transactionsFullyLoaded: boolean;
+  spendingCaps: CategorySpendingCap[];
+  checks: Check[];
+  activeSubscriptions: Subscription[];
+  upcomingDeadlines: Array<
+    LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }
+  >;
   setCategories: Dispatch<SetStateAction<Category[]>>;
   setAssets: Dispatch<SetStateAction<Asset[]>>;
   setTransactions: Dispatch<SetStateAction<Transaction[]>>;
@@ -134,7 +147,14 @@ export function PortfolioProvider({
   const [priceSourceSettings, setPriceSourceSettings] = useState<PriceSourceSetting[]>([]);
   const [priceSources, setPriceSources] = useState<PriceSourceRecord[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataFetchError, setDataFetchError] = useState(false);
   const [transactionsFullyLoaded, setTransactionsFullyLoaded] = useState(true);
+  const [spendingCaps, setSpendingCaps] = useState<CategorySpendingCap[]>([]);
+  const [checks, setChecks] = useState<Check[]>([]);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState<
+    Array<LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }>
+  >([]);
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('TOMAN');
 
@@ -145,8 +165,24 @@ export function PortfolioProvider({
     if (!user) return;
     const seq = ++fetchSeq.current;
     setIsLoadingData(true);
+    setDataFetchError(false);
     try {
-      const [catRes, astRes, txRes, walRes, rateRes, perRes, dpRes, goalRes, pssRes, psRes] = await Promise.all([
+      const [
+        catRes,
+        astRes,
+        txRes,
+        walRes,
+        rateRes,
+        perRes,
+        dpRes,
+        goalRes,
+        pssRes,
+        psRes,
+        capsRes,
+        checksRes,
+        subsRes,
+        instRes,
+      ] = await Promise.all([
         supabase
           .from('categories')
           .select('*')
@@ -188,6 +224,24 @@ export function PortfolioProvider({
           .select('*')
           .order('is_builtin', { ascending: false })
           .order('slug', { ascending: true }),
+        supabase.from('category_spending_caps').select('*'),
+        supabase
+          .from('checks')
+          .select('*')
+          .is('deleted_at', null)
+          .order('due_date_string', { ascending: true }),
+        supabase
+          .from('subscriptions')
+          .select('*')
+          .is('deleted_at', null)
+          .eq('status', 'active')
+          .order('next_due_date_string', { ascending: true }),
+        supabase
+          .from('loan_installments')
+          .select('*')
+          .eq('is_paid', false)
+          .order('due_date_string', { ascending: true })
+          .limit(120),
       ]);
 
       if (seq !== fetchSeq.current) return;
@@ -202,6 +256,10 @@ export function PortfolioProvider({
       if (goalRes.error) throw goalRes.error;
       if (pssRes.error) throw pssRes.error;
       if (psRes.error) throw psRes.error;
+      if (capsRes.error) throw capsRes.error;
+      if (checksRes.error) throw checksRes.error;
+      if (subsRes.error) throw subsRes.error;
+      if (instRes.error) throw instRes.error;
 
       const nextCategories = (catRes.data as Category[]) || [];
       let nextAssets = (astRes.data as Asset[]) || [];
@@ -214,6 +272,33 @@ export function PortfolioProvider({
       const nextGoals = (goalRes.data as Goal[]) || [];
       let nextPriceSourceSettings = (pssRes.data as PriceSourceSetting[]) || [];
       let nextPriceSources = (psRes.data as PriceSourceRecord[]) || [];
+      const nextSpendingCaps = (capsRes.data as CategorySpendingCap[]) || [];
+      const nextChecks = (checksRes.data as Check[]) || [];
+      const nextActiveSubscriptions = (subsRes.data as Subscription[]) || [];
+      const installments = (instRes.data as LoanInstallment[]) || [];
+
+      let nextUpcomingDeadlines: Array<
+        LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }
+      > = [];
+      if (installments.length > 0) {
+        const loanIds = Array.from(new Set(installments.map((item) => item.loan_id)));
+        const { data: loansData } = await supabase
+          .from('loans')
+          .select('id,title,currency')
+          .in('id', loanIds);
+        if (seq !== fetchSeq.current) return;
+        const loanMap = new Map(
+          ((loansData ?? []) as Pick<Loan, 'id' | 'title' | 'currency'>[]).map((loan) => [
+            loan.id,
+            loan,
+          ])
+        );
+        nextUpcomingDeadlines = installments.map((item) => ({
+          ...item,
+          loanTitle: loanMap.get(item.loan_id)?.title,
+          loanCurrency: loanMap.get(item.loan_id)?.currency,
+        }));
+      }
 
       if (nextPriceSources.length === 0) {
         const seeded = await ensureDefaultPriceSources(user.id);
@@ -299,6 +384,10 @@ export function PortfolioProvider({
       setGoals(nextGoals);
       setPriceSourceSettings(nextPriceSourceSettings);
       setPriceSources(nextPriceSources);
+      setSpendingCaps(nextSpendingCaps);
+      setChecks(nextChecks);
+      setActiveSubscriptions(nextActiveSubscriptions);
+      setUpcomingDeadlines(nextUpcomingDeadlines);
 
       const needsMoreTransactions = transactionTotalCount > TRANSACTIONS_PAGE_SIZE;
       setTransactionsFullyLoaded(!needsMoreTransactions);
@@ -329,6 +418,7 @@ export function PortfolioProvider({
     } catch (error) {
       if (seq !== fetchSeq.current) return;
       console.error('Error fetching data:', error);
+      setDataFetchError(true);
       toast.error('خطا در دریافت اطلاعات از سرور.');
     } finally {
       if (seq === fetchSeq.current) {
@@ -439,6 +529,11 @@ export function PortfolioProvider({
       setGoals([]);
       setPriceSourceSettings([]);
       setPriceSources([]);
+      setSpendingCaps([]);
+      setChecks([]);
+      setActiveSubscriptions([]);
+      setUpcomingDeadlines([]);
+      setDataFetchError(false);
       setTransactionsFullyLoaded(true);
     }
   }, [user, refresh]);
@@ -477,7 +572,12 @@ export function PortfolioProvider({
       priceSources,
       priceSourceCatalog,
       isLoadingData,
+      dataFetchError,
       transactionsFullyLoaded,
+      spendingCaps,
+      checks,
+      activeSubscriptions,
+      upcomingDeadlines,
       setCategories,
       setAssets,
       setTransactions,
@@ -504,7 +604,12 @@ export function PortfolioProvider({
       priceSources,
       priceSourceCatalog,
       isLoadingData,
+      dataFetchError,
       transactionsFullyLoaded,
+      spendingCaps,
+      checks,
+      activeSubscriptions,
+      upcomingDeadlines,
       refresh,
       refreshAll,
     ]

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
 import { PortfolioProvider } from '@/features/portfolio/PortfolioProvider';
 import { Shell } from '@/features/shell/components/Shell';
 import { ToastProvider } from '@/shared/components/Toast';
+import { ConfirmProvider } from '@/shared/components/ConfirmDialog';
 
 export default async function AppLayout({
   children,
@@ -23,9 +24,11 @@ export default async function AppLayout({
 
   return (
     <ToastProvider>
-      <PortfolioProvider initialUser={user}>
-        <Shell modal={modal}>{children}</Shell>
-      </PortfolioProvider>
+      <ConfirmProvider>
+        <PortfolioProvider initialUser={user}>
+          <Shell modal={modal}>{children}</Shell>
+        </PortfolioProvider>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

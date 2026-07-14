@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Activity, ArrowLeftRight, ArrowRight, Edit3, Plus, TargetIcon, Trash2 } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
@@ -60,6 +61,7 @@ export interface AssetDetailsViewProps {
 export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { assets, categories, transactions, goals, dailyPrices, setTransactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
@@ -251,7 +253,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const balanceExcluded = asset.include_in_balance === false;
 
   const deleteTx = async (id: string) => {
-    if (!window.confirm('آیا از حذف این تراکنش مطمئن هستید؟')) return;
+    if (!(await confirm({ message: 'آیا از حذف این تراکنش مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     try {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
@@ -262,7 +264,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   };
 
   const deleteConvert = async (group: ConvertTransactionGroup) => {
-    if (!window.confirm('آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟')) return;
+    if (!(await confirm({ message: 'آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     try {
       const { error } = await supabase
         .from('transactions')
@@ -614,7 +616,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
                       <Edit3 size={16} />
                     </button>
                     <button
-                      onClick={() => deleteTx(tx.id)}
+                      onClick={() => void deleteTx(tx.id)}
                       className="text-rose-400/50 hover:text-rose-400 transition-colors p-1.5"
                     >
                       <Trash2 size={16} />

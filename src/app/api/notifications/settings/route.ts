@@ -63,6 +63,14 @@ export async function PUT(request: Request) {
     report_interval?: NotificationReportInterval;
   };
 
+  if (
+    body.report_interval !== undefined &&
+    body.report_interval !== 'daily' &&
+    body.report_interval !== 'weekly'
+  ) {
+    return NextResponse.json({ error: 'Invalid report_interval' }, { status: 400 });
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data: existing, error: loadError } = await supabase
     .from('notification_settings')

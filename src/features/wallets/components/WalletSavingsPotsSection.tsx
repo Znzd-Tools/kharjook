@@ -5,6 +5,7 @@ import { Check, PiggyBank, Plus, Trash2, X } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { CATEGORY_COLORS } from '@/features/categories/constants/category-colors';
 import type { Currency, Wallet, WalletSavingsPot } from '@/shared/types/domain';
@@ -16,6 +17,7 @@ import {
   sumPotAllocations,
   unallocatedBalance,
 } from '@/features/wallets/utils/wallet-savings-pots';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type PotFormState = {
   editingId: string | null;
@@ -33,9 +35,6 @@ const emptyForm = (): PotFormState => ({
   currentAmount: '0',
 });
 
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
-
 export function WalletSavingsPotsSection({
   wallet,
   walletBalance,
@@ -45,6 +44,7 @@ export function WalletSavingsPotsSection({
 }) {
   const { user } = useAuth();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const [pots, setPots] = useState<WalletSavingsPot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,7 +173,7 @@ export function WalletSavingsPotsSection({
   };
 
   const handleArchive = async (pot: WalletSavingsPot) => {
-    if (!window.confirm(`قلک «${pot.name}» حذف شود؟`)) return;
+    if (!(await confirm({ message: `قلک «${pot.name}» حذف شود؟`, variant: 'danger', confirmLabel: 'حذف' }))) return;
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -374,7 +374,7 @@ export function WalletSavingsPotsSection({
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-slate-500">
                       <span>پیشرفت هدف</span>
-                      <span>{toFaDigits(Math.round(progress))}٪</span>
+                      <span>{toPersianDigits(Math.round(progress))}٪</span>
                     </div>
                     <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div

@@ -1,6 +1,7 @@
 'use client';
 
 import type { TransactionType } from '@/shared/types/domain';
+import { FilterChip } from '@/shared/components/FilterChip';
 
 export type TxHistoryTypeFilter = TransactionType | 'ALL';
 
@@ -30,44 +31,24 @@ export function TransactionHistoryTypeFilter({
   return (
     <div className="flex flex-wrap gap-2" role="tablist" aria-label="نوع تراکنش">
       <FilterChip
-        label="همه"
         active={value === 'ALL'}
         onClick={() => onChange('ALL')}
-      />
+        role="tab"
+        aria-selected={value === 'ALL'}
+      >
+        همه
+      </FilterChip>
       {ORDER.map((t) => (
         <FilterChip
           key={t}
-          label={LABELS[t]}
           active={value === t}
           onClick={() => onChange(t)}
-        />
+          role="tab"
+          aria-selected={value === t}
+        >
+          {LABELS[t]}
+        </FilterChip>
       ))}
     </div>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-        active
-          ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-          : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-      }`}
-    >
-      {label}
-    </button>
   );
 }

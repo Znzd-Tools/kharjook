@@ -3,15 +3,13 @@
 import type { CurrencyMode } from '@/shared/types/domain';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import type { CompareMetric } from '@/features/reports/utils/period-comparison';
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 function deltaLabel(deltaPct: number | null): string {
   if (deltaPct == null) return 'جدید';
   if (deltaPct === 0) return '۰٪';
   const sign = deltaPct > 0 ? '+' : '';
-  return `${sign}${toFaDigits(Math.abs(deltaPct).toFixed(0))}٪`;
+  return `${sign}${toPersianDigits(Math.abs(deltaPct).toFixed(0))}٪`;
 }
 
 function deltaTone(metric: CompareMetric): string {

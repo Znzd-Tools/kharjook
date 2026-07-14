@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { IOSDatePicker } from '@/shared/components/IOSDatePicker';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
@@ -67,6 +68,7 @@ function emptyForm(): FormState {
 export function ManageRecurringTransactionsView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { wallets, categories } = useData();
 
@@ -210,7 +212,7 @@ export function ManageRecurringTransactionsView() {
   };
 
   const handleDelete = async (row: RecurringTransaction) => {
-    if (!window.confirm(`«${row.title}» حذف شود؟`)) return;
+    if (!(await confirm({ message: `«${row.title}» حذف شود؟`, variant: 'danger', confirmLabel: 'حذف' }))) return;
     setIsSubmitting(true);
     try {
       const { error } = await supabase

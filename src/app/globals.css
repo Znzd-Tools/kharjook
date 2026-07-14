@@ -20,6 +20,7 @@
   --color-surface-hover: var(--surface-hover);
   --color-surface-inset: var(--surface-inset);
   --color-accent-purple: var(--accent-purple);
+  --color-accent-purple-soft: var(--accent-purple-soft);
 }
 
 html,

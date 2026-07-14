@@ -8,9 +8,7 @@ import { formatCurrency } from '@/shared/utils/format-currency';
 import { clampPeriodToToday, currentPeriod } from '@/shared/utils/period';
 import type { CategorySpendingCap } from '@/shared/types/domain';
 import { buildCapStatuses } from '@/features/categories/utils/category-spending-caps';
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 function barTone(level: 'ok' | 'warn' | 'over'): string {
   if (level === 'over') return 'bg-rose-500';
@@ -65,7 +63,7 @@ export function CategoryCapsWidget({ caps }: { caps: CategorySpendingCap[] }) {
                   />
                   <span className="text-slate-200 truncate">{row.categoryName}</span>
                 </div>
-                <span className="text-slate-400 shrink-0">{toFaDigits(Math.round(row.percent))}٪</span>
+                <span className="text-slate-400 shrink-0">{toPersianDigits(Math.round(row.percent))}٪</span>
               </div>
               <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
                 <div

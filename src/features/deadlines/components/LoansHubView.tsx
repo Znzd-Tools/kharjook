@@ -38,6 +38,7 @@ import {
   parsePartialPayAmount,
   validatePartialPayAmount,
 } from '@/features/deadlines/utils/installment-remaining';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type TabKey = 'loans' | 'installments' | 'calendar';
 type InstallmentFilter = 'all' | 'paid' | 'remaining';
@@ -45,8 +46,6 @@ type LoanFilter = 'all' | 'remaining' | 'finished';
 type InstallmentRow = { installment: LoanInstallment; loan: Loan };
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const;
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
 
 function loanAmountToToman(
   amount: number,
@@ -569,7 +568,7 @@ export function LoansHubView() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-500">پیشرفت تسویه</span>
-                      <span className="text-slate-300">{toFaDigits(progressPercent)}٪</span>
+                      <span className="text-slate-300">{toPersianDigits(progressPercent)}٪</span>
                     </div>
                     <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
@@ -736,7 +735,7 @@ export function LoansHubView() {
               </button>
               <div className="text-center">
                 <p className="text-sm font-semibold text-white">
-                  {JALALI_MONTHS[calendarMonth.jm - 1]} {toFaDigits(calendarMonth.jy)}
+                  {JALALI_MONTHS[calendarMonth.jm - 1]} {toPersianDigits(calendarMonth.jy)}
                 </p>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   جمع بدهی ماه: {formatCurrency(monthRemainingTotal, currencyMode)}
@@ -780,7 +779,7 @@ export function LoansHubView() {
                     <span
                       className={`text-xs ${isSelected ? 'text-purple-100 font-bold' : 'text-slate-300'}`}
                     >
-                      {toFaDigits(cell.day)}
+                      {toPersianDigits(cell.day)}
                     </span>
                     {cell.rows.length > 0 && (
                       <span
@@ -788,7 +787,7 @@ export function LoansHubView() {
                           isOverdue ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'
                         }`}
                       >
-                        {toFaDigits(cell.rows.length)}
+                        {toPersianDigits(cell.rows.length)}
                       </span>
                     )}
                     {isToday && (
@@ -819,7 +818,7 @@ export function LoansHubView() {
                     <div className="min-w-0">
                       <p className="text-sm text-slate-100 truncate">{row.loan.title}</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        قسط {toFaDigits(row.installment.sequence_no)}
+                        قسط {toPersianDigits(row.installment.sequence_no)}
                       </p>
                       <p className="text-xs text-slate-200 mt-1" dir="ltr">
                         {formatCurrency(displayAmount(row), currencyMode)}

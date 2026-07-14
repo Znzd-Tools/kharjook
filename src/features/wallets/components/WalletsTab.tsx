@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Settings2, Wallet as WalletIcon } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { EmptyState } from '@/shared/components/EmptyState';
+import { RouteSkeleton } from '@/shared/components/RouteSkeleton';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
@@ -67,11 +68,7 @@ export function WalletsTab() {
         )}
       </div>
 
-      {isLoadingData && wallets.length === 0 && (
-        <div className="text-center text-slate-500 py-10 animate-pulse">
-          در حال دریافت...
-        </div>
-      )}
+      {isLoadingData && wallets.length === 0 && <RouteSkeleton blocks={3} compact />}
 
       {!isLoadingData && wallets.length === 0 && (
         <EmptyState

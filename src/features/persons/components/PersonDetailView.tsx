@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/shared/lib/supabase/client';
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { EmptyState } from '@/shared/components/EmptyState';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
@@ -39,6 +40,7 @@ export interface PersonDetailViewProps {
 export function PersonDetailView({ personId }: PersonDetailViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { persons, wallets, assets, categories, transactions, setTransactions } = useData();
 
   const person = persons.find((p) => p.id === personId);
@@ -88,8 +90,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
   };
 
   const deleteTx = async (id: string) => {
-    const ok = window.confirm('این تراکنش حذف شود؟');
-    if (!ok) return;
+    if (!(await confirm({ message: 'این تراکنش حذف شود؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     try {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;

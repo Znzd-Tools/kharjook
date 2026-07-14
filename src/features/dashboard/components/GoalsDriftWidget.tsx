@@ -9,9 +9,7 @@ import {
   filterDriftedGoalRows,
   sortGoalDriftRows,
 } from '@/features/goals/utils/goal-drift-rows';
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 function formatAxis(row: { valueKind: 'percent' | 'quantity'; currentValue: number; targetValue: number }) {
   if (row.valueKind === 'percent') {
@@ -52,7 +50,7 @@ export function GoalsDriftWidget() {
           <div>
             <h3 className="text-sm font-bold text-white">انحراف از اهداف</h3>
             <p className="text-[11px] text-slate-500">
-              {toFaDigits(driftRows.length)} مورد نیازمند تنظیم
+              {toPersianDigits(driftRows.length)} مورد نیازمند تنظیم
             </p>
           </div>
         </div>

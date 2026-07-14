@@ -59,6 +59,7 @@ export function Shell({ children, modal }: ShellProps) {
                 haptic('selection');
                 toggleCurrency();
               }}
+              aria-label="تغییر واحد نمایش: تومان یا دلار"
               className="flex items-center gap-2 bg-surface-hover p-1 rounded-full border border-purple-500/20 transition-all hover:border-purple-500/50"
             >
               <div

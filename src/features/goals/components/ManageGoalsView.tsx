@@ -23,6 +23,7 @@ import {
 } from '@/shared/components/ListSheetPicker';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import {
   buildAssetSnapshots,
@@ -74,6 +75,7 @@ function makeGoalPayload(userId: string, form: FormState) {
 export function ManageGoalsView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { assets, categories, transactions, goals, setGoals } = useData();
   const { currencyMode, usdRate } = useUI();
@@ -391,7 +393,7 @@ export function ManageGoalsView() {
 
   const handleDelete = async (goal: Goal) => {
     if (!user) return;
-    if (!window.confirm('این هدف حذف شود؟')) return;
+    if (!(await confirm({ message: 'این هدف حذف شود؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     const execute = async () => {
       const snapshot = goals;
       await runOptimisticMutation({

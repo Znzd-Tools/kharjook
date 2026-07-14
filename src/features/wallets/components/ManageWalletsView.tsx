@@ -23,6 +23,7 @@ import { EntityIcon } from '@/shared/components/EntityIcon';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { IconPicker } from '@/shared/components/IconPicker';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
@@ -54,6 +55,7 @@ const emptyForm: FormState = {
 export function ManageWalletsView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { wallets, setWallets } = useData();
 
@@ -256,9 +258,11 @@ export function ManageWalletsView() {
 
   const handleArchive = async (w: Wallet) => {
     if (
-      !window.confirm(
-        `«${w.name}» بایگانی می‌شود و دیگر در فهرست‌ها نمایش داده نمی‌شود. تراکنش‌های قبلی دست‌نخورده باقی می‌ماند. ادامه می‌دهی؟`
-      )
+      !(await confirm({
+        message: `«${w.name}» بایگانی می‌شود و دیگر در فهرست‌ها نمایش داده نمی‌شود. تراکنش‌های قبلی دست‌نخورده باقی می‌ماند. ادامه می‌دهی؟`,
+        variant: 'danger',
+        confirmLabel: 'حذف',
+      }))
     )
       return;
 
@@ -455,7 +459,7 @@ export function ManageWalletsView() {
               wallet={w}
               metaLabel={meta}
               onEdit={() => handleEdit(w)}
-              onArchive={() => handleArchive(w)}
+              onArchive={() => void handleArchive(w)}
               archiving={archivingId === w.id}
               pending={pendingWalletIds.has(w.id)}
             />

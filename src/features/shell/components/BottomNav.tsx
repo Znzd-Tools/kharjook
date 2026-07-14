@@ -49,6 +49,7 @@ export function BottomNav() {
         <Link
           href="/transactions/new"
           onClick={() => haptic('selection')}
+          aria-label="ثبت تراکنش جدید"
           aria-disabled={isLoadingData}
           tabIndex={isLoadingData ? -1 : undefined}
           className={`w-14 h-14 bg-purple-600 hover:bg-purple-500 rounded-full flex justify-center items-center text-white shadow-[0_4px_15px_rgba(147,51,234,0.5)] border-[5px] border-[#161722] transition-transform active:scale-95 ${

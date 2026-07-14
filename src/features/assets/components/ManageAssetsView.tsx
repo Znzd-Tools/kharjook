@@ -42,6 +42,7 @@ import {
   type ListSheetPickerItem,
 } from '@/shared/components/ListSheetPicker';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import { findPriceSourceInCatalog } from '@/features/prices/constants/price-sources';
@@ -49,6 +50,7 @@ import { findPriceSourceInCatalog } from '@/features/prices/constants/price-sour
 export function ManageAssetsView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { categories, assets, setAssets, priceSourceCatalog } = useData();
 
@@ -323,10 +325,15 @@ export function ManageAssetsView() {
   };
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = window.confirm(
-      '⚠️ هشدار جدی:\nبا پاک کردن این دارایی، تمام تراکنش‌های متصل به آن (خرید، فروش و...) برای همیشه پاک خواهند شد!\nآیا مطمئن هستید؟'
-    );
-    if (!isConfirmed) return;
+    if (
+      !(await confirm({
+        message:
+          '⚠️ هشدار جدی:\nبا پاک کردن این دارایی، تمام تراکنش‌های متصل به آن (خرید، فروش و...) برای همیشه پاک خواهند شد!\nآیا مطمئن هستید؟',
+        variant: 'danger',
+        confirmLabel: 'حذف',
+      }))
+    )
+      return;
 
     const execute = async () => {
       const snapshot = assets;
@@ -626,7 +633,7 @@ export function ManageAssetsView() {
               color={color}
               sourceLabel={source?.label ?? null}
               onEdit={() => handleEdit(asset)}
-              onDelete={() => handleDelete(asset.id)}
+              onDelete={() => void handleDelete(asset.id)}
               pending={pendingAssetIds.has(asset.id)}
             />
           );

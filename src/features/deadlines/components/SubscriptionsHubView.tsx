@@ -32,6 +32,7 @@ import {
   shiftPeriod,
   type Period,
 } from '@/shared/utils/period';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type FilterKey = 'active' | 'cancelled' | 'all';
 
@@ -39,9 +40,6 @@ const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   active: 'فعال',
   cancelled: 'لغو شده',
 };
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
 
 function subscriptionAmountToToman(
   amount: number,
@@ -328,7 +326,7 @@ export function SubscriptionsHubView() {
                 <div className="min-w-0">
                   <p className="text-[11px] text-slate-200 truncate">{item.platform}</p>
                   <p className="text-[10px] text-slate-500">
-                    {toFaDigits(item.count)} بار
+                    {toPersianDigits(item.count)} بار
                   </p>
                 </div>
                 <span className="text-[11px] text-slate-300 shrink-0" dir="ltr">
@@ -426,7 +424,7 @@ export function SubscriptionsHubView() {
                   <div className="bg-white/3 rounded-xl p-2.5">
                     <p className="text-slate-500">سررسید بعدی</p>
                     <p className="text-slate-200 mt-1">
-                      {due ? toFaDigits(formatJalaaliHuman(due)) : row.next_due_date_string}
+                      {due ? toPersianDigits(formatJalaaliHuman(due)) : row.next_due_date_string}
                     </p>
                   </div>
                 </div>

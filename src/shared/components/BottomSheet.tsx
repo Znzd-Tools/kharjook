@@ -133,6 +133,9 @@ export function BottomSheet({
 
       {/* Sheet */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : 'پنجره'}
         className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-[#13141C] rounded-t-3xl border-t border-white/10 shadow-2xl transition-transform ease-out ${
           isDragging ? 'duration-75' : 'duration-300'
         } ${

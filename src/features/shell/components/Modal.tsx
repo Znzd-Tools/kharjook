@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface ModalProps {
   children: ReactNode;
+  /** Accessible label for the modal. */
+  label?: string;
 }
 
-export function Modal({ children }: ModalProps) {
+export function Modal({ children, label = 'پنجره' }: ModalProps) {
   const router = useRouter();
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -18,8 +21,19 @@ export function Modal({ children }: ModalProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, [router]);
 
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
   return (
-    <div className="absolute inset-0 z-50 bg-[#0F1015] overflow-y-auto overflow-x-hidden scrollbar-hide">
+    <div
+      ref={ref}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      tabIndex={-1}
+      className="absolute inset-0 z-50 bg-surface-inset overflow-y-auto overflow-x-hidden scrollbar-hide outline-none"
+    >
       {children}
     </div>
   );

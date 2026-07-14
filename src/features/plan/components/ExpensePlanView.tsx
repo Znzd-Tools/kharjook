@@ -37,6 +37,7 @@ import {
   shiftPeriod,
   type Period,
 } from '@/shared/utils/period';
+import { rollupCategories } from '@/features/reports/utils/category-rollup';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import {
   buildPlanSuggestions,
@@ -85,7 +86,7 @@ export function ExpensePlanView() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { categories, currencyRates } = useData();
+  const { categories, currencyRates, transactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
 
   const [targetPeriod, setTargetPeriod] = useState<Period>(() =>
@@ -197,6 +198,23 @@ export function ExpensePlanView() {
   );
 
   const totalToman = useMemo(() => planItemsTotalToman(items), [items]);
+  const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
+  const canCompareActual = monthKey <= todayStr;
+  const actualExpenseToman = useMemo(() => {
+    if (!canCompareActual) return null;
+    const rollup = rollupCategories({
+      transactions,
+      categories,
+      wallets,
+      period: targetPeriod,
+      kind: 'expense',
+      walletId: null,
+      currencyMode: 'TOMAN',
+    });
+    return rollup.total;
+  }, [canCompareActual, transactions, categories, wallets, targetPeriod]);
+  const varianceToman =
+    actualExpenseToman != null ? totalToman - actualExpenseToman : null;
   const capsTotalToman = useMemo(
     () => sumCategoryCapsToman(spendingCaps, categories, 'expense'),
     [spendingCaps, categories]
@@ -519,6 +537,25 @@ export function ExpensePlanView() {
             <p className="text-[10px] text-slate-500">
               برآورد بر اساس سقف‌های تنظیم‌شده در دسته‌بندی‌ها
             </p>
+          </div>
+        ) : null}
+        {actualExpenseToman != null ? (
+          <div className="pt-3 border-t border-purple-500/20 grid grid-cols-2 gap-3 text-right">
+            <div>
+              <p className="text-xs text-slate-400">هزینه واقعی</p>
+              <p className="text-lg font-semibold text-white" dir="ltr">
+                {displayAmount(actualExpenseToman)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">اختلاف (برنامه − واقعی)</p>
+              <p
+                className={`text-lg font-semibold ${(varianceToman ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                dir="ltr"
+              >
+                {displayAmount(varianceToman ?? 0)}
+              </p>
+            </div>
           </div>
         ) : null}
       </section>

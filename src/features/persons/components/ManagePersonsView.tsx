@@ -22,6 +22,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { EmptyState } from '@/shared/components/EmptyState';
 import type { Person } from '@/shared/types/domain';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
@@ -29,6 +30,7 @@ import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance'
 export function ManagePersonsView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { persons, transactions, setPersons } = useData();
 
@@ -147,8 +149,7 @@ export function ManagePersonsView() {
       toast.error('این شخص در تراکنش‌ها استفاده شده و قابل حذف نیست.');
       return;
     }
-    const ok = window.confirm('آیا از حذف این شخص مطمئن هستید؟');
-    if (!ok) return;
+    if (!(await confirm({ message: 'آیا از حذف این شخص مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     try {
       const { error } = await supabase.from('persons').delete().eq('id', person.id);
       if (error) throw error;

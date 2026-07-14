@@ -9,16 +9,14 @@ import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 function dueHint(daysUntil: number | null): string {
   if (daysUntil == null) return '';
-  if (daysUntil < 0) return `${toFaDigits(Math.abs(daysUntil))} روز گذشته`;
+  if (daysUntil < 0) return `${toPersianDigits(Math.abs(daysUntil))} روز گذشته`;
   if (daysUntil === 0) return 'امروز';
   if (daysUntil === 1) return 'فردا';
-  return `${toFaDigits(daysUntil)} روز دیگر`;
+  return `${toPersianDigits(daysUntil)} روز دیگر`;
 }
 
 function dueTone(daysUntil: number | null): string {
@@ -78,8 +76,8 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
           <div>
             <h3 className="text-sm font-bold text-white">اشتراک‌های نزدیک</h3>
             <p className="text-[11px] text-slate-500">
-              {toFaDigits(activeCount)} مورد
-              {overdueCount > 0 ? ` · ${toFaDigits(overdueCount)} معوق` : ''}
+              {toPersianDigits(activeCount)} مورد
+              {overdueCount > 0 ? ` · ${toPersianDigits(overdueCount)} معوق` : ''}
             </p>
           </div>
         </div>

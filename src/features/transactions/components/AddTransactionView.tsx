@@ -13,6 +13,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import type { DailyPrice, Transaction } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
+import { undoTransactionInsert } from '@/features/transactions/utils/transaction-undo';
 import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
 import { TransactionFormRow } from '@/features/transactions/components/TransactionFormRow';
 import {
@@ -112,6 +113,7 @@ export function AddTransactionView({
   // FormState (which is serialized into the DB payload).
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -261,10 +263,12 @@ export function AddTransactionView({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     if (isConvertMode) {
       const err = validateConvertForm(convertForm, transactions, wallets);
       if (err) {
+        setFormError(err);
         toast.error(err);
         return;
       }
@@ -313,7 +317,21 @@ export function AddTransactionView({
           const inserted = (data ?? []) as Transaction[];
           setTransactions((prev) => [...inserted.slice().reverse(), ...prev]);
           await persistTradeSnapshots(inserted);
-          toast.success('تبدیل ثبت شد.');
+          const ids = inserted.map((tx) => tx.id);
+          toast.success('تبدیل ثبت شد.', {
+            duration: 8000,
+            action: {
+              label: 'لغو',
+              onClick: () => {
+                void undoTransactionInsert(ids, (removed) => {
+                  setTransactions((prev) => prev.filter((tx) => !removed.includes(tx.id)));
+                }).then((result) => {
+                  if (!result.ok) toast.error(result.error);
+                  else toast.info('ثبت تبدیل لغو شد.');
+                });
+              },
+            },
+          });
         }
         router.back();
       } catch (err2) {
@@ -329,6 +347,7 @@ export function AddTransactionView({
       const err = validateForm(rows[i], wallets);
       if (err) {
         const msg = rows.length > 1 ? `تراکنش #${i + 1}: ${err}` : err;
+        setFormError(msg);
         toast.error(msg);
         // Expand the offender and bring it on-screen.
         setCollapsed((prev) => ({ ...prev, [i]: false }));
@@ -380,10 +399,25 @@ export function AddTransactionView({
         fireExpenseAlert(
           inserted.filter((tx) => tx.type === 'EXPENSE').map((tx) => tx.id)
         );
+        const ids = inserted.map((tx) => tx.id);
         toast.success(
           inserted.length > 1
             ? `${inserted.length} تراکنش ثبت شد.`
             : 'تراکنش ثبت شد.',
+          {
+            duration: 8000,
+            action: {
+              label: 'لغو',
+              onClick: () => {
+                void undoTransactionInsert(ids, (removed) => {
+                  setTransactions((prev) => prev.filter((tx) => !removed.includes(tx.id)));
+                }).then((result) => {
+                  if (!result.ok) toast.error(result.error);
+                  else toast.info('ثبت تراکنش لغو شد.');
+                });
+              },
+            },
+          }
         );
         router.back();
       }
@@ -401,6 +435,7 @@ export function AddTransactionView({
         <button
           type="button"
           onClick={() => router.back()}
+          aria-label="بازگشت"
           className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
@@ -419,6 +454,11 @@ export function AddTransactionView({
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {formError && (
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs p-3 rounded-xl">
+            {formError}
+          </div>
+        )}
         {/* Type tabs */}
         <div className="grid grid-cols-6 gap-1 bg-[#1A1B26] p-1 rounded-xl">
           {UI_TABS.map((t) => {

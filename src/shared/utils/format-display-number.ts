@@ -12,8 +12,8 @@ export interface FormatDisplayNumberOptions {
 
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'] as const;
 
-function toPersianDigits(value: string): string {
-  return value.replace(/\d/g, (d) => PERSIAN_DIGITS[Number(d)] ?? d);
+export function toPersianDigits(value: string | number): string {
+  return String(value).replace(/\d/g, (d) => PERSIAN_DIGITS[Number(d)] ?? d);
 }
 
 /**

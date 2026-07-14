@@ -22,6 +22,7 @@ import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type FilterKey = 'pending' | 'cleared' | 'all';
 
@@ -31,9 +32,6 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
   bounced: 'برگشتی',
   cancelled: 'لغو شده',
 };
-
-const toFaDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (c) => '۰۱۲۳۴۵۶۷۸۹'[Number(c)]!);
 
 function checkAmountToToman(
   amount: number,
@@ -352,7 +350,7 @@ export function ChecksHubView() {
                   <div className="bg-white/3 rounded-xl p-2.5">
                     <p className="text-slate-500">سررسید</p>
                     <p className="text-slate-200 mt-1">
-                      {due ? toFaDigits(formatJalaaliHuman(due)) : check.due_date_string}
+                      {due ? toPersianDigits(formatJalaaliHuman(due)) : check.due_date_string}
                     </p>
                   </div>
                 </div>

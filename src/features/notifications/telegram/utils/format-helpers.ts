@@ -1,8 +1,6 @@
-const PERSIAN = '۰۱۲۳۴۵۶۷۸۹';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 
-export function toPersianDigits(value: string | number): string {
-  return String(value).replace(/\d/g, (d) => PERSIAN[Number(d)]!);
-}
+export { toPersianDigits };
 
 export function formatTelegramMoney(
   value: number,

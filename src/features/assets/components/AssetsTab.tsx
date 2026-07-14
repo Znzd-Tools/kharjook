@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Activity, Plus, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { EmptyState } from '@/shared/components/EmptyState';
+import { FilterChip } from '@/shared/components/FilterChip';
+import { RouteSkeleton } from '@/shared/components/RouteSkeleton';
 import type { Asset, Category, Goal } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
@@ -128,20 +130,7 @@ export function AssetsTab() {
         </div>
       </div>
 
-      {isLoadingData && assets.length === 0 && (
-        <div className="text-center text-slate-500 py-10 animate-pulse">
-          در حال دریافت...
-        </div>
-      )}
-
-      {!isLoadingData && assets.length === 0 && (
-        <EmptyState
-          icon={<TrendingUp size={24} />}
-          title="هنوز دارایی‌ای نساخته‌ای."
-          actionLabel="افزودن دارایی"
-          onAction={() => router.push('/manage/assets')}
-        />
-      )}
+      {isLoadingData && assets.length === 0 && <RouteSkeleton blocks={3} compact />}
 
       {!isLoadingData && assets.length === 0 && (
         <EmptyState
@@ -167,24 +156,36 @@ export function AssetsTab() {
             <FilterChip
               active={viewMode === 'groups'}
               onClick={() => setViewMode('groups')}
-              label="گروه‌ها"
-            />
+              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
+              className="rounded-xl text-[11px] font-bold"
+            >
+              گروه‌ها
+            </FilterChip>
             <FilterChip
               active={viewMode === 'all'}
               onClick={() => setViewMode('all')}
-              label="همه"
-            />
+              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
+              className="rounded-xl text-[11px] font-bold"
+            >
+              همه
+            </FilterChip>
             <span className="w-px h-5 bg-white/10 mx-1" aria-hidden />
             <FilterChip
               active={zeroValueFilter === 'hide'}
               onClick={() => setZeroValueFilter('hide')}
-              label="بدون صفر"
-            />
+              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
+              className="rounded-xl text-[11px] font-bold"
+            >
+              بدون صفر
+            </FilterChip>
             <FilterChip
               active={zeroValueFilter === 'show'}
               onClick={() => setZeroValueFilter('show')}
-              label="شامل صفر"
-            />
+              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
+              className="rounded-xl text-[11px] font-bold"
+            >
+              شامل صفر
+            </FilterChip>
           </div>
 
           {viewMode === 'groups' ? (
@@ -231,30 +232,6 @@ export function AssetsTab() {
         </div>
       )}
     </div>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
-        active
-          ? 'bg-purple-500/20 border-purple-500/40 text-white'
-          : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

@@ -32,6 +32,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import type { Category, CategoryKind, CategorySpendingCap } from '@/shared/types/domain';
@@ -69,6 +70,7 @@ const emptyForm: FormState = {
 export function ManageCategoriesView() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const { categories, setCategories } = useData();
 
@@ -369,7 +371,7 @@ export function ManageCategoriesView() {
   };
 
   const handleDelete = async (cat: Category) => {
-    if (!window.confirm(DELETE_PROMPTS[cat.kind])) return;
+    if (!(await confirm({ message: DELETE_PROMPTS[cat.kind], variant: 'danger', confirmLabel: 'حذف' }))) return;
 
     const execute = async () => {
       const snapshot = categories;
@@ -744,7 +746,7 @@ function CategoryNode({
             <Edit3 size={compact ? 14 : 16} />
           </button>
           <button
-            onClick={() => onDelete(category)}
+            onClick={() => void onDelete(category)}
             disabled={pending}
             className="text-rose-400/50 hover:text-rose-400 p-1.5 transition-colors"
             aria-label="حذف"

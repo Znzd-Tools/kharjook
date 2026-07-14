@@ -22,6 +22,8 @@ type NotificationSettings = {
 
 type ToggleKey = 'enabled' | 'price_alert_enabled' | 'expense_alert_enabled' | 'report_enabled';
 
+type PatchKey = ToggleKey | 'report_interval';
+
 const TOGGLE_META: Record<
   ToggleKey,
   {
@@ -188,7 +190,7 @@ export function NotificationSettingsSection() {
   const toast = useToast();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [savingKey, setSavingKey] = useState<ToggleKey | null>(null);
+  const [savingKey, setSavingKey] = useState<PatchKey | null>(null);
 
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
@@ -208,10 +210,10 @@ export function NotificationSettingsSection() {
     void loadSettings();
   }, [loadSettings]);
 
-  const patchSetting = async (key: ToggleKey, value: boolean) => {
+  const patchSetting = async (key: PatchKey, value: boolean | NotificationSettings['report_interval']) => {
     if (!settings) return;
     const previous = settings;
-    setSettings({ ...settings, [key]: value });
+    setSettings({ ...settings, [key]: value } as NotificationSettings);
     setSavingKey(key);
     try {
       const res = await fetch('/api/notifications/settings', {
@@ -222,7 +224,11 @@ export function NotificationSettingsSection() {
       if (!res.ok) throw new Error('save failed');
       const json = (await res.json()) as { settings: NotificationSettings };
       setSettings(json.settings);
-      toast.success(value ? `${TOGGLE_META[key].title} فعال شد.` : `${TOGGLE_META[key].title} خاموش شد.`);
+      if (key === 'report_interval') {
+        toast.success(value === 'weekly' ? 'گزارش هفتگی فعال شد.' : 'گزارش روزانه فعال شد.');
+      } else {
+        toast.success(value ? `${TOGGLE_META[key as ToggleKey].title} فعال شد.` : `${TOGGLE_META[key as ToggleKey].title} خاموش شد.`);
+      }
     } catch {
       toast.error('خطا در ذخیره.');
       setSettings(previous);
@@ -263,13 +269,36 @@ export function NotificationSettingsSection() {
 
       <div className="p-5 space-y-8">
         {toggleKeys.map((key) => (
-          <SettingsToggle
-            key={key}
-            settingKey={key}
-            checked={settings[key]}
-            disabled={savingKey !== null}
-            onChange={(next) => void patchSetting(key, next)}
-          />
+          <div key={key} className="space-y-3">
+            <SettingsToggle
+              settingKey={key}
+              checked={settings[key]}
+              disabled={savingKey !== null}
+              onChange={(next) => void patchSetting(key, next)}
+            />
+            {key === 'report_enabled' && settings.report_enabled ? (
+              <div className="rounded-2xl bg-[#0F1015] border border-white/5 p-4 space-y-2">
+                <p className="text-xs text-slate-400">بازه ارسال گزارش</p>
+                <div className="flex gap-2">
+                  {(['daily', 'weekly'] as const).map((interval) => (
+                    <button
+                      key={interval}
+                      type="button"
+                      disabled={savingKey !== null}
+                      onClick={() => void patchSetting('report_interval', interval)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                        settings.report_interval === interval
+                          ? 'bg-violet-500/20 border-violet-500/40 text-violet-200'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      {interval === 'daily' ? 'روزانه' : 'هفتگی'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         ))}
 
         <div className="rounded-2xl bg-[#0F1015] border border-white/5 p-4 space-y-2">

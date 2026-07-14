@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { useToast } from '@/shared/components/Toast';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
+import { EmptyState } from '@/shared/components/EmptyState';
+import { undoTransactionDelete } from '@/features/transactions/utils/transaction-undo';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Asset, Transaction, TransactionType, Wallet } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -66,6 +69,7 @@ export interface WalletDetailsViewProps {
 export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const {
     wallets,
     assets,
@@ -169,11 +173,27 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   const deleteTx = async (id: string) => {
-    if (!window.confirm('آیا از حذف این تراکنش مطمئن هستید؟')) return;
+    if (!(await confirm({ message: 'آیا از حذف این تراکنش مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
+    const snapshot = transactions.find((tx) => tx.id === id);
+    if (!snapshot) return;
     try {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
       setTransactions((prev) => prev.filter((tx) => tx.id !== id));
+      toast.success('تراکنش حذف شد.', {
+        duration: 8000,
+        action: {
+          label: 'بازگردانی',
+          onClick: () => {
+            void undoTransactionDelete(snapshot, (restored) => {
+              setTransactions((prev) => [restored, ...prev]);
+            }).then((result) => {
+              if (!result.ok) toast.error(result.error);
+              else toast.info('تراکنش بازگردانده شد.');
+            });
+          },
+        },
+      });
     } catch (err) {
       console.error(err);
       toast.error('خطا در حذف رکورد.');
@@ -181,7 +201,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   const deleteConvert = async (group: ConvertTransactionGroup) => {
-    if (!window.confirm('آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟')) return;
+    if (!(await confirm({ message: 'آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
     try {
       const { error } = await supabase
         .from('transactions')
@@ -325,9 +345,12 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
           )}
           <div className="space-y-3">
             {stats.transactions.length === 0 && (
-              <div className="text-center text-slate-500 text-sm py-6">
-                هنوز تراکنشی برای این کیف پول ثبت نشده.
-              </div>
+              <EmptyState
+                icon={<WalletIcon size={24} />}
+                title="هنوز تراکنشی برای این کیف پول ثبت نشده."
+                actionLabel="ثبت تراکنش"
+                onAction={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
+              />
             )}
             {stats.transactions.length > 0 && visibleWalletTxs.length === 0 && walletHistoryItems.length === 0 && (
               <div className="text-center text-slate-500 text-sm py-6">
@@ -360,7 +383,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
                 assets={assets}
                 categories={categories}
                 onEdit={() => router.push(`/transactions/${tx.id}/edit`)}
-                onDelete={() => deleteTx(tx.id)}
+                onDelete={() => void deleteTx(tx.id)}
               />
             );
             })}
@@ -375,14 +398,24 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
         onSaved={updateWallet}
       />
 
-      <button
-        type="button"
-        onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
-        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2 z-30"
-      >
-        <Plus size={20} />
-        ثبت تراکنش جدید
-      </button>
+      <div className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 flex gap-2 z-30">
+        <button
+          type="button"
+          onClick={() => router.push(`/transactions/new?walletId=${wallet.id}&type=TRANSFER`)}
+          className="flex-1 bg-white/10 hover:bg-white/15 text-white p-4 rounded-2xl font-bold border border-white/10 transition-all flex justify-center items-center gap-2"
+        >
+          <ArrowLeftRight size={18} />
+          انتقال
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
+          className="flex-1 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2"
+        >
+          <Plus size={20} />
+          تراکنش جدید
+        </button>
+      </div>
     </div>
   );
 }
