@@ -509,7 +509,7 @@ export function HomeTab() {
   }, [currencyMode, currencyRates, today, upcomingDeadlines, usdRate]);
 
   return (
-    <div className="p-6 space-y-5 animate-in fade-in duration-300">
+    <div className="p-6 space-y-5 animate-[fade-in_300ms_ease-out]">
       {dataFetchError && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 px-4 py-3">
           <p className="text-xs text-rose-300">خطا در دریافت اطلاعات از سرور.</p>

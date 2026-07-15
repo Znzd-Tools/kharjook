@@ -210,7 +210,7 @@ export function CategorySheetPicker({
           <button
             type="button"
             onClick={() => commit(null)}
-            className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition ${
+            className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
               value === null
                 ? 'bg-purple-500/10 border-purple-500/40'
                 : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
@@ -246,7 +246,7 @@ export function CategorySheetPicker({
                     key={it.id}
                     type="button"
                     onClick={() => commit(it.id)}
-                    className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition ${
+                    className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                       selected
                         ? 'bg-purple-500/10 border-purple-500/40'
                         : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
@@ -321,7 +321,7 @@ function CategoryTree({
             <button
               type="button"
               onClick={() => onSelect(node.id)}
-              className={`w-full flex items-center gap-2 border rounded-xl p-3 text-right transition ${
+              className={`w-full flex items-center gap-2 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                 selected
                   ? 'bg-purple-500/10 border-purple-500/40'
                   : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'

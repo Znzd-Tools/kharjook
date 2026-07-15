@@ -34,7 +34,12 @@ interface Toast {
   action?: ToastAction;
   /** Timestamp (ms) when this toast should auto-dismiss. `null` = sticky. */
   expiresAt: number | null;
+  /** True while playing the exit animation, just before removal. */
+  closing?: boolean;
 }
+
+/** Must match the exit keyframe's duration in globals.css. */
+const EXIT_ANIMATION_MS = 200;
 
 interface ToastApi {
   success: (message: string, opts?: ToastOptions) => number;
@@ -55,22 +60,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const idRef = useRef(0);
 
+  // Dismissal is two-phase: flag `closing` so the card can play its exit
+  // animation, then actually drop it from state once that animation ends.
   const dismiss = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) =>
+      prev.map((t) => (t.id === id && !t.closing ? { ...t, closing: true } : t))
+    );
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, EXIT_ANIMATION_MS);
   }, []);
 
   // One consolidated interval beats N per-toast setTimeouts: cheaper, and
   // dismissal is exact enough (16ms granularity on a 4s toast is invisible).
   useEffect(() => {
     if (toasts.length === 0) return;
-    const hasDeadline = toasts.some((t) => t.expiresAt !== null);
+    const hasDeadline = toasts.some((t) => t.expiresAt !== null && !t.closing);
     if (!hasDeadline) return;
     const handle = window.setInterval(() => {
       const now = Date.now();
-      setToasts((prev) => prev.filter((t) => t.expiresAt === null || t.expiresAt > now));
+      for (const t of toasts) {
+        if (t.expiresAt !== null && t.expiresAt <= now && !t.closing) dismiss(t.id);
+      }
     }, 250);
     return () => window.clearInterval(handle);
-  }, [toasts]);
+  }, [toasts, dismiss]);
 
   const push = useCallback((kind: ToastKind, message: string, opts?: ToastOptions): number => {
     const id = ++idRef.current;
@@ -166,10 +180,13 @@ function ToastCard({
   onDismiss: (id: number) => void;
 }) {
   const style = KIND_STYLES[toast.kind];
+  const enterExitAnimation = toast.closing
+    ? 'animate-[slide-fade-out-down-sm_200ms_ease-in]'
+    : 'animate-[slide-fade-in-up-sm_200ms_ease-out]';
   return (
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
-      className={`pointer-events-auto w-full max-w-sm ${style.bg} ${style.border} border backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-200`}
+      className={`pointer-events-auto w-full max-w-sm ${style.bg} ${style.border} border backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 flex items-start gap-3 ${enterExitAnimation}`}
     >
       <span className={`shrink-0 ${style.accent} mt-0.5`}>{style.icon}</span>
       <div className="flex-1 min-w-0 text-sm text-slate-100 leading-relaxed">{toast.message}</div>

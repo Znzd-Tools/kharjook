@@ -96,14 +96,14 @@ export function AssetsTab() {
   }, [goals]);
 
   return (
-    <div className="p-6 animate-in fade-in duration-300 space-y-6">
+    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
       <div className="flex justify-between items-center gap-3">
         <h2 className="text-xl font-bold text-white shrink-0">لیست دارایی‌ها</h2>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => router.push('/manage/goals')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-purple-300 hover:border-purple-500/30 transition-colors"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-purple-300 hover:border-purple-500/30 active:scale-[0.98] transition"
             aria-label="هدف‌ها"
             title="هدف‌ها"
           >
@@ -112,7 +112,7 @@ export function AssetsTab() {
           <button
             type="button"
             onClick={() => router.push('/prices')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 transition-colors"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 active:scale-[0.98] transition"
             aria-label="قیمت‌ها و نرخ‌ها"
             title="قیمت‌ها و نرخ‌ها"
           >
@@ -121,7 +121,7 @@ export function AssetsTab() {
           <button
             type="button"
             onClick={() => router.push('/manage/assets')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 transition-colors"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 active:scale-[0.98] transition"
             aria-label="مدیریت دارایی‌ها"
             title="مدیریت"
           >

@@ -93,7 +93,7 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
             key={row.id}
             type="button"
             onClick={() => router.push('/deadlines/subscriptions')}
-            className="w-full flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5 text-right hover:bg-white/[0.06] transition"
+            className="w-full flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5 text-right hover:bg-white/[0.06] active:scale-[0.98] transition"
           >
             <div className="min-w-0">
               <p className="text-xs text-slate-200 font-medium truncate">{row.platform}</p>

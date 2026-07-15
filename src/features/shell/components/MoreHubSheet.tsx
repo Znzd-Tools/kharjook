@@ -106,7 +106,7 @@ export function MoreHubSheet({ open, onClose }: MoreHubSheetProps) {
                   onClose();
                   router.push(item.href);
                 }}
-                className="w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center gap-4 text-right hover:bg-surface-hover transition-colors"
+                className="w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center gap-4 text-right hover:bg-surface-hover active:scale-[0.98] transition"
               >
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
                   <Icon size={20} />

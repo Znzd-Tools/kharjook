@@ -94,7 +94,7 @@ function DeadlinesItem({
 export function DeadlinesTab() {
   const router = useRouter();
   return (
-    <div className="p-6 animate-in fade-in duration-300 space-y-6">
+    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
       <h2 className="text-xl font-bold text-white mb-2">سررسید</h2>
 
       <div className="space-y-3">

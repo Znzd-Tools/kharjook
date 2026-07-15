@@ -25,7 +25,7 @@ export function FilterChip({
       role={role}
       aria-selected={ariaSelected}
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${className} ${
+      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition active:scale-[0.98] ${className} ${
         active
           ? activeClassName
           : 'bg-surface-raised border-white/10 text-slate-400 hover:border-white/20'

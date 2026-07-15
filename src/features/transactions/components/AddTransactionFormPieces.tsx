@@ -229,7 +229,7 @@ export function DerivedAmountLine({
       </label>
       <div
         key={value || 'empty'}
-        className="w-full bg-white/2 border border-dashed border-white/10 rounded-xl p-3 text-sm  text-left text-slate-300 animate-in fade-in zoom-in-95 duration-300"
+        className="w-full bg-white/2 border border-dashed border-white/10 rounded-xl p-3 text-sm  text-left text-slate-300 animate-[fade-zoom-in_300ms_ease-out]"
         dir="ltr"
       >
         {display}

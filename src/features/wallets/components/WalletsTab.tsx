@@ -34,7 +34,7 @@ export function WalletsTab() {
   const hasMissingRate = rows.some((r) => r.wallet.currency !== 'IRT' && r.rate === 0);
 
   return (
-    <div className="p-6 animate-in fade-in duration-300 space-y-6">
+    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
       <div className="flex justify-between items-center gap-3">
         <h2 className="text-xl font-bold text-white">کیف پول‌ها</h2>
         <button
