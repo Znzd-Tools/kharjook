@@ -218,7 +218,10 @@ export function ManageCategoriesView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = form.name.trim();
-    if (!name) return;
+    if (!name) {
+      toast.error('نام دسته الزامی است.');
+      return;
+    }
 
     const parentId = activeKind === 'asset' ? null : form.parentId;
 
@@ -486,11 +489,13 @@ export function ManageCategoriesView() {
       : 'افزودن دسته';
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
+          type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          aria-label="بازگشت"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
@@ -499,14 +504,14 @@ export function ManageCategoriesView() {
         </h2>
       </div>
 
-      <div className="px-6 pt-4">
-        <div className="grid grid-cols-3 gap-2 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="px-4 pt-3">
+        <div className="grid grid-cols-3 gap-1.5 bg-surface-raised p-1.5 rounded-xl">
           {KIND_TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => switchTab(t.id)}
-              className={`py-2 text-xs font-bold rounded-lg transition-all ${
+              className={`min-h-11 py-2.5 text-xs font-bold rounded-lg transition-all ${
                 activeKind === t.id
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200'
@@ -520,9 +525,9 @@ export function ManageCategoriesView() {
 
       <form
         onSubmit={handleSubmit}
-        className="p-6 border-b border-white/5 bg-[#1A1B26] mt-4 mx-6 rounded-2xl"
+        className="px-4 py-4 border-b border-white/5 bg-surface-raised mt-3 mx-4 rounded-2xl"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm text-slate-400">
             {form.editingId ? 'ویرایش دسته' : 'دسته جدید'}
           </h3>
@@ -537,28 +542,36 @@ export function ManageCategoriesView() {
           )}
         </div>
 
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder={namePlaceholder}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
-            required
-            maxLength={64}
-          />
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="category-name" className="block text-xs text-slate-400 mb-1">
+              نام دسته
+            </label>
+            <input
+              id="category-name"
+              type="text"
+              placeholder={namePlaceholder}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
+              required
+              maxLength={64}
+            />
+          </div>
 
-          <div className="flex gap-2 justify-between">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="رنگ دسته">
             {CATEGORY_COLORS.map((c) => (
               <button
                 type="button"
                 key={c}
                 onClick={() => setForm({ ...form, color: c })}
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                aria-label={`رنگ ${c}`}
+                aria-pressed={form.color === c}
+                className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
                 style={{ backgroundColor: c }}
               >
                 {form.color === c && (
-                  <Check size={16} className="text-white/90" />
+                  <Check size={18} className="text-white/90" />
                 )}
               </button>
             ))}
@@ -572,7 +585,7 @@ export function ManageCategoriesView() {
               <button
                 type="button"
                 onClick={() => setParentPickerOpen(true)}
-                className="w-full flex items-center gap-3 bg-[#222436] border border-white/10 rounded-xl p-3 text-right hover:bg-[#2a2c40] transition-colors"
+                className="w-full flex items-center gap-3 bg-surface-hover border border-white/10 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
               >
                 {selectedParent ? (
                   <>
@@ -602,13 +615,14 @@ export function ManageCategoriesView() {
 
           {activeKind === 'expense' && (
             <div>
-              <label className="block text-xs text-slate-400 mb-1">
+              <label htmlFor="category-monthly-cap" className="block text-xs text-slate-400 mb-1">
                 سقف هزینه ماهانه (تومان، اختیاری)
               </label>
               <FormattedNumberInput
+                id="category-monthly-cap"
                 value={form.monthlyCapToman}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, monthlyCapToman: value }))}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
                 dir="ltr"
                 placeholder="مثلا ۵,۰۰۰,۰۰۰"
               />
@@ -621,7 +635,7 @@ export function ManageCategoriesView() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full text-white p-3 rounded-xl text-sm font-medium transition-colors ${
+            className={`w-full text-white min-h-11 p-3 rounded-xl text-sm font-medium transition-colors ${
               form.editingId
                 ? 'bg-purple-600 hover:bg-purple-500'
                 : 'bg-white/10 hover:bg-white/20'
@@ -632,7 +646,7 @@ export function ManageCategoriesView() {
         </div>
       </form>
 
-      <div className="px-6 pt-6 space-y-2">
+      <div className="px-4 pt-4 space-y-2">
         {roots.length === 0 && (
           <p className="text-center text-slate-500 text-sm py-6">
             هیچ دسته‌بندی ثبت نشده.
@@ -708,7 +722,7 @@ function CategoryNode({
       <div
         ref={setNodeRef}
         style={{ transform: CSS.Transform.toString(transform), transition }}
-        className={`bg-[#1A1B26] ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+        className={`bg-surface-raised ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
       >
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -736,22 +750,24 @@ function CategoryNode({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
+            type="button"
             onClick={() => onEdit(category)}
             disabled={pending}
-            className="text-blue-400/50 hover:text-blue-400 p-1.5 transition-colors"
+            className="text-blue-400/50 hover:text-blue-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
             aria-label="ویرایش"
           >
-            <Edit3 size={compact ? 14 : 16} />
+            <Edit3 size={compact ? 16 : 18} />
           </button>
           <button
+            type="button"
             onClick={() => void onDelete(category)}
             disabled={pending}
-            className="text-rose-400/50 hover:text-rose-400 p-1.5 transition-colors"
+            className="text-rose-400/50 hover:text-rose-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
             aria-label="حذف"
           >
-            <Trash2 size={compact ? 14 : 16} />
+            <Trash2 size={compact ? 16 : 18} />
           </button>
         </div>
       </div>

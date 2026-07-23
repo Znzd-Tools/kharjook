@@ -199,8 +199,9 @@ export function CategorySheetPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو..."
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
             autoFocus
+            data-autofocus
           />
         </div>
       }
@@ -213,7 +214,7 @@ export function CategorySheetPicker({
             className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
               value === null
                 ? 'bg-purple-500/10 border-purple-500/40'
-                : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
             }`}
           >
             <Ban
@@ -249,7 +250,7 @@ export function CategorySheetPicker({
                     className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                       selected
                         ? 'bg-purple-500/10 border-purple-500/40'
-                        : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                        : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
                     }`}
                     style={{ paddingInlineStart: `${12 + it.depth * 18}px` }}
                   >
@@ -318,33 +319,33 @@ function CategoryTree({
         const expanded = expandedIds.has(node.id);
         return (
           <div key={node.id} className="space-y-1.5">
-            <button
-              type="button"
-              onClick={() => onSelect(node.id)}
-              className={`w-full flex items-center gap-2 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
-                selected
-                  ? 'bg-purple-500/10 border-purple-500/40'
-                  : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
-              }`}
+            <div
+              className="flex items-stretch gap-1"
               style={{ paddingInlineStart: `${12 + depth * 16}px` }}
             >
               {hasChildren ? (
-                <span
-                  className="shrink-0 p-0.5 rounded hover:bg-white/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleExpanded(node.id);
-                  }}
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-label={expanded ? `بستن زیرشاخه‌های ${node.name}` : `باز کردن زیرشاخه‌های ${node.name}`}
+                  onClick={() => onToggleExpanded(node.id)}
+                  className="shrink-0 self-center p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-200 transition"
                 >
-                  {expanded ? (
-                    <ChevronDown size={14} className="text-slate-400" />
-                  ) : (
-                    <ChevronLeft size={14} className="text-slate-400" />
-                  )}
-                </span>
+                  {expanded ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
+                </button>
               ) : (
-                <span className="w-[18px] shrink-0" />
+                <span className="w-8 shrink-0" aria-hidden />
               )}
+              <button
+                type="button"
+                onClick={() => onSelect(node.id)}
+                aria-pressed={selected}
+                className={`min-w-0 flex-1 flex items-center gap-2 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+                  selected
+                    ? 'bg-purple-500/10 border-purple-500/40'
+                    : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                }`}
+              >
               <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: node.color }}
@@ -360,7 +361,8 @@ function CategoryTree({
               >
                 {node.name}
               </span>
-            </button>
+              </button>
+            </div>
             {hasChildren && expanded && (
               <CategoryTree
                 parentId={node.id}

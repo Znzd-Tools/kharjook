@@ -384,6 +384,22 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
   return null;
 }
 
+/** Blocks submit when source amount exceeds wallet/asset holding (not persons). */
+export function validateSourceFunds(
+  form: FormState,
+  wallets: Wallet[],
+  transactions: Transaction[],
+  persons: { id: string }[]
+): string | null {
+  if (form.type === 'INCOME' || form.sourceKind === 'person') return null;
+  const bal = sourceBalance(form, wallets, transactions, persons);
+  const amount = Number(form.sourceAmount);
+  if (bal != null && Number.isFinite(amount) && amount > bal) {
+    return 'موجودی مبدأ کافی نیست.';
+  }
+  return null;
+}
+
 // ─── Amount-at-time snapshots ───────────────────────────────────────────────
 //
 // Computes cashflow snapshots in BOTH Toman and USD for every transaction

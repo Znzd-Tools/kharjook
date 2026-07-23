@@ -122,7 +122,10 @@ export function ManageAssetsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.unit) return;
+    if (!formData.name.trim() || !formData.unit.trim()) {
+      toast.error('نام و واحد دارایی الزامی است.');
+      return;
+    }
     const execute = async () => {
       const decimalPlaces = Math.max(0, Math.min(12, Math.trunc(Number(formData.decimalPlaces))));
       const payload = {
@@ -379,11 +382,13 @@ export function ManageAssetsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
+          type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          aria-label="بازگشت"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
@@ -392,9 +397,9 @@ export function ManageAssetsView() {
 
       <form
         onSubmit={handleSubmit}
-        className="p-6 space-y-6 border-b border-white/5 bg-[#1A1B26]"
+        className="px-4 py-4 space-y-3 border-b border-white/5 bg-surface-raised"
       >
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-purple-400">
             {editingId ? 'ویرایش دارایی' : 'تعریف دارایی جدید'}
           </h3>
@@ -409,7 +414,7 @@ export function ManageAssetsView() {
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <IconPicker
             value={formData.iconUrl}
             onChange={(url) => setFormData({ ...formData, iconUrl: url })}
@@ -420,7 +425,7 @@ export function ManageAssetsView() {
           />
 
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <label className="block text-xs text-slate-400">
                 دسته‌بندی (اختیاری)
               </label>
@@ -435,7 +440,7 @@ export function ManageAssetsView() {
             <button
               type="button"
               onClick={() => setCategoryPickerOpen(true)}
-              className="w-full flex items-center gap-3 bg-[#222436] border border-white/5 rounded-xl p-3 text-right hover:bg-[#2a2c40] transition-colors"
+              className="w-full flex items-center gap-3 bg-surface-hover border border-white/5 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
             >
               {selectedCategory ? (
                 <>
@@ -458,44 +463,46 @@ export function ManageAssetsView() {
               <ChevronLeft size={16} className="text-slate-500 shrink-0" />
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-2">
+              <label htmlFor="asset-name" className="block text-xs text-slate-400 mb-1">
                 نام دارایی
               </label>
               <input
+                id="asset-name"
                 type="text"
                 placeholder="مثلا: طلا"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
+                className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-2">واحد</label>
+              <label htmlFor="asset-unit" className="block text-xs text-slate-400 mb-1">واحد</label>
               <input
+                id="asset-unit"
                 type="text"
                 placeholder="مثلا: گرم"
                 value={formData.unit}
                 onChange={(e) =>
                   setFormData({ ...formData, unit: e.target.value })
                 }
-                className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
+                className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
                 required
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-2">
+            <label className="block text-xs text-slate-400 mb-1">
               منبع قیمت (اختیاری)
             </label>
             <button
               type="button"
               onClick={() => setPriceSourcePickerOpen(true)}
-              className="w-full flex items-center gap-3 bg-[#222436] border border-white/5 rounded-xl p-3 text-right hover:bg-[#2a2c40] transition-colors"
+              className="w-full flex items-center gap-3 bg-surface-hover border border-white/5 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
             >
               {selectedPriceSourceLabel ? (
                 <>
@@ -538,7 +545,7 @@ export function ManageAssetsView() {
           {showAdvanced && (
             <>
           <div>
-            <label className="block text-xs text-slate-400 mb-2">
+            <label className="block text-xs text-slate-400 mb-1">
               تعداد اعشار نمایش مقدار
             </label>
             <input
@@ -550,7 +557,7 @@ export function ManageAssetsView() {
               onChange={(e) =>
                 setFormData({ ...formData, decimalPlaces: Number(e.target.value) })
               }
-              className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
+              className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none transition-all"
               required
             />
             <p className="text-[11px] text-slate-500 mt-1">
@@ -558,7 +565,7 @@ export function ManageAssetsView() {
             </p>
           </div>
 
-          <label className="flex items-center justify-between bg-[#222436] border border-white/5 rounded-xl p-3 cursor-pointer">
+          <label className="flex items-center justify-between bg-surface-hover border border-white/5 rounded-xl p-3 cursor-pointer">
             <div>
               <p className="text-sm text-slate-200">شامل در ارزش کل سبد</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
@@ -575,7 +582,7 @@ export function ManageAssetsView() {
             />
           </label>
 
-          <label className="flex items-center justify-between bg-[#222436] border border-white/5 rounded-xl p-3 cursor-pointer">
+          <label className="flex items-center justify-between bg-surface-hover border border-white/5 rounded-xl p-3 cursor-pointer">
             <div>
               <p className="text-sm text-slate-200">شامل در سود/زیان</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
@@ -598,7 +605,7 @@ export function ManageAssetsView() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full text-white p-3 rounded-xl font-bold transition-all disabled:opacity-50 ${editingId ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_4px_20px_rgba(147,51,234,0.3)]' : 'bg-white/10 hover:bg-white/20'}`}
+          className={`w-full text-white min-h-11 p-3 rounded-xl font-bold transition-all disabled:opacity-50 ${editingId ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_4px_20px_rgba(147,51,234,0.3)]' : 'bg-white/10 hover:bg-white/20'}`}
         >
           {isSubmitting
             ? 'در حال ثبت...'
@@ -608,7 +615,7 @@ export function ManageAssetsView() {
         </button>
       </form>
 
-      <div className="p-6 space-y-3">
+      <div className="px-4 py-4 space-y-3">
         <h3 className="text-sm font-semibold text-slate-400 mb-4">
           دارایی‌های تعریف شده
         </h3>
@@ -703,7 +710,7 @@ function SortableAssetRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-[#1A1B26] p-4 rounded-xl border flex items-center justify-between transition-colors ${editing ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+      className={`bg-surface-raised p-4 rounded-xl border flex items-center justify-between transition-colors ${editing ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -745,12 +752,24 @@ function SortableAssetRow({
           )}
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <button disabled={pending} onClick={onEdit} className="text-blue-400/60 hover:text-blue-400 p-1.5 bg-blue-500/10 rounded-lg transition-colors disabled:opacity-40">
-          <Edit3 size={14} />
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onEdit}
+          aria-label="ویرایش دارایی"
+          className="text-blue-400/60 hover:text-blue-400 min-h-11 min-w-11 inline-flex items-center justify-center bg-blue-500/10 rounded-lg transition-colors disabled:opacity-40"
+        >
+          <Edit3 size={16} />
         </button>
-        <button disabled={pending} onClick={onDelete} className="text-rose-400/60 hover:text-rose-400 p-1.5 bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40">
-          <Trash2 size={14} />
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onDelete}
+          aria-label="حذف دارایی"
+          className="text-rose-400/60 hover:text-rose-400 min-h-11 min-w-11 inline-flex items-center justify-center bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40"
+        >
+          <Trash2 size={16} />
         </button>
       </div>
     </div>

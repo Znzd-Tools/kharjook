@@ -24,8 +24,8 @@ export function LoginView() {
 	const justRegistered = searchParams.get('registered') === '1';
  
   return (
-    <div className="bg-[#0F1015] text-slate-200 min-h-screen font-sans flex items-stretch sm:items-center justify-center sm:p-4 selection:bg-purple-500/30">
-      <div className="w-full sm:max-w-md bg-[#161722] p-6 sm:p-8 sm:rounded-3xl sm:border border-white/5 sm:shadow-2xl relative overflow-hidden flex flex-col justify-center sm:block animate-[fade-in_500ms_ease-out] sm:animate-[fade-zoom-in_500ms_ease-out]">
+    <div className="bg-background text-slate-200 min-h-screen font-sans flex items-stretch sm:items-center justify-center sm:p-4 selection:bg-purple-500/30">
+      <div className="w-full sm:max-w-md bg-surface-shell p-6 sm:p-8 sm:rounded-3xl sm:border border-white/5 sm:shadow-2xl relative overflow-hidden flex flex-col justify-center sm:block animate-[fade-in_500ms_ease-out] sm:animate-[fade-zoom-in_500ms_ease-out]">
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -ml-10 -mb-10"></div>
 
@@ -40,18 +40,24 @@ export function LoginView() {
 
         <form onSubmit={handleLogin} className="space-y-4 relative z-10">
           {justRegistered && !error && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl text-center">
+            <div
+              role="status"
+              className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl text-center"
+            >
               حساب با موفقیت ساخته شد. لطفاً وارد شو.
             </div>
           )}
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs p-3 rounded-xl text-center">
+            <div
+              role="alert"
+              className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs p-3 rounded-xl text-center"
+            >
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 ml-1">
+            <label htmlFor="login-email" className="block text-xs text-slate-400 mb-1.5 ml-1">
               ایمیل
             </label>
             <div className="relative">
@@ -59,18 +65,20 @@ export function LoginView() {
                 <UserIcon size={18} />
               </span>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#1A1B26] border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 outline-none transition-all "
+                className="w-full bg-surface-raised border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500/40 outline-none transition-all "
                 dir="ltr"
+                autoComplete="email"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 ml-1">
+            <label htmlFor="login-password" className="block text-xs text-slate-400 mb-1.5 ml-1">
               رمز عبور
             </label>
             <div className="relative">
@@ -78,11 +86,13 @@ export function LoginView() {
                 <Lock size={18} />
               </span>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#1A1B26] border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 outline-none transition-all  tracking-widest"
+                className="w-full bg-surface-raised border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500/40 outline-none transition-all  tracking-widest"
                 dir="ltr"
+                autoComplete="current-password"
                 required
               />
             </div>
@@ -91,7 +101,7 @@ export function LoginView() {
           <button
             type="submit"
             disabled={isSubmitting || isPasskeySubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.3)] transition-all mt-6 active:scale-95 disabled:opacity-50 flex justify-center items-center"
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white min-h-11 p-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.3)] transition-all mt-6 active:scale-95 disabled:opacity-50 flex justify-center items-center focus-visible:ring-2 focus-visible:ring-purple-400/50 focus-visible:outline-none"
           >
             {isSubmitting ? (
               <RefreshCw size={20} className="animate-spin" />

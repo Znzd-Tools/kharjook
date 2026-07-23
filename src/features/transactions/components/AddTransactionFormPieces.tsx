@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import {
   ArrowRight,
   Calculator,
@@ -63,7 +64,7 @@ export function DirectionCard({
     <button
       type="button"
       onClick={onTap}
-      className={`w-full bg-[#1A1B26] border ${borderClass} rounded-xl p-3 flex items-center gap-3 text-right hover:bg-[#222436] active:scale-[0.99] transition`}
+      className={`w-full bg-surface-raised border ${borderClass} rounded-xl p-3 flex items-center gap-3 text-right hover:bg-surface-hover active:scale-[0.99] transition`}
     >
       <EntityIcon
         iconUrl={wallet?.icon_url ?? asset?.icon_url ?? null}
@@ -120,7 +121,7 @@ export function DateChip({
     <button
       type="button"
       onClick={onClick}
-      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition ${
+      className={`min-h-11 px-3 py-2 text-xs font-bold rounded-lg transition ${
         active
           ? 'bg-white/10 text-white'
           : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -172,15 +173,22 @@ export function PrimaryAmountField({
   else if (form.type === 'EXPENSE') label = `مبلغ هزینه${unit ? ` (${unit})` : ''}`;
   else label = `مقدار${unit ? ` (${unit})` : ''}`;
 
+  const inputId = useId();
+
   return (
     <div>
-      <label className={`block text-xs mb-1 ${showError ? 'text-rose-400' : 'text-slate-400'}`}>
+      <label
+        htmlFor={inputId}
+        className={`block text-xs mb-1 ${showError ? 'text-rose-400' : 'text-slate-400'}`}
+      >
         {label}
       </label>
       <FormattedNumberInput
+        id={inputId}
         value={value}
         onValueChange={onChange}
-        className={`w-full bg-[#1A1B26] border rounded-xl p-3 text-sm  focus:outline-none text-left ${
+        aria-invalid={showError || undefined}
+        className={`w-full bg-surface-raised border rounded-xl p-3 text-sm  focus:outline-none text-left ${
           showError
             ? 'border-rose-500/50 text-rose-200 focus:border-rose-500'
             : 'border-white/10 text-white focus:border-purple-500'
@@ -255,15 +263,17 @@ export function CrossCurrencyTargetField({
   const unit = targetWallet
     ? CURRENCY_META[targetWallet.currency].label
     : targetAsset?.unit ?? (targetPerson ? 'مقدار' : '');
+  const inputId = useId();
   return (
     <div>
-      <label className="block text-xs text-slate-400 mb-1">
+      <label htmlFor={inputId} className="block text-xs text-slate-400 mb-1">
         {`مقدار دریافتی${unit ? ` (${unit})` : ''}`}
       </label>
       <FormattedNumberInput
+        id={inputId}
         value={value}
         onValueChange={onChange}
-        className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+        className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
         dir="ltr"
         required
       />
@@ -288,15 +298,18 @@ export function PriceFields({
   showTomanPrice?: boolean;
   showUsdRate: boolean;
 }) {
+  const priceId = useId();
+  const usdId = useId();
   return (
     <div className="space-y-3">
       {showTomanPrice && (
         <div>
-          <label className="block text-xs text-slate-400 mb-1">{priceLabel || 'قیمت واحد (تومان)'}</label>
+          <label htmlFor={priceId} className="block text-xs text-slate-400 mb-1">{priceLabel || 'قیمت واحد (تومان)'}</label>
           <FormattedNumberInput
+            id={priceId}
             value={priceToman}
             onValueChange={onPriceToman}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -304,11 +317,12 @@ export function PriceFields({
       )}
       {showUsdRate && (
         <div>
-          <label className="block text-xs text-slate-400 mb-1">نرخ دلار در لحظه (تومان)</label>
+          <label htmlFor={usdId} className="block text-xs text-slate-400 mb-1">نرخ دلار در لحظه (تومان)</label>
           <FormattedNumberInput
+            id={usdId}
             value={usdRate}
             onValueChange={onUsdRate}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -330,16 +344,19 @@ export function CategoryField({
   onOpen: () => void;
 }) {
   const selected = value ? categories.find((c) => c.id === value) ?? null : null;
+  const labelId = useId();
 
   return (
     <div>
-      <label className="block text-xs text-slate-400 mb-1">
+      <label id={labelId} className="block text-xs text-slate-400 mb-1">
         {kind === 'income' ? 'دسته درآمد' : 'دسته هزینه'}
       </label>
       <button
         type="button"
         onClick={onOpen}
-        className={`w-full flex items-center gap-3 bg-[#1A1B26] border rounded-xl p-3 text-right transition hover:bg-[#222436] ${
+        aria-labelledby={labelId}
+        aria-haspopup="dialog"
+        className={`w-full flex items-center gap-3 bg-surface-raised border rounded-xl p-3 text-right transition hover:bg-surface-hover ${
           selected ? 'border-white/10' : 'border-white/10'
         }`}
       >
@@ -407,10 +424,10 @@ export function CollapsedRow({
         <button
           type="button"
           onClick={onRemove}
-          className="shrink-0 p-1.5 bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
+          className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
           aria-label="حذف"
         >
-          <Trash2 size={14} />
+          <Trash2 size={16} />
         </button>
       )}
     </div>
@@ -600,18 +617,19 @@ void formatCurrency;
 
 export function NotFound({ message, onBack }: { message: string; onBack: () => void }) {
   return (
-    <div className="bg-[#0F1015] min-h-full">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5">
+    <div className="bg-background min-h-full">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5">
         <button
           type="button"
           onClick={onBack}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          aria-label="بازگشت"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
         <h2 className="text-lg font-bold text-white flex-1">تراکنش</h2>
       </div>
-      <div className="p-6 text-center text-slate-500 text-sm">{message}</div>
+      <div className="px-4 py-6 text-center text-slate-500 text-sm">{message}</div>
     </div>
   );
 }

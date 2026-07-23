@@ -29,7 +29,7 @@ const useLoginView = () => {
 
     if (signInError) {
       console.error(signInError);
-      setError('شماره موبایل یا رمز عبور اشتباه است.');
+      setError('ایمیل یا رمز عبور اشتباه است.');
       setIsSubmitting(false);
       return;
     }

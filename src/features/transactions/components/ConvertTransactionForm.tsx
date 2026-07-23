@@ -80,7 +80,7 @@ export function ConvertTransactionForm({
         <button
           type="button"
           onClick={() => setDateOpen(true)}
-          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[#0F1015]/60 px-3 py-2.5 text-right"
+          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-right"
         >
           <span className="text-xs text-slate-400">تاریخ</span>
           <span className="flex items-center gap-2 text-sm text-white">
@@ -210,7 +210,7 @@ export function ConvertTransactionForm({
           onChange={(e) => update('note', e.target.value)}
           placeholder="یادداشت (اختیاری)"
           rows={2}
-          className="w-full rounded-xl border border-white/10 bg-[#0F1015]/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 resize-none"
+          className="w-full rounded-xl border border-white/10 bg-background/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 resize-none"
         />
       </div>
 
@@ -308,7 +308,7 @@ function EndpointButton({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0F1015]/60 px-3 py-2.5 text-right"
+      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-right"
     >
       <div className="flex items-center gap-3 min-w-0">
         {icon}
@@ -377,7 +377,7 @@ function NumberField({
         value={value}
         onValueChange={onChange}
         disabled={disabled}
-        className="w-full rounded-xl border border-white/10 bg-[#0F1015]/60 px-3 py-2.5 text-sm text-white disabled:opacity-50"
+        className="w-full rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-sm text-white disabled:opacity-50"
       />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -90,6 +90,7 @@ export function TransactionFormRow({
   const [pickerOpen, setPickerOpen] = useState<null | 'source' | 'target'>(null);
   const [dateOpen, setDateOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const noteId = useId();
 
   const sourceWallet = form.sourceKind === 'wallet' ? wallets.find((w) => w.id === form.sourceId) : undefined;
   const sourceAsset  = form.sourceKind === 'asset'  ? assets.find((a)  => a.id === form.sourceId) : undefined;
@@ -281,19 +282,19 @@ export function TransactionFormRow({
               <button
                 type="button"
                 onClick={onToggleCollapsed}
-                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 transition-colors"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 transition-colors"
                 aria-label="جمع‌کردن"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={16} />
               </button>
               {canRemove && (
                 <button
                   type="button"
                   onClick={onRemove}
-                  className="p-1.5 bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
+                  className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
                   aria-label="حذف"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={16} />
                 </button>
               )}
             </div>
@@ -392,7 +393,7 @@ export function TransactionFormRow({
           <button
             type="button"
             onClick={() => setDateOpen(true)}
-            className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
+            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
           >
             <Calendar size={16} className={style.accentText} />
             <span className="text-sm text-slate-100 flex-1">{dateLabel}</span>
@@ -432,7 +433,7 @@ export function TransactionFormRow({
                 key={p}
                 type="button"
                 onClick={() => applySourcePercent(p)}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg bg-white/5 hover:bg-white/10 ${style.accentText} transition`}
+                className={`min-h-11 px-3 py-2 text-xs font-bold rounded-lg bg-white/5 hover:bg-white/10 ${style.accentText} transition`}
               >
                 {p === 100 ? 'همه' : `${p}٪`}
               </button>
@@ -497,13 +498,14 @@ export function TransactionFormRow({
 
         {/* Note */}
         <div>
-          <label className="block text-xs text-slate-400 mb-1">
+          <label htmlFor={noteId} className="block text-xs text-slate-400 mb-1">
             توضیحات (اختیاری)
           </label>
           <textarea
+            id={noteId}
             value={form.note}
             onChange={(e) => updateField('note', e.target.value)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm focus:border-purple-500 outline-none min-h-[60px]"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm focus:border-purple-500 outline-none min-h-[60px]"
             maxLength={500}
           />
         </div>

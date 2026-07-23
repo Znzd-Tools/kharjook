@@ -15,6 +15,15 @@ const subscribeNoop = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusable(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true'
+  );
+}
+
 export interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
@@ -37,6 +46,8 @@ export function BottomSheet({
   // We render via portal into <body>. The app's column-scoped Shell creates a
   // stacking context that would otherwise clip the sheet.
   const mounted = useSyncExternalStore(subscribeNoop, getClientSnapshot, getServerSnapshot);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   // Lock page scroll while open so iOS Safari doesn't rubber-band the parent.
   useEffect(() => {
@@ -57,6 +68,56 @@ export function BottomSheet({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // Focus trap + restore. Save trigger on open; cycle Tab inside dialog.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement;
+    restoreFocusRef.current =
+      prev instanceof HTMLElement ? prev : null;
+
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    // Defer so search autoFocus / children mount first.
+    const focusTimer = window.setTimeout(() => {
+      const focusable = getFocusable(panel);
+      const preferred =
+        panel.querySelector<HTMLElement>('[data-autofocus]') ?? focusable[0];
+      preferred?.focus();
+    }, 0);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable(panel);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      const restore = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      // ponytail: restore only if node still in DOM (route change may unmount trigger)
+      if (restore?.isConnected) restore.focus();
+    };
+  }, [open]);
 
   // Drag-to-close. We only track the handle, not the whole sheet, because
   // we don't want to hijack scroll inside the body.
@@ -125,6 +186,7 @@ export function BottomSheet({
       <button
         type="button"
         aria-label="بستن"
+        tabIndex={open ? 0 : -1}
         onClick={closeWithHaptic}
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
           open ? 'opacity-100' : 'opacity-0'
@@ -133,10 +195,11 @@ export function BottomSheet({
 
       {/* Sheet */}
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : 'پنجره'}
-        className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-[#13141C] rounded-t-3xl border-t border-white/10 shadow-2xl transition-transform ease-out ${
+        className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-surface-shell rounded-t-3xl border-t border-white/10 shadow-2xl transition-transform ease-out ${
           isDragging ? 'duration-75' : 'duration-300'
         } ${
           open ? 'translate-y-0' : 'translate-y-full'

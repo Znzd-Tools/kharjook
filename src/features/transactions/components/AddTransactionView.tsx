@@ -41,6 +41,7 @@ import {
   buildPayload,
   buildTradeSnapshots,
   validateForm,
+  validateSourceFunds,
 } from '@/features/transactions/utils/transaction-form-logic';
 
 export type { AddTransactionViewProps };
@@ -344,7 +345,9 @@ export function AddTransactionView({
     }
 
     for (let i = 0; i < rows.length; i++) {
-      const err = validateForm(rows[i], wallets);
+      const err =
+        validateForm(rows[i], wallets) ??
+        validateSourceFunds(rows[i], wallets, transactions, persons);
       if (err) {
         const msg = rows.length > 1 ? `تراکنش #${i + 1}: ${err}` : err;
         setFormError(msg);
@@ -430,13 +433,13 @@ export function AddTransactionView({
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out] relative z-50">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out] relative z-50">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
@@ -453,14 +456,21 @@ export function AddTransactionView({
         </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
         {formError && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs p-3 rounded-xl">
+          <div
+            role="alert"
+            className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs p-3 rounded-xl"
+          >
             {formError}
           </div>
         )}
-        {/* Type tabs */}
-        <div className="grid grid-cols-6 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+        {/* Type tabs — 2×3: trade row then cash/move row; equal weight, readable Persian labels */}
+        <div
+          className="grid grid-cols-3 gap-1.5 bg-surface-raised p-1.5 rounded-xl"
+          role="tablist"
+          aria-label="نوع تراکنش"
+        >
           {UI_TABS.map((t) => {
             const s = styleForUiMode(t);
             const active = uiMode === t;
@@ -468,9 +478,11 @@ export function AddTransactionView({
               <button
                 key={t}
                 type="button"
+                role="tab"
+                aria-selected={active}
                 onClick={() => switchUiMode(t)}
                 disabled={isEdit && t !== uiMode}
-                className={`py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all ${
+                className={`min-h-11 px-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
                   active
                     ? `${s.accentBg} text-white shadow-md`
                     : 'text-slate-400 hover:text-slate-200 disabled:opacity-30'
@@ -533,7 +545,7 @@ export function AddTransactionView({
           <button
             type="button"
             onClick={addRow}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-slate-300 p-3 rounded-xl text-sm font-bold transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-slate-300 min-h-11 p-3 rounded-xl text-sm font-bold transition-all"
           >
             <Plus size={16} />
             افزودن تراکنش دیگر
@@ -555,7 +567,7 @@ export function AddTransactionView({
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full ${sharedStyle.accentBtnBg} text-white p-4 rounded-xl font-bold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50`}
+          className={`w-full ${sharedStyle.accentBtnBg} text-white min-h-11 p-4 rounded-xl font-bold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none`}
         >
           {isSubmitting
             ? 'در حال ارسال...'

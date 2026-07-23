@@ -142,7 +142,7 @@ export function EndpointSheetPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو..."
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
             autoFocus
           />
         </div>
@@ -302,7 +302,7 @@ function PickerRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/5 hover:bg-[#222436] active:scale-[0.99] transition rounded-xl p-3 text-right"
+      className="w-full flex items-center gap-3 bg-surface-raised border border-white/5 hover:bg-surface-hover active:scale-[0.99] transition rounded-xl p-3 text-right"
     >
       <EntityIcon
         iconUrl={iconUrl}
