@@ -14,6 +14,7 @@ import type {
 } from '@/shared/types/domain';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
+import { loanAmountToToman } from '@/features/deadlines/utils/loan-amount';
 import { buildUserNotificationSnapshot } from '@/features/notifications/utils/build-user-snapshot';
 import {
   formatMonthCashflowMessage,
@@ -131,6 +132,20 @@ async function loadUnpaidDebtItems(userId: string): Promise<DebtListItem[]> {
 
   const loanMap = new Map(((loans ?? []) as Loan[]).map((l) => [l.id, l]));
   const rates = (currencyRates ?? []) as CurrencyRate[];
+  const assetIds = Array.from(
+    new Set(
+      ((loans ?? []) as Loan[])
+        .map((l) => l.asset_id)
+        .filter((id): id is string => !!id)
+    )
+  );
+  const { data: assetRows } =
+    assetIds.length > 0
+      ? await admin.from('assets').select('id, price_toman').in('id', assetIds)
+      : { data: [] as Array<{ id: string; price_toman: number }> };
+  const assetsById = new Map(
+    (assetRows ?? []).map((a) => [a.id, { price_toman: Number(a.price_toman) }])
+  );
 
   const items: DebtListItem[] = [];
   for (const row of installments as LoanInstallment[]) {
@@ -138,13 +153,17 @@ async function loadUnpaidDebtItems(userId: string): Promise<DebtListItem[]> {
     if (!loan) continue;
     const daysUntil = installmentDaysUntilDue(row.due_date_string, today);
     if (daysUntil == null) continue;
-    const rate = tomanPerUnit(loan.currency, rates);
     items.push({
       installmentId: row.id,
       loanId: row.loan_id,
       loanTitle: loan.title,
       dueDateString: row.due_date_string,
-      amountToman: installmentRemainingAmount(row) * rate,
+      amountToman: loanAmountToToman(
+        installmentRemainingAmount(row),
+        loan,
+        rates,
+        assetsById
+      ),
       daysUntilDue: daysUntil,
       reminderDaysBefore: loan.reminder_days_before ?? [],
     });

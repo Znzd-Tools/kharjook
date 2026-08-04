@@ -1,4 +1,5 @@
 import type {
+  Asset,
   Check,
   CurrencyRate,
   ExpensePlanItem,
@@ -9,6 +10,7 @@ import type {
   Subscription,
 } from '@/shared/types/domain';
 import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
+import { loanAmountToToman } from '@/features/deadlines/utils/loan-amount';
 import {
   recurringDueDatesInPeriod,
   subscriptionDueDatesInPeriod,
@@ -29,7 +31,7 @@ export type PlanSuggestion = {
 
 function amountInCurrencyToToman(
   amount: number,
-  currency: Loan['currency'] | Check['currency'] | Subscription['currency'],
+  currency: Check['currency'] | Subscription['currency'],
   currencyRates: CurrencyRate[]
 ): number {
   const rate = tomanPerUnit(currency, currencyRates);
@@ -56,10 +58,21 @@ export function buildPlanSuggestions(input: {
   recurring: RecurringTransaction[];
   subscriptions: Subscription[];
   currencyRates: CurrencyRate[];
+  assets?: Array<Pick<Asset, 'id' | 'price_toman'>>;
 }): PlanSuggestion[] {
-  const { period, items, installments, loans, checks, recurring, subscriptions, currencyRates } =
-    input;
+  const {
+    period,
+    items,
+    installments,
+    loans,
+    checks,
+    recurring,
+    subscriptions,
+    currencyRates,
+    assets = [],
+  } = input;
   const loansById = new Map(loans.map((loan) => [loan.id, loan]));
+  const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
   const installmentSuggestions: Array<{ dueDate: string; suggestion: PlanSuggestion }> = [];
   const out: PlanSuggestion[] = [];
 
@@ -72,7 +85,7 @@ export function buildPlanSuggestions(input: {
     if (!loan) continue;
     if (isSuggestionAlreadyAdded(items, 'installment', installment.id)) continue;
 
-    const amountToman = amountInCurrencyToToman(remaining, loan.currency, currencyRates);
+    const amountToman = loanAmountToToman(remaining, loan, currencyRates, assetsById);
     if (amountToman <= 0) continue;
 
     installmentSuggestions.push({

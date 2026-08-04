@@ -4,8 +4,9 @@ import {
   installmentRemainingAmount,
   validatePartialPayAmount,
 } from '@/features/deadlines/utils/installment-remaining';
+import { isAssetLoan } from '@/features/deadlines/utils/loan-amount';
 import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
-import type { Loan, LoanInstallment, Transaction, Wallet } from '@/shared/types/domain';
+import type { Asset, Loan, LoanInstallment, Transaction, Wallet } from '@/shared/types/domain';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 
 export type SettleInstallmentResult =
@@ -15,8 +16,9 @@ export type SettleInstallmentResult =
 export async function settleLoanInstallment(input: {
   userId: string;
   installmentId: string;
-  walletId: string;
-  /** In loan currency; defaults to remaining balance. */
+  /** Required for fiat loans. Ignored when loan is asset-denominated. */
+  walletId?: string;
+  /** In loan denomination (fiat units or asset qty); defaults to remaining. */
   payAmountInLoanCurrency?: number;
 }): Promise<SettleInstallmentResult> {
   const admin = createSupabaseAdminClient();
@@ -48,63 +50,116 @@ export async function settleLoanInstallment(input: {
     return { ok: false, error: amountError, code: 'invalid' };
   }
 
-  const [{ data: loanRow }, { data: walletRow }, { data: ratesRows }] = await Promise.all([
-    admin
-      .from('loans')
+  const { data: loanRow } = await admin
+    .from('loans')
+    .select('*')
+    .eq('id', installment.loan_id)
+    .eq('user_id', input.userId)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  const loan = loanRow as Loan | null;
+  if (!loan) {
+    return { ok: false, error: 'اطلاعات وام نامعتبر است.', code: 'invalid' };
+  }
+
+  const { data: ratesRows } = await admin
+    .from('currency_rates')
+    .select('*')
+    .eq('user_id', input.userId);
+  const rates = ratesRows ?? [];
+  const usdRate = rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
+
+  let txPayload: Record<string, unknown>;
+
+  if (isAssetLoan(loan)) {
+    const { data: assetRow } = await admin
+      .from('assets')
       .select('*')
-      .eq('id', installment.loan_id)
+      .eq('id', loan.asset_id!)
       .eq('user_id', input.userId)
-      .is('deleted_at', null)
-      .maybeSingle(),
-    admin
+      .maybeSingle();
+    const asset = assetRow as Asset | null;
+    if (!asset) {
+      return { ok: false, error: 'دارایی وام پیدا نشد.', code: 'invalid' };
+    }
+    const priceToman = Number(asset.price_toman);
+    if (!(priceToman > 0) || !(usdRate > 0)) {
+      return { ok: false, error: 'قیمت دارایی برای تسویه در دسترس نیست.', code: 'invalid' };
+    }
+    if (!Number.isFinite(payInLoanCurrency) || payInLoanCurrency <= 0) {
+      return { ok: false, error: 'مقدار تسویه نامعتبر است.', code: 'invalid' };
+    }
+
+    txPayload = {
+      user_id: input.userId,
+      type: 'EXPENSE',
+      date_string: installment.due_date_string,
+      note: loan.title,
+      source_wallet_id: null,
+      source_asset_id: asset.id,
+      target_wallet_id: null,
+      target_asset_id: null,
+      source_amount: payInLoanCurrency,
+      target_amount: null,
+      category_id: loan.type === 'expense' ? loan.category_id : null,
+      asset_id: asset.id,
+      amount: payInLoanCurrency,
+      price_toman: priceToman,
+      usd_rate: usdRate,
+      amount_toman_at_time: payInLoanCurrency * priceToman,
+      amount_usd_at_time: (payInLoanCurrency * priceToman) / usdRate,
+    };
+  } else {
+    if (!input.walletId) {
+      return { ok: false, error: 'کیف پول پرداخت الزامی است.', code: 'invalid' };
+    }
+
+    const { data: walletRow } = await admin
       .from('wallets')
       .select('*')
       .eq('id', input.walletId)
       .eq('user_id', input.userId)
       .is('archived_at', null)
-      .maybeSingle(),
-    admin.from('currency_rates').select('*').eq('user_id', input.userId),
-  ]);
+      .maybeSingle();
 
-  const loan = loanRow as Loan | null;
-  const wallet = walletRow as Wallet | null;
-  if (!loan || !wallet) {
-    return { ok: false, error: 'اطلاعات وام یا کیف پول نامعتبر است.', code: 'invalid' };
+    const wallet = walletRow as Wallet | null;
+    if (!wallet) {
+      return { ok: false, error: 'اطلاعات وام یا کیف پول نامعتبر است.', code: 'invalid' };
+    }
+
+    const loanRate = tomanPerUnit(loan.currency, rates);
+    const payRate = tomanPerUnit(wallet.currency, rates);
+
+    if (loanRate <= 0 || payRate <= 0 || usdRate <= 0) {
+      return { ok: false, error: 'نرخ تبدیل برای تسویه در دسترس نیست.', code: 'invalid' };
+    }
+
+    const payAmount = (payInLoanCurrency * loanRate) / payRate;
+    if (!Number.isFinite(payAmount) || payAmount <= 0) {
+      return { ok: false, error: 'مبلغ تسویه نامعتبر است.', code: 'invalid' };
+    }
+
+    txPayload = {
+      user_id: input.userId,
+      type: 'EXPENSE',
+      date_string: installment.due_date_string,
+      note: loan.title,
+      source_wallet_id: wallet.id,
+      source_asset_id: null,
+      target_wallet_id: null,
+      target_asset_id: null,
+      source_amount: payAmount,
+      target_amount: null,
+      category_id: loan.type === 'expense' ? loan.category_id : null,
+      asset_id: null,
+      amount: null,
+      price_toman: wallet.currency === 'IRT' ? null : payRate,
+      usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+      amount_toman_at_time: payAmount * payRate,
+      amount_usd_at_time: (payAmount * payRate) / usdRate,
+    };
   }
-
-  const rates = ratesRows ?? [];
-  const usdRate = rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
-  const loanRate = tomanPerUnit(loan.currency, rates);
-  const payRate = tomanPerUnit(wallet.currency, rates);
-
-  if (loanRate <= 0 || payRate <= 0 || usdRate <= 0) {
-    return { ok: false, error: 'نرخ تبدیل برای تسویه در دسترس نیست.', code: 'invalid' };
-  }
-
-  const payAmount = (payInLoanCurrency * loanRate) / payRate;
-  if (!Number.isFinite(payAmount) || payAmount <= 0) {
-    return { ok: false, error: 'مبلغ تسویه نامعتبر است.', code: 'invalid' };
-  }
-
-  const txPayload: Record<string, unknown> = {
-    user_id: input.userId,
-    type: 'EXPENSE',
-    date_string: installment.due_date_string,
-    note: loan.title,
-    source_wallet_id: wallet.id,
-    source_asset_id: null,
-    target_wallet_id: null,
-    target_asset_id: null,
-    source_amount: payAmount,
-    target_amount: null,
-    category_id: loan.type === 'expense' ? loan.category_id : null,
-    asset_id: null,
-    amount: null,
-    price_toman: wallet.currency === 'IRT' ? null : payRate,
-    usd_rate: wallet.currency === 'IRT' ? null : usdRate,
-    amount_toman_at_time: payAmount * payRate,
-    amount_usd_at_time: (payAmount * payRate) / usdRate,
-  };
 
   const { data: txData, error: txErr } = await admin
     .from('transactions')

@@ -33,11 +33,15 @@ const INTERVAL_OPTIONS: { id: LoanIntervalPeriod; label: string }[] = [
   { id: 'year', label: 'سال' },
 ];
 
+type LoanDenomination = 'currency' | 'asset';
+
 type LoanFormState = {
   title: string;
   type: LoanType;
+  denomination: LoanDenomination;
   categoryId: string | null;
   currencyWalletId: string | null;
+  assetId: string | null;
   totalAmount: string;
   installmentAmount: string;
   loanStartDate: string;
@@ -56,8 +60,10 @@ function initialState(): LoanFormState {
   return {
     title: '',
     type: 'expense',
+    denomination: 'currency',
     categoryId: null,
     currencyWalletId: null,
+    assetId: null,
     totalAmount: '',
     installmentAmount: '',
     loanStartDate: today,
@@ -76,7 +82,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { wallets, categories, currencyRates, setTransactions } = useData();
+  const { wallets, assets, categories, currencyRates, setTransactions } = useData();
   const { usdRate } = useUI();
   const isEdit = !!loanId;
 
@@ -85,6 +91,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [currencyWalletOpen, setCurrencyWalletOpen] = useState(false);
+  const [assetOpen, setAssetOpen] = useState(false);
   const [autoWalletOpen, setAutoWalletOpen] = useState(false);
   const [loanStartDateOpen, setLoanStartDateOpen] = useState(false);
   const [firstDueDateOpen, setFirstDueDateOpen] = useState(false);
@@ -95,8 +102,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
   );
 
   const currencyWallet = wallets.find((wallet) => wallet.id === form.currencyWalletId) ?? null;
+  const selectedAsset = assets.find((asset) => asset.id === form.assetId) ?? null;
   const autoIncomeWallet =
     wallets.find((wallet) => wallet.id === form.autoIncomeWalletId) ?? null;
+  const amountUnitLabel =
+    form.denomination === 'asset' && selectedAsset ? selectedAsset.unit : null;
 
   useEffect(() => {
     if (!isEdit || !loanId) return;
@@ -115,8 +125,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         setForm({
           title: loan.title,
           type: loan.type,
+          denomination: loan.asset_id ? 'asset' : 'currency',
           categoryId: loan.category_id,
           currencyWalletId: null,
+          assetId: loan.asset_id,
           totalAmount: loan.total_amount != null ? String(loan.total_amount) : '',
           installmentAmount: String(loan.installment_amount),
           loanStartDate: loan.loan_start_date_string,
@@ -147,14 +159,19 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
     if (!form.title.trim()) return 'عنوان الزامی است.';
     if (!parseJalaali(form.loanStartDate)) return 'تاریخ شروع وام نامعتبر است.';
     if (!parseJalaali(form.firstDueDate)) return 'تاریخ اولین قسط نامعتبر است.';
-    if (!form.currencyWalletId) return 'کیف پول مبنا برای تعیین ارز وام الزامی است.';
+    if (form.denomination === 'currency' && !form.currencyWalletId) {
+      return 'کیف پول مبنا برای تعیین ارز وام الزامی است.';
+    }
+    if (form.denomination === 'asset' && !form.assetId) {
+      return 'انتخاب دارایی وام الزامی است.';
+    }
     if (form.type === 'expense' && !form.categoryId) return 'انتخاب دسته هزینه الزامی است.';
 
     const installmentAmount = Number(form.installmentAmount);
     const repeatCount = Number(form.repeatCount);
     const intervalNumber = Number(form.intervalNumber);
     if (!Number.isFinite(installmentAmount) || installmentAmount <= 0) {
-      return 'مبلغ هر قسط نامعتبر است.';
+      return form.denomination === 'asset' ? 'مقدار هر قسط نامعتبر است.' : 'مبلغ هر قسط نامعتبر است.';
     }
     if (!Number.isFinite(repeatCount) || repeatCount <= 0 || !Number.isInteger(repeatCount)) {
       return 'تعداد اقساط نامعتبر است.';
@@ -166,8 +183,26 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
     ) {
       return 'فاصله تکرار نامعتبر است.';
     }
-    if (form.type === 'loan' && form.autoIncomeOnCreate && !form.autoIncomeWalletId) {
+    if (
+      form.type === 'loan' &&
+      form.autoIncomeOnCreate &&
+      form.denomination === 'currency' &&
+      !form.autoIncomeWalletId
+    ) {
       return 'برای تراکنش خودکار، کیف پول دریافت را انتخاب کن.';
+    }
+    if (
+      form.type === 'loan' &&
+      form.autoIncomeOnCreate &&
+      form.denomination === 'asset'
+    ) {
+      const asset = assets.find((a) => a.id === form.assetId);
+      if (!asset || !(Number(asset.price_toman) > 0)) {
+        return 'برای ثبت خودکار، قیمت دارایی باید تنظیم شده باشد.';
+      }
+      if (!(usdRate > 0)) {
+        return 'نرخ دلار برای ثبت خودکار در دسترس نیست.';
+      }
     }
     return null;
   };
@@ -220,7 +255,13 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
       form.type === 'loan' && form.totalAmount.trim()
         ? Number(form.totalAmount)
         : installmentAmount * repeatCount;
-    const baseWallet = wallets.find((wallet) => wallet.id === form.currencyWalletId) as Wallet;
+    const isAssetDenom = form.denomination === 'asset';
+    const baseWallet = isAssetDenom
+      ? null
+      : (wallets.find((wallet) => wallet.id === form.currencyWalletId) as Wallet);
+    const loanAsset = isAssetDenom
+      ? assets.find((asset) => asset.id === form.assetId) ?? null
+      : null;
     const schedule = buildInstallmentSchedule({
       firstDueDate: form.firstDueDate,
       repeatCount,
@@ -239,7 +280,9 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         title: form.title.trim(),
         type: form.type,
         category_id: form.type === 'expense' ? form.categoryId : null,
-        currency: baseWallet.currency,
+        // ponytail: currency NOT NULL — IRT placeholder when asset-denominated
+        currency: isAssetDenom ? ('IRT' as const) : baseWallet!.currency,
+        asset_id: isAssetDenom ? form.assetId : null,
         installment_amount: installmentAmount,
         total_amount: Number.isFinite(totalAmount) ? totalAmount : null,
         loan_start_date_string: form.loanStartDate,
@@ -247,9 +290,15 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         repeat_count: repeatCount,
         interval_number: intervalNumber,
         interval_period: form.intervalPeriod,
-        auto_income_on_create: form.type === 'loan' ? form.autoIncomeOnCreate : false,
+        // Asset path: credit via asset_id (wallet null). Needs
+        // 20250804130000_loan_auto_income_asset_check migration if
+        // auto_income_on_create is true; without it leave flag false.
+        auto_income_on_create:
+          form.type === 'loan' && form.autoIncomeOnCreate && !isAssetDenom,
         auto_income_wallet_id:
-          form.type === 'loan' && form.autoIncomeOnCreate ? form.autoIncomeWalletId : null,
+          form.type === 'loan' && form.autoIncomeOnCreate && !isAssetDenom
+            ? form.autoIncomeWalletId
+            : null,
         description: form.description.trim() || null,
         reminder_days_before: normalizeReminderDaysBefore(form.reminderDaysBefore),
         deleted_at: null,
@@ -278,10 +327,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         .insert(installmentsPayload);
       if (installmentErr) throw installmentErr;
 
-      if (form.type === 'loan' && form.autoIncomeOnCreate && form.autoIncomeWalletId) {
-        const incomeWallet = wallets.find((wallet) => wallet.id === form.autoIncomeWalletId);
-        if (incomeWallet) {
-          const rate = tomanPerUnit(incomeWallet.currency, currencyRates);
+      if (form.type === 'loan' && form.autoIncomeOnCreate) {
+        if (isAssetDenom && loanAsset) {
+          const qty = Number(totalAmount);
+          const priceToman = Number(loanAsset.price_toman);
           const txPayload = {
             user_id: user.id,
             type: 'INCOME',
@@ -289,17 +338,17 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             note: `وام: ${form.title.trim()}`,
             source_wallet_id: null,
             source_asset_id: null,
-            target_wallet_id: incomeWallet.id,
-            target_asset_id: null,
+            target_wallet_id: null,
+            target_asset_id: loanAsset.id,
             source_amount: null,
-            target_amount: Number(totalAmount),
+            target_amount: qty,
             category_id: null,
-            asset_id: null,
-            amount: null,
-            price_toman: incomeWallet.currency === 'IRT' ? null : rate,
-            usd_rate: incomeWallet.currency === 'IRT' ? null : usdRate,
-            amount_toman_at_time: Number(totalAmount) * rate,
-            amount_usd_at_time: usdRate > 0 ? (Number(totalAmount) * rate) / usdRate : null,
+            asset_id: loanAsset.id,
+            amount: qty,
+            price_toman: priceToman,
+            usd_rate: usdRate,
+            amount_toman_at_time: qty * priceToman,
+            amount_usd_at_time: usdRate > 0 ? (qty * priceToman) / usdRate : null,
           };
           const { data: txData, error: txErr } = await supabase
             .from('transactions')
@@ -308,6 +357,37 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             .single();
           if (txErr) throw txErr;
           setTransactions((prev) => [txData as Transaction, ...prev]);
+        } else if (form.autoIncomeWalletId) {
+          const incomeWallet = wallets.find((wallet) => wallet.id === form.autoIncomeWalletId);
+          if (incomeWallet) {
+            const rate = tomanPerUnit(incomeWallet.currency, currencyRates);
+            const txPayload = {
+              user_id: user.id,
+              type: 'INCOME',
+              date_string: form.loanStartDate,
+              note: `وام: ${form.title.trim()}`,
+              source_wallet_id: null,
+              source_asset_id: null,
+              target_wallet_id: incomeWallet.id,
+              target_asset_id: null,
+              source_amount: null,
+              target_amount: Number(totalAmount),
+              category_id: null,
+              asset_id: null,
+              amount: null,
+              price_toman: incomeWallet.currency === 'IRT' ? null : rate,
+              usd_rate: incomeWallet.currency === 'IRT' ? null : usdRate,
+              amount_toman_at_time: Number(totalAmount) * rate,
+              amount_usd_at_time: usdRate > 0 ? (Number(totalAmount) * rate) / usdRate : null,
+            };
+            const { data: txData, error: txErr } = await supabase
+              .from('transactions')
+              .insert(txPayload)
+              .select()
+              .single();
+            if (txErr) throw txErr;
+            setTransactions((prev) => [txData as Transaction, ...prev]);
+          }
         }
       }
 
@@ -402,6 +482,51 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         </div>
 
         {!isEdit && (
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">واحد وام</label>
+            <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    denomination: 'currency',
+                    assetId: null,
+                    autoIncomeOnCreate: false,
+                    autoIncomeWalletId: null,
+                  }))
+                }
+                className={`py-2 text-xs font-bold rounded-lg transition ${
+                  form.denomination === 'currency'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                ارز
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    denomination: 'asset',
+                    currencyWalletId: null,
+                    autoIncomeWalletId: null,
+                  }))
+                }
+                className={`py-2 text-xs font-bold rounded-lg transition ${
+                  form.denomination === 'asset'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                دارایی
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isEdit && form.denomination === 'currency' && (
           <button
             type="button"
             onClick={() => setCurrencyWalletOpen(true)}
@@ -417,6 +542,33 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             </div>
             <ChevronLeft size={16} className="text-slate-500" />
           </button>
+        )}
+
+        {!isEdit && form.denomination === 'asset' && (
+          <button
+            type="button"
+            onClick={() => setAssetOpen(true)}
+            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          >
+            <div>
+              <p className="text-xs text-slate-500">دارایی وام</p>
+              <p className="text-sm text-slate-100 mt-1">
+                {selectedAsset
+                  ? `${selectedAsset.name} · ${selectedAsset.unit}`
+                  : 'انتخاب کنید'}
+              </p>
+            </div>
+            <ChevronLeft size={16} className="text-slate-500" />
+          </button>
+        )}
+
+        {isEdit && form.denomination === 'asset' && selectedAsset && (
+          <div className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right">
+            <p className="text-xs text-slate-500">دارایی وام</p>
+            <p className="text-sm text-slate-100 mt-1">
+              {selectedAsset.name} · {selectedAsset.unit}
+            </p>
+          </div>
         )}
 
         {form.type === 'expense' && (
@@ -442,7 +594,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         {form.type === 'loan' && (
           <>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">مبلغ کل وام</label>
+              <label className="block text-xs text-slate-400 mb-1">
+                {form.denomination === 'asset'
+                  ? `مقدار کل وام${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
+                  : 'مبلغ کل وام'}
+              </label>
               <FormattedNumberInput
                 value={form.totalAmount}
                 onValueChange={(value) =>
@@ -457,7 +613,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             {!isEdit && (
               <>
                 <label className="flex items-center justify-between bg-[#1A1B26] border border-white/10 rounded-xl p-3 cursor-pointer">
-                  <span className="text-sm text-slate-200">ثبت تراکنش درآمد خودکار</span>
+                  <span className="text-sm text-slate-200">
+                    {form.denomination === 'asset'
+                      ? 'ثبت دریافت دارایی خودکار'
+                      : 'ثبت تراکنش درآمد خودکار'}
+                  </span>
                   <input
                     type="checkbox"
                     checked={form.autoIncomeOnCreate}
@@ -472,7 +632,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                   />
                 </label>
 
-                {form.autoIncomeOnCreate && (
+                {form.autoIncomeOnCreate && form.denomination === 'currency' && (
                   <button
                     type="button"
                     onClick={() => setAutoWalletOpen(true)}
@@ -489,13 +649,23 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                     <ChevronLeft size={16} className="text-slate-500" />
                   </button>
                 )}
+
+                {form.autoIncomeOnCreate && form.denomination === 'asset' && (
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.
+                  </p>
+                )}
               </>
             )}
           </>
         )}
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">مبلغ هر قسط</label>
+          <label className="block text-xs text-slate-400 mb-1">
+            {form.denomination === 'asset'
+              ? `مقدار هر قسط${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
+              : 'مبلغ هر قسط'}
+          </label>
           <FormattedNumberInput
             value={form.installmentAmount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
@@ -679,6 +849,19 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         }))}
         value={form.currencyWalletId}
         onSelect={(id) => setForm((prev) => ({ ...prev, currencyWalletId: id }))}
+      />
+
+      <ListSheetPicker
+        open={assetOpen}
+        onClose={() => setAssetOpen(false)}
+        title="انتخاب دارایی وام"
+        items={assets.map((asset) => ({
+          id: asset.id,
+          label: asset.name,
+          sublabel: asset.unit,
+        }))}
+        value={form.assetId}
+        onSelect={(id) => setForm((prev) => ({ ...prev, assetId: id }))}
       />
 
       <ListSheetPicker

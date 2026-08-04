@@ -86,7 +86,7 @@ export function ExpensePlanView() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { categories, currencyRates, transactions, wallets } = useData();
+  const { assets, categories, currencyRates, transactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
 
   const [targetPeriod, setTargetPeriod] = useState<Period>(() =>
@@ -193,8 +193,19 @@ export function ExpensePlanView() {
         recurring,
         subscriptions,
         currencyRates,
+        assets,
       }),
-    [targetPeriod, items, installments, loans, checks, recurring, subscriptions, currencyRates]
+    [
+      targetPeriod,
+      items,
+      installments,
+      loans,
+      checks,
+      recurring,
+      subscriptions,
+      currencyRates,
+      assets,
+    ]
   );
 
   const totalToman = useMemo(() => planItemsTotalToman(items), [items]);

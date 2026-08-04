@@ -1,6 +1,7 @@
 import { settleLoanInstallment } from '@/features/deadlines/services/settle-loan-installment';
+import { isAssetLoan } from '@/features/deadlines/utils/loan-amount';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
-import type { TelegramConnection, Wallet } from '@/shared/types/domain';
+import type { Loan, LoanInstallment, TelegramConnection, Wallet } from '@/shared/types/domain';
 import { clearBotFlow, getConnectionByChatId, setBotFlow } from '@/features/notifications/telegram/bot-nav';
 import { handleQuickAddCallback } from '@/features/notifications/telegram/bot-quick-add';
 import { handleSmsImportCallback } from '@/features/notifications/telegram/bot-sms-import';
@@ -39,12 +40,54 @@ async function loadActiveWallets(userId: string): Promise<Wallet[]> {
   return (data ?? []) as Wallet[];
 }
 
+async function loadLoanForInstallment(
+  userId: string,
+  installmentId: string
+): Promise<Loan | null> {
+  const admin = createSupabaseAdminClient();
+  const { data: installmentRow } = await admin
+    .from('loan_installments')
+    .select('loan_id')
+    .eq('id', installmentId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  const installment = installmentRow as Pick<LoanInstallment, 'loan_id'> | null;
+  if (!installment) return null;
+  const { data: loanRow } = await admin
+    .from('loans')
+    .select('*')
+    .eq('id', installment.loan_id)
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  return (loanRow as Loan | null) ?? null;
+}
+
 function walletPickKeyboard(wallets: Wallet[]): TelegramInlineMarkup {
   const rows = wallets.slice(0, 8).map((wallet, index) => [
     { text: truncate(wallet.name), callback_data: `pw:${index}` },
   ]);
   rows.push([{ text: '❌ لغو', callback_data: 'pw:cancel' }]);
   return { inline_keyboard: rows };
+}
+
+async function answerSettleResult(
+  chatId: number,
+  callbackQueryId: string,
+  result: Awaited<ReturnType<typeof settleLoanInstallment>>,
+  messageId?: number
+): Promise<void> {
+  if (result.ok) {
+    await answerTelegramCallback(callbackQueryId, MSG_SETTLE_OK);
+    if (messageId) {
+      await editTelegramMessage(chatId, messageId, `✅ ${MSG_SETTLE_OK}`);
+    }
+    return;
+  }
+  await answerTelegramCallback(
+    callbackQueryId,
+    result.code === 'already_paid' ? MSG_SETTLE_ALREADY : result.error
+  );
 }
 
 async function handlePayInstallmentStart(
@@ -54,6 +97,22 @@ async function handlePayInstallmentStart(
   callbackQueryId: string,
   messageId?: number
 ): Promise<void> {
+  const loan = await loadLoanForInstallment(connection.user_id, installmentId);
+  if (!loan) {
+    await answerTelegramCallback(callbackQueryId, 'قسط پیدا نشد.');
+    return;
+  }
+
+  // Asset loans settle against the loan asset — no wallet pick.
+  if (isAssetLoan(loan)) {
+    const result = await settleLoanInstallment({
+      userId: connection.user_id,
+      installmentId,
+    });
+    await answerSettleResult(chatId, callbackQueryId, result, messageId);
+    return;
+  }
+
   const wallets = await loadActiveWallets(connection.user_id);
   if (wallets.length === 0) {
     await answerTelegramCallback(callbackQueryId, 'کیف پول فعالی ندارید.');
@@ -66,17 +125,7 @@ async function handlePayInstallmentStart(
       installmentId,
       walletId: wallets[0]!.id,
     });
-    if (result.ok) {
-      await answerTelegramCallback(callbackQueryId, MSG_SETTLE_OK);
-      if (messageId) {
-        await editTelegramMessage(chatId, messageId, `✅ ${MSG_SETTLE_OK}`);
-      }
-    } else {
-      await answerTelegramCallback(
-        callbackQueryId,
-        result.code === 'already_paid' ? MSG_SETTLE_ALREADY : result.error
-      );
-    }
+    await answerSettleResult(chatId, callbackQueryId, result, messageId);
     return;
   }
 

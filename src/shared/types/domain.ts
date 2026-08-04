@@ -317,6 +317,12 @@ export interface Loan {
   type: LoanType;
   category_id: string | null;
   currency: Currency;
+  /**
+   * When set, installment/total amounts are quantity in this asset's unit.
+   * Settle debits the same asset 1:1 (no wallet FX). `currency` kept for
+   * NOT NULL legacy rows; ignore it when `asset_id` is present.
+   */
+  asset_id: string | null;
   installment_amount: number;
   total_amount: number | null;
   loan_start_date_string: string;
