@@ -54,8 +54,8 @@ export const TYPE_SHAPES: Record<TransactionType, TypeShape> = {
  *
  * Rule:
  *  - BUY/SELL always need both `priceToman` and editable `usdRate`.
- *  - TRANSFER wallet↔asset: editable `usdRate` only (`showTomanPrice: false`);
- *    implied `price_toman` is derived at save from amounts + FX.
+ *  - TRANSFER wallet↔asset: unit price + `usdRate`. Qty/money derived from
+ *    the other side; save still stores implied `price_toman` from amounts.
  *  - INCOME/EXPENSE need pricing WHENEVER the endpoint is not an IRT
  *    wallet. For IRT wallets, the amount is already in Toman and we
  *    use the current app USD rate as the default, but the user can edit it.
@@ -106,9 +106,9 @@ export function pricingContextOf(form: FormState, wallets: Wallet[]): PricingCon
     if (walletToAsset) {
       return {
         needsPrice: true,
-        showTomanPrice: false,
+        showTomanPrice: true,
         needsUsdRate: true,
-        priceLabel: '',
+        priceLabel: 'قیمت خرید هر واحد (تومان)',
         endpointKind: 'asset',
         walletCurrency: null,
       };

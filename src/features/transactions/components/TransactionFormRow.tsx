@@ -129,6 +129,41 @@ export function TransactionFormRow({
     usdRate,
   ]);
 
+  // TRANSFER wallet↔asset: seed unit price from the asset once so qty/money
+  // can be derived. User can still override the field.
+  useEffect(() => {
+    if (form.type !== 'TRANSFER') return;
+    const asset =
+      form.sourceKind === 'wallet' && form.targetKind === 'asset'
+        ? targetAsset
+        : form.sourceKind === 'asset' && form.targetKind === 'wallet'
+          ? sourceAsset
+          : undefined;
+    if (!asset) return;
+    const market = Number(asset.price_toman);
+    if (!(market > 0)) return;
+    const current = Number(form.priceToman);
+    if (Number.isFinite(current) && current > 0) return;
+    onChange((prev) => {
+      const existing = Number(prev.priceToman);
+      if (Number.isFinite(existing) && existing > 0) return prev;
+      const next = { ...prev, priceToman: canonicalNumber(market) };
+      return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+    });
+  }, [
+    assets,
+    currencyRates,
+    form.priceToman,
+    form.sourceKind,
+    form.targetKind,
+    form.type,
+    onChange,
+    sourceAsset,
+    targetAsset,
+    usdRate,
+    wallets,
+  ]);
+
   const srcBalance = sourceBalance(form, wallets, transactions, persons);
   const srcAmountNum = Number(form.sourceAmount);
   const isInsufficient =
@@ -442,7 +477,7 @@ export function TransactionFormRow({
         )}
 
         {/* Price fields (BUY/SELL; INCOME/EXPENSE when priced; TRANSFER
-            wallet→asset: USD rate only, asset→wallet: sell price + USD rate). */}
+            wallet↔asset: unit price + USD rate). */}
         {pricing.needsPrice && (
           <PriceFields
             priceLabel={pricing.priceLabel}
@@ -456,11 +491,16 @@ export function TransactionFormRow({
         )}
 
         {/* Derived (auto-computed) amount — read-only */}
-        {((form.type === 'BUY' && sourceWallet) || (form.type === 'SELL' && targetWallet)) && (
+        {((form.type === 'BUY' && sourceWallet) ||
+          (form.type === 'SELL' && targetWallet) ||
+          (form.type === 'TRANSFER' &&
+            ((sourceWallet && targetAsset) || (sourceAsset && targetWallet)))) && (
           <DerivedAmountLine
             form={form}
             sourceWallet={sourceWallet}
             targetWallet={targetWallet}
+            sourceAsset={sourceAsset}
+            targetAsset={targetAsset}
           />
         )}
 

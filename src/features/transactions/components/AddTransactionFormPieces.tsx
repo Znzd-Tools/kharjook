@@ -201,31 +201,56 @@ export function PrimaryAmountField({
 }
 
 /**
- * Read-only line showing the auto-computed wallet-side amount on BUY/SELL.
- * The value pulses briefly whenever it changes (via `key` remount trick).
+ * Read-only line showing an auto-computed counterparty amount
+ * (BUY/SELL wallet side, or TRANSFER wallet↔asset other side).
  */
 export function DerivedAmountLine({
   form,
   sourceWallet,
   targetWallet,
+  sourceAsset,
+  targetAsset,
 }: {
   form: FormState;
   sourceWallet?: Wallet;
   targetWallet?: Wallet;
+  sourceAsset?: Asset;
+  targetAsset?: Asset;
 }) {
-  // On BUY, source (wallet) is derived. On SELL, target (wallet) is derived.
-  const isBuy = form.type === 'BUY';
-  const wallet = isBuy ? sourceWallet : targetWallet;
-  const unit = wallet ? CURRENCY_META[wallet.currency].label : '';
-  const value = isBuy ? form.sourceAmount : form.targetAmount;
-  const label = isBuy
-    ? `مبلغ پرداختی${unit ? ` (${unit})` : ''}`
-    : `مبلغ دریافتی${unit ? ` (${unit})` : ''}`;
+  let wallet: Wallet | undefined;
+  let asset: Asset | undefined;
+  let value = '';
+  let label = '';
+
+  if (form.type === 'BUY') {
+    wallet = sourceWallet;
+    value = form.sourceAmount;
+    const unit = wallet ? CURRENCY_META[wallet.currency].label : '';
+    label = `مبلغ پرداختی${unit ? ` (${unit})` : ''}`;
+  } else if (form.type === 'SELL') {
+    wallet = targetWallet;
+    value = form.targetAmount;
+    const unit = wallet ? CURRENCY_META[wallet.currency].label : '';
+    label = `مبلغ دریافتی${unit ? ` (${unit})` : ''}`;
+  } else if (form.type === 'TRANSFER' && sourceWallet && targetAsset) {
+    asset = targetAsset;
+    value = form.targetAmount;
+    label = `مقدار دریافتی${asset.unit ? ` (${asset.unit})` : ''}`;
+  } else if (form.type === 'TRANSFER' && sourceAsset && targetWallet) {
+    wallet = targetWallet;
+    value = form.targetAmount;
+    const unit = CURRENCY_META[wallet.currency].label;
+    label = `مبلغ دریافتی${unit ? ` (${unit})` : ''}`;
+  } else {
+    return null;
+  }
 
   const display = value
     ? wallet
       ? formatCurrencyAmount(value, wallet.currency)
-      : Number(value).toLocaleString('en-US', { maximumFractionDigits: 10 })
+      : asset
+        ? formatAssetAmount(Number(value), assetDecimals(asset))
+        : Number(value).toLocaleString('en-US', { maximumFractionDigits: 10 })
     : '—';
 
   return (

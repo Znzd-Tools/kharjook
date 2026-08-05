@@ -279,7 +279,11 @@ export function recomputeTransferTarget(
       usdRate,
       next.usdRate
     );
-    const assetPrice = Number(targetAsset.price_toman);
+    const overridePrice = Number(next.priceToman);
+    const assetPrice =
+      Number.isFinite(overridePrice) && overridePrice > 0
+        ? overridePrice
+        : Number(targetAsset.price_toman);
     if (!(walletRate > 0) || !(assetPrice > 0)) return next;
     return { ...next, targetAmount: canonicalNumber((srcAmount * walletRate) / assetPrice) };
   }
@@ -352,6 +356,18 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
       break;
   }
 
+  const ctx = pricingContextOf(form, wallets);
+  // Price before amounts: wallet↔asset transfer derives the other side from
+  // unit price, so a missing price otherwise looks like "bad destination".
+  if (ctx.needsPrice && ctx.showTomanPrice !== false) {
+    const p = Number(form.priceToman);
+    if (!Number.isFinite(p) || p <= 0) return 'قیمت واحد (تومان) نامعتبر است.';
+  }
+  if (ctx.needsUsdRate) {
+    const u = Number(form.usdRate);
+    if (!Number.isFinite(u) || u <= 0) return 'نرخ دلار نامعتبر است.';
+  }
+
   const needsSrc =
     form.type === 'SELL' ||
     form.type === 'EXPENSE' ||
@@ -369,16 +385,6 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
   if (needsTgt) {
     const v = Number(form.targetAmount);
     if (!Number.isFinite(v) || v <= 0) return 'مقدار مقصد نامعتبر است.';
-  }
-
-  const ctx = pricingContextOf(form, wallets);
-  if (ctx.needsPrice && ctx.showTomanPrice !== false) {
-    const p = Number(form.priceToman);
-    if (!Number.isFinite(p) || p <= 0) return 'قیمت واحد (تومان) نامعتبر است.';
-  }
-  if (ctx.needsUsdRate) {
-    const u = Number(form.usdRate);
-    if (!Number.isFinite(u) || u <= 0) return 'نرخ دلار نامعتبر است.';
   }
 
   return null;
@@ -583,7 +589,14 @@ export function buildPayload(
               form.usdRate
             )
           : 0;
-        const toman = Number.isFinite(money) && Number.isFinite(walletRate) ? money * walletRate : 0;
+        const explicitPrice = Number(form.priceToman);
+        const tomanFromPrice =
+          Number.isFinite(explicitPrice) && explicitPrice > 0 && qty > 0
+            ? qty * explicitPrice
+            : 0;
+        const tomanFromMoney =
+          Number.isFinite(money) && Number.isFinite(walletRate) ? money * walletRate : 0;
+        const toman = tomanFromPrice > 0 ? tomanFromPrice : tomanFromMoney;
         if (qty > 0 && toman > 0) {
           base.asset_id = form.targetId;
           base.amount = qty;
