@@ -1,6 +1,7 @@
 import { parseJalaali, formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import type {
   Asset,
   CurrencyRate,
@@ -98,47 +99,27 @@ function deriveWalletAmount(
 }
 
 /** Holdings including TRANSFER-acquired/disposed quantities. */
+/** Net units on hand — same replay as assets list (`calculateAssetStats.totalAmount`). */
 export function assetHolding(assetId: string, transactions: Transaction[]): number {
-  const isAcquire = (tx: Transaction) => {
-    if (tx.type === 'BUY' || tx.type === 'INCOME') {
-      return tx.asset_id === assetId || tx.target_asset_id === assetId;
-    }
-    if (tx.type === 'TRANSFER') {
-      return tx.target_asset_id === assetId;
-    }
-    return false;
-  };
-  const isDispose = (tx: Transaction) => {
-    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
-      return tx.asset_id === assetId || tx.source_asset_id === assetId;
-    }
-    if (tx.type === 'TRANSFER') {
-      return tx.source_asset_id === assetId;
-    }
-    return false;
-  };
-  const txAmountForAsset = (tx: Transaction): number => {
-    if (tx.type === 'BUY' || tx.type === 'INCOME') {
-      return Number(tx.target_amount ?? tx.amount);
-    }
-    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
-      return Number(tx.source_amount ?? tx.amount);
-    }
-    if (isAcquire(tx)) return Number(tx.target_amount ?? tx.amount);
-    return Number(tx.source_amount ?? tx.amount);
-  };
-
-  let total = 0;
-  for (const tx of transactions) {
-    const acquiring = isAcquire(tx);
-    const disposing = isDispose(tx);
-    if (!acquiring && !disposing) continue;
-
-    const amount = txAmountForAsset(tx);
-    if (!Number.isFinite(amount) || amount <= 0) continue;
-    total += acquiring ? amount : -amount;
-  }
-  return total;
+  // Stub asset: only `id` matters for the quantity replay; prices unused for qty.
+  return calculateAssetStats(
+    {
+      id: assetId,
+      user_id: '',
+      category_id: null,
+      name: '',
+      unit: '',
+      decimal_places: 4,
+      price_toman: 0,
+      price_usd: 0,
+      icon_url: null,
+      price_source_id: null,
+      include_in_profit_loss: false,
+    },
+    transactions,
+    'TOMAN',
+    1
+  ).totalAmount;
 }
 
 export function buildInitialConvertForm(
