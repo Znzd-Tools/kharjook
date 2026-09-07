@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  Ban,
   CreditCard,
   Loader2,
   Plus,
@@ -91,7 +92,12 @@ export function ChecksHubView() {
   const filteredChecks = useMemo(() => {
     if (filter === 'all') return checks;
     if (filter === 'cleared') {
-      return checks.filter((check) => check.status === 'cleared' || check.status === 'bounced');
+      return checks.filter(
+        (check) =>
+          check.status === 'cleared' ||
+          check.status === 'bounced' ||
+          check.status === 'cancelled'
+      );
     }
     return checks.filter((check) => check.status === 'pending');
   }, [checks, filter]);
@@ -229,6 +235,25 @@ export function ChecksHubView() {
     }
   };
 
+  const handleMarkCancelled = async (check: Check) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('checks')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', check.id)
+        .eq('status', 'pending');
+      if (error) throw error;
+      toast.success('چک عودت/لغو شد.');
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('خطا در عودت چک.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = async (check: Check) => {
     setIsSubmitting(true);
     try {
@@ -265,7 +290,7 @@ export function ChecksHubView() {
         {(
           [
             ['pending', 'در انتظار'],
-            ['cleared', 'وصول/برگشت'],
+            ['cleared', 'بسته شده'],
             ['all', 'همه'],
           ] as const
         ).map(([key, label]) => (
@@ -374,6 +399,15 @@ export function ChecksHubView() {
                     >
                       <XCircle size={13} />
                       برگشت
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => void handleMarkCancelled(check)}
+                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-300 transition disabled:opacity-50"
+                    >
+                      <Ban size={13} />
+                      عودت
                     </button>
                     <Link
                       href={`/deadlines/checks/${check.id}/edit`}
