@@ -1,5 +1,6 @@
 import type { Category, CurrencyRate, Wallet } from '@/shared/types/domain';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import type { RateHistories } from '@/shared/utils/rate-history';
 import type { ParsedCsvRow } from '@/features/transactions/utils/parse-transaction-csv';
 
 export type ResolvedImportRow = ParsedCsvRow & {
@@ -79,11 +80,25 @@ export function buildWalletImportPayload(input: {
   wallet: Wallet;
   usdRate: number;
   currencyRates: CurrencyRate[];
+  /**
+   * Optional rate history. Rows dated before `todayStr` are converted at the
+   * estimated rate of THEIR date, not today's (imports are mostly old rows).
+   */
+  histories?: RateHistories;
+  todayStr?: string;
 }): Record<string, unknown> | null {
-  const { userId, operationId, row, wallet, usdRate, currencyRates } = input;
+  const { userId, operationId, row, wallet, currencyRates, histories, todayStr } = input;
+  const isPast = !!histories && !!todayStr && row.date < todayStr;
+  const histUsd = isPast ? histories!.USD.at(row.date) : null;
+  const usdRate = histUsd && histUsd > 0 ? histUsd : input.usdRate;
   if (!(usdRate > 0)) return null;
 
-  const walletRate = tomanPerUnit(wallet.currency, currencyRates);
+  let walletRate = tomanPerUnit(wallet.currency, currencyRates);
+  if (isPast && wallet.currency !== 'IRT') {
+    const hist =
+      wallet.currency === 'USD' ? usdRate : histories![wallet.currency].at(row.date);
+    if (hist && hist > 0) walletRate = hist;
+  }
   if (walletRate <= 0) return null;
 
   const walletAmount =

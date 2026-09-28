@@ -1,4 +1,5 @@
 import { APP_GLOBAL_USD_SLUG } from '@/features/prices/constants/price-sources';
+import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import {
   applyConversionRatesToQuotes,
   buildConversionConfigMap,
@@ -77,6 +78,14 @@ async function persistCurrencyRateAdmin(
     { onConflict: 'user_id,currency' }
   );
   if (error) throw error;
+  await recordRateHistory(
+    admin,
+    userId,
+    currency,
+    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE)),
+    tomanPerUnit,
+    'provider'
+  );
 }
 
 async function persistProviderQuotesAdmin(input: {

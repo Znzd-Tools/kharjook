@@ -34,6 +34,7 @@ import { parseDateToNumber } from '@/shared/utils/parse-date';
 import { isInPeriod, jalaaliToNumber, type Period } from '@/shared/utils/period';
 import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
 import { orderAssetTxsForReplay } from '@/shared/utils/asset-replay-order';
+import { type RateHistory, usdHistoryFromTransactions } from '@/shared/utils/rate-history';
 import type { EffectivePrice } from './price-history';
 
 export interface SideAggregate {
@@ -186,7 +187,8 @@ function finalizeSide(s: SideAggregate): void {
  */
 function readTrade(
   tx: Transaction,
-  usdRateFallback: number
+  usdRateFallback: number,
+  rateAtDate?: (date: string) => number | null
 ): { amount: number; priceToman: number; priceUsd: number } | null {
   const polyAmount =
     tx.type === 'BUY' || tx.type === 'INCOME'
@@ -207,7 +209,14 @@ function readTrade(
   }
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (!Number.isFinite(priceToman) || priceToman <= 0) return null;
-  const rate = Number(tx.usd_rate) > 0 ? Number(tx.usd_rate) : usdRateFallback;
+  // Own rate first; then the estimated rate of the row's date; then today's.
+  const historical = Number(tx.usd_rate) > 0 ? null : (rateAtDate?.(tx.date_string) ?? null);
+  const rate =
+    Number(tx.usd_rate) > 0
+      ? Number(tx.usd_rate)
+      : historical && historical > 0
+        ? historical
+        : usdRateFallback;
   if (!(rate > 0)) return null;
   return { amount, priceToman, priceUsd: priceToman / rate };
 }
@@ -295,12 +304,18 @@ export function calculateAssetPeriodStats(
     return false;
   });
 
+  let usdHistory: RateHistory | null = null;
+  const usdAt = (date: string) => {
+    usdHistory ??= usdHistoryFromTransactions(transactions);
+    return usdHistory.at(date);
+  };
+
   // Same replay order as the lifetime engine: date, then real creation order;
   // acquisitions-first only on a day where the real order would oversell.
   const sorted = orderAssetTxsForReplay(
     assetTxs,
     (tx) => isAcquireForAsset(tx, asset.id),
-    (tx) => readTrade(tx, usdRateFallback)?.amount ?? 0
+    (tx) => readTrade(tx, usdRateFallback, usdAt)?.amount ?? 0
   );
 
   const stats = emptyAssetPeriodStats(asset.id);
@@ -337,7 +352,7 @@ export function calculateAssetPeriodStats(
   };
 
   for (const tx of sorted) {
-    const trade = readTrade(tx, usdRateFallback);
+    const trade = readTrade(tx, usdRateFallback, usdAt);
     if (!trade) {
       stats.invalidTradeCount += 1;
       continue;

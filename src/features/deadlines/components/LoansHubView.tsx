@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -55,6 +56,7 @@ export function LoansHubView() {
   const { user } = useAuth();
   const { wallets, assets, categories, currencyRates, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const assetsById = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
   const [tab, setTab] = useState<TabKey>('loans');
@@ -376,6 +378,9 @@ export function LoansHubView() {
 
     let txPayload: Record<string, unknown>;
 
+    // USD snapshot at the rate of the row's date (due date), not today's.
+    const snapUsdRate = usdRateOn(rateHistories, settlementTarget.due_date_string, todayStr, usdRate);
+
     if (assetLoan && asset) {
       const priceToman = Number(asset.price_toman);
       if (!(priceToman > 0) || !(usdRate > 0)) {
@@ -397,9 +402,9 @@ export function LoansHubView() {
         asset_id: asset.id,
         amount: payInLoanCurrency,
         price_toman: priceToman,
-        usd_rate: usdRate,
+        usd_rate: snapUsdRate,
         amount_toman_at_time: payInLoanCurrency * priceToman,
-        amount_usd_at_time: (payInLoanCurrency * priceToman) / usdRate,
+        amount_usd_at_time: (payInLoanCurrency * priceToman) / snapUsdRate,
       };
     } else if (wallet) {
       const loanRate = tomanPerUnit(loan.currency, currencyRates);
@@ -430,9 +435,9 @@ export function LoansHubView() {
         asset_id: null,
         amount: null,
         price_toman: wallet.currency === 'IRT' ? null : payRate,
-        usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+        usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
         amount_toman_at_time: payAmount * payRate,
-        amount_usd_at_time: (payAmount * payRate) / usdRate,
+        amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
       };
     } else {
       toast.error('اطلاعات پرداخت نامعتبر است.');

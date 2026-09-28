@@ -2,12 +2,14 @@ import type { Asset, AssetStats, CurrencyMode, Transaction } from '@/shared/type
 import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
 import { orderAssetTxsForReplay } from '@/shared/utils/asset-replay-order';
 import { latestTradePriceAt } from '@/shared/utils/last-trade-price';
+import { type RateHistory, usdHistoryFromTransactions } from '@/shared/utils/rate-history';
 
 function resolvePriceUsd(
   tx: Transaction,
   amount: number,
   priceToman: number,
-  usdRate: number
+  usdRate: number,
+  rateAtDate?: (date: string) => number | null
 ): number {
   const txUsdRate = Number(tx.usd_rate);
   if (Number.isFinite(txUsdRate) && txUsdRate > 0) {
@@ -21,6 +23,10 @@ function resolvePriceUsd(
     return snapshotUsd / amount;
   }
 
+  // No rate on the row: use the estimated rate of the row's date (history
+  // from all transactions), and only then today's rate.
+  const historical = rateAtDate ? rateAtDate(tx.date_string) : null;
+  if (historical && historical > 0) return priceToman / historical;
   return usdRate > 0 ? priceToman / usdRate : 0;
 }
 
@@ -63,6 +69,13 @@ export function calculateAssetStats(
   /** Date the current (still open) position started — last reset point. */
   let activeSinceDate: string | null = null;
 
+  // Lazily built (only if some row lacks its own USD rate).
+  let usdHistory: RateHistory | null = null;
+  const usdAt = (date: string) => {
+    usdHistory ??= usdHistoryFromTransactions(transactions);
+    return usdHistory.at(date);
+  };
+
   const isAcquireRow = (tx: Transaction) => isAcquireType(tx) || isTransferAcquire(tx);
 
   // Units this replay applies for a row (0 = the row is skipped below).
@@ -96,7 +109,7 @@ export function calculateAssetStats(
     const amount = replayQty(tx);
     if (!(amount > 0)) return;
     const priceToman = Number(tx.price_toman);
-    const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate);
+    const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate, usdAt);
 
     if (isAcquire) {
       if (totalAmount <= 0) activeSinceDate = tx.date_string;

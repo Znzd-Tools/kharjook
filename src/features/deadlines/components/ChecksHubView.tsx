@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -54,6 +55,7 @@ export function ChecksHubView() {
   const { user } = useAuth();
   const { wallets, categories, currencyRates, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
 
   const [checks, setChecks] = useState<Check[]>([]);
   const [filter, setFilter] = useState<FilterKey>('pending');
@@ -152,6 +154,9 @@ export function ChecksHubView() {
     }
 
     const payAmount = (settlementTarget.amount * checkRate) / payRate;
+
+    // USD snapshot at the rate of the row's date (due date), not today's.
+    const snapUsdRate = usdRateOn(rateHistories, settlementTarget.due_date_string, todayStr, usdRate);
     if (!Number.isFinite(payAmount) || payAmount <= 0) {
       toast.error('مبلغ تسویه نامعتبر است.');
       return;
@@ -176,9 +181,9 @@ export function ChecksHubView() {
       asset_id: null,
       amount: null,
       price_toman: wallet.currency === 'IRT' ? null : payRate,
-      usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+      usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
       amount_toman_at_time: payAmount * payRate,
-      amount_usd_at_time: (payAmount * payRate) / usdRate,
+      amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
     };
 
     setIsSubmitting(true);

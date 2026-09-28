@@ -33,6 +33,8 @@ import {
 } from '@/shared/utils/jalali';
 import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
 import { computeAssetPnl } from '@/features/reports/utils/asset-pnl';
+import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
+import { walletRateNow } from '@/features/rates/utils/wallet-rate';
 import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
 import {
   computeGoalDelta,
@@ -90,6 +92,7 @@ export function HomeTab() {
     upcomingDeadlines,
   } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const today = useMemo(() => todayJalaali(), []);
@@ -114,15 +117,26 @@ export function HomeTab() {
     const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
 
+    // Legacy rows without a snapshot: convert at the rate of THEIR date.
     const txToToman = (
       txAmount: number | null | undefined,
-      walletId: string | null | undefined
+      walletId: string | null | undefined,
+      date: string
     ) => {
       const amount = Number(txAmount ?? 0);
       if (!Number.isFinite(amount)) return 0;
       const wallet = walletId ? walletsById.get(walletId) : null;
-      const rate = wallet ? tomanPerUnit(wallet.currency, currencyRates) : 0;
+      if (!wallet) return 0;
+      let rate = tomanPerUnit(wallet.currency, currencyRates);
+      if (wallet.currency !== 'IRT') {
+        const hist = rateHistories[wallet.currency].at(date);
+        if (hist && hist > 0) rate = hist;
+      }
       return Math.abs(amount) * (rate > 0 ? rate : 0);
+    };
+    const usdRateForDate = (date: string) => {
+      const hist = rateHistories.USD.at(date);
+      return hist && hist > 0 ? hist : usdRate;
     };
 
     for (const tx of transactions) {
@@ -132,7 +146,7 @@ export function HomeTab() {
       if (!inMonth) continue;
       if (tx.type === 'INCOME') {
         const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id);
+          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id, tx.date_string);
         const usd =
           tx.amount_usd_at_time ??
           (() => {
@@ -141,14 +155,15 @@ export function HomeTab() {
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
             // Same fallback as the yearly cashflow chart, so both agree.
             const derived = Number(toman);
-            return usdRate > 0 && derived > 0 ? derived / usdRate : 0;
+            const rate = usdRateForDate(tx.date_string);
+            return rate > 0 && derived > 0 ? derived / rate : 0;
           })();
         monthIncomeToman += Number(toman) || 0;
         monthIncomeUsd += Number(usd) || 0;
       }
       if (tx.type === 'EXPENSE') {
         const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id);
+          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id, tx.date_string);
         const usd =
           tx.amount_usd_at_time ??
           (() => {
@@ -157,7 +172,8 @@ export function HomeTab() {
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
             // Same fallback as the yearly cashflow chart, so both agree.
             const derived = Number(toman);
-            return usdRate > 0 && derived > 0 ? derived / usdRate : 0;
+            const rate = usdRateForDate(tx.date_string);
+            return rate > 0 && derived > 0 ? derived / rate : 0;
           })();
         const valueToman = Number(toman) || 0;
         const valueUsd = Number(usd) || 0;
@@ -231,10 +247,21 @@ export function HomeTab() {
       }
     });
 
+    // Wallets in a currency without a saved rate use the last known rate
+    // (history); if there is none at all they are listed so the UI can warn.
     let cashToman = 0;
+    const walletsMissingRate: { name: string; currency: string }[] = [];
+    const walletsOnHistoryRate: { name: string; currency: string }[] = [];
     wallets.forEach((w) => {
       const balance = calculateWalletStats(w, transactions).balance;
-      cashToman += balance * tomanPerUnit(w.currency, currencyRates);
+      const { rate, source } = walletRateNow(w.currency, currencyRates, rateHistories);
+      if (balance !== 0 && source === 'missing') {
+        walletsMissingRate.push({ name: w.name, currency: w.currency });
+      }
+      if (balance !== 0 && source === 'history') {
+        walletsOnHistoryRate.push({ name: w.name, currency: w.currency });
+      }
+      cashToman += balance * rate;
     });
 
     const totalPortfolioToman = assetsValueToman + cashToman;
@@ -372,6 +399,8 @@ export function HomeTab() {
     return {
       totalPortfolioToman,
       cashToman,
+      walletsMissingRate,
+      walletsOnHistoryRate,
       openPnlToman,
       openPnlUsd,
       openCostToman,
@@ -407,6 +436,7 @@ export function HomeTab() {
     usdRate,
     todayStr,
     monthPeriod,
+    rateHistories,
   ]);
 
   const priceTickerItems = useMemo((): PriceTickerItem[] => {
@@ -449,9 +479,10 @@ export function HomeTab() {
         wallets,
         currencyRates,
         currencyMode,
-        usdRate
+        usdRate,
+        rateHistories
       ),
-    [transactions, wallets, currencyRates, currencyMode, usdRate]
+    [transactions, wallets, currencyRates, currencyMode, usdRate, rateHistories]
   );
 
   const yearLabel = useMemo(
@@ -622,6 +653,29 @@ export function HomeTab() {
         assetShare={assetShare}
         cashShare={cashShare}
       />
+
+      {(stats.walletsMissingRate.length > 0 || stats.walletsOnHistoryRate.length > 0) && (
+        <button
+          type="button"
+          onClick={() => router.push('/prices')}
+          className="w-full rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-right text-[11px] leading-5 text-amber-200"
+        >
+          {stats.walletsMissingRate.length > 0 && (
+            <span className="block">
+              نرخ {[...new Set(stats.walletsMissingRate.map((w) => w.currency))].join('، ')} ثبت
+              نشده؛ {formatDisplayNumber(stats.walletsMissingRate.length)} کیف پول در جمع کل حساب
+              نشده.
+            </span>
+          )}
+          {stats.walletsOnHistoryRate.length > 0 && (
+            <span className="block">
+              نرخ {[...new Set(stats.walletsOnHistoryRate.map((w) => w.currency))].join('، ')} ثبت
+              نشده؛ با آخرین نرخ شناخته‌شده حساب شد.
+            </span>
+          )}
+          <span className="block text-amber-300/80">برای ثبت نرخ بزن.</span>
+        </button>
+      )}
 
       <ActivePnlCard
         currencyMode={currencyMode}

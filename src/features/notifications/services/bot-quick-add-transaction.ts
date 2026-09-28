@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { loadRateAt, serverUsdRateOn } from '@/shared/utils/rate-history-store';
 import type { Category, CurrencyRate, Transaction, Wallet } from '@/shared/types/domain';
 import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
@@ -49,17 +50,28 @@ export async function createBotWalletTransaction(input: {
     return { ok: false, error: 'دسته‌بندی با نوع تراکنش همخوان نیست.' };
   }
 
-  const usdRate = rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
-  const walletRate = tomanPerUnit(wallet.currency, rates);
-  if (walletRate <= 0 || usdRate <= 0) {
+  const currentUsdRate = Number(rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0);
+  const currentWalletRate = tomanPerUnit(wallet.currency, rates);
+  if (currentWalletRate <= 0 || currentUsdRate <= 0) {
     return { ok: false, error: 'نرخ تبدیل در دسترس نیست.' };
+  }
+
+  const todayStr = formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE));
+  const date_string = input.dateString?.trim() || todayStr;
+
+  // Past-dated rows (recurring catch-up) use the rate of THEIR date from the
+  // stored history; today / no history → the current rate (old behavior).
+  const usdRate = await serverUsdRateOn(admin, input.userId, date_string, todayStr, currentUsdRate);
+  let walletRate = currentWalletRate;
+  if (wallet.currency === 'USD') {
+    walletRate = usdRate;
+  } else if (wallet.currency !== 'IRT' && date_string < todayStr) {
+    const hist = await loadRateAt(admin, input.userId, wallet.currency, date_string);
+    if (hist && hist > 0) walletRate = hist;
   }
 
   const walletAmount =
     wallet.currency === 'IRT' ? input.amountToman : input.amountToman / walletRate;
-  const date_string =
-    input.dateString?.trim() ||
-    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE));
 
   const base = {
     user_id: input.userId,

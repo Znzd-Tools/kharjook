@@ -1,4 +1,7 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { serverUsdRateOn } from '@/shared/utils/rate-history-store';
 import {
   installmentPaidAmount,
   installmentRemainingAmount,
@@ -70,6 +73,16 @@ export async function settleLoanInstallment(input: {
   const rates = ratesRows ?? [];
   const usdRate = rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
 
+  // USD snapshot at the rate of the row's date (the due date), from the
+  // stored history; falls back to the current rate.
+  const snapUsdRate = await serverUsdRateOn(
+    admin,
+    input.userId,
+    installment.due_date_string,
+    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE)),
+    Number(usdRate)
+  );
+
   let txPayload: Record<string, unknown>;
 
   if (isAssetLoan(loan)) {
@@ -106,9 +119,9 @@ export async function settleLoanInstallment(input: {
       asset_id: asset.id,
       amount: payInLoanCurrency,
       price_toman: priceToman,
-      usd_rate: usdRate,
+      usd_rate: snapUsdRate,
       amount_toman_at_time: payInLoanCurrency * priceToman,
-      amount_usd_at_time: (payInLoanCurrency * priceToman) / usdRate,
+      amount_usd_at_time: (payInLoanCurrency * priceToman) / snapUsdRate,
     };
   } else {
     if (!input.walletId) {
@@ -155,9 +168,9 @@ export async function settleLoanInstallment(input: {
       asset_id: null,
       amount: null,
       price_toman: wallet.currency === 'IRT' ? null : payRate,
-      usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+      usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
       amount_toman_at_time: payAmount * payRate,
-      amount_usd_at_time: (payAmount * payRate) / usdRate,
+      amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
     };
   }
 

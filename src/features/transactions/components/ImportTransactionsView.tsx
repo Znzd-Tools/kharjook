@@ -16,6 +16,8 @@ import {
   TRANSACTION_CSV_TEMPLATE,
   type ParsedCsvRow,
 } from '@/features/transactions/utils/parse-transaction-csv';
+import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
+import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import {
   buildWalletImportPayload,
   resolveImportRows,
@@ -27,6 +29,7 @@ export function ImportTransactionsView() {
   const { user } = useAuth();
   const { wallets, categories, currencyRates, setTransactions } = useData();
   const { usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -94,6 +97,8 @@ export function ImportTransactionsView() {
         wallet,
         usdRate,
         currencyRates,
+        histories: rateHistories,
+        todayStr: formatJalaali(todayJalaali()),
       });
       if (payload) payloads.push(payload);
     }

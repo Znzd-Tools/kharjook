@@ -1,9 +1,10 @@
 'use client';
 
+import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import { supabase } from '@/shared/lib/supabase/client';
 import { APP_GLOBAL_USD_SLUG } from '@/features/prices/constants/price-sources';
 import type { ApiQuoteSource } from '@/features/prices/utils/price-source-catalog';
-import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { formatJalaali, todayJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import type {
   Asset,
   CurrencyRate,
@@ -195,6 +196,14 @@ export async function persistCurrencyRate(
     .select();
 
   if (error) throw error;
+  await recordRateHistory(
+    supabase,
+    userId,
+    currency,
+    formatJalaali(todayJalaaliInTimezone('Asia/Tehran')),
+    tomanPerUnit,
+    'provider'
+  );
   return (data as CurrencyRate[]) || [];
 }
 

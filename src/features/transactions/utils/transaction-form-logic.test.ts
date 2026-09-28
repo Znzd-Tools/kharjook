@@ -3,6 +3,7 @@ import {
   recomputeTransferTarget,
   validateForm,
   sourceEndpointKey,
+  usdRateAfterDateChange,
   validateSourceFunds,
 } from '@/features/transactions/utils/transaction-form-logic';
 import type { FormState } from '@/features/transactions/utils/transaction-form-types';
@@ -202,5 +203,21 @@ describe('validateForm — asset to asset transfer', () => {
         []
       )
     ).toBe('برای جابه‌جایی بین دو دارایی از «تبدیل» استفاده کن.');
+  });
+});
+
+describe('usdRateAfterDateChange', () => {
+  const suggest = (d: string) => (d === '1403/05/01' ? 60_000 : d === '1403/01/01' ? 50_000 : 0);
+
+  it('moves an untouched rate to the rate of the new date', () => {
+    expect(
+      usdRateAfterDateChange({ date: '1403/05/01', usdRate: '60000' }, '1403/01/01', suggest)
+    ).toBe('50000');
+  });
+
+  it('keeps a rate the user typed', () => {
+    expect(
+      usdRateAfterDateChange({ date: '1403/05/01', usdRate: '61234' }, '1403/01/01', suggest)
+    ).toBe('61234');
   });
 });

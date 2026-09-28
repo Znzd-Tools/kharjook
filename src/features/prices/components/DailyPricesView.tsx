@@ -1,5 +1,6 @@
 'use client';
 
+import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, AlertCircle, ChevronDown, RefreshCw } from 'lucide-react';
@@ -8,7 +9,7 @@ import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { CurrencyRate, DailyPrice, RateCurrency } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
-import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { formatJalaali, todayJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import {
   fetchProviderQuotesDetailed,
@@ -373,6 +374,16 @@ export function DailyPricesView() {
 
       if (assetRes.error) throw assetRes.error;
       if (rateRes?.error) throw rateRes.error;
+
+      if (rateRows.length > 0) {
+        // Keep a dated copy for historical conversions (best-effort).
+        const todayRateDate = formatJalaali(todayJalaaliInTimezone('Asia/Tehran'));
+        await Promise.all(
+          rateRows.map((r) =>
+            recordRateHistory(supabase, user.id, r.currency, todayRateDate, r.toman_per_unit, 'manual')
+          )
+        );
+      }
 
       const priceSourceOk = await priceSourceControl.save();
       if (!priceSourceOk) return;

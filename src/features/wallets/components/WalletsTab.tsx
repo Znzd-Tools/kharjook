@@ -8,7 +8,8 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { RouteSkeleton } from '@/shared/components/RouteSkeleton';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
-import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
+import { walletRateNow } from '@/features/rates/utils/wallet-rate';
 import { formatCurrency, formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 
@@ -16,16 +17,18 @@ export function WalletsTab() {
   const router = useRouter();
   const { wallets, transactions, currencyRates, isLoadingData } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
 
   const rows = useMemo(() => {
     return wallets.map((w) => {
       const stats = calculateWalletStats(w, transactions);
       const meta = CURRENCY_META[w.currency];
-      const rate = tomanPerUnit(w.currency, currencyRates);
+      // Saved rate, else last known rate from history, else 0 (warned below).
+      const { rate, source: rateSource } = walletRateNow(w.currency, currencyRates, rateHistories);
       const balanceToman = stats.balance * rate;
-      return { wallet: w, meta, stats, balanceToman, rate };
+      return { wallet: w, meta, stats, balanceToman, rate, rateSource };
     });
-  }, [wallets, transactions, currencyRates]);
+  }, [wallets, transactions, currencyRates, rateHistories]);
 
   const totalToman = rows.reduce((acc, r) => acc + r.balanceToman, 0);
   const totalUsd = usdRate > 0 ? totalToman / usdRate : 0;

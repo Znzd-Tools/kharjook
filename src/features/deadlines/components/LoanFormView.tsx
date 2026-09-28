@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
@@ -84,6 +85,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
   const { user } = useAuth();
   const { wallets, assets, categories, currencyRates, setTransactions } = useData();
   const { usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const isEdit = !!loanId;
 
   const [form, setForm] = useState<LoanFormState>(initialState);
@@ -332,6 +334,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
       }
 
       if (form.type === 'loan' && form.autoIncomeOnCreate) {
+        // USD snapshot at the rate of the loan start date, not today's.
+        const incomeUsdRate = usdRateOn(rateHistories, form.loanStartDate, formatJalaali(todayJalaali()), usdRate);
         if (isAssetDenom && loanAsset) {
           const qty = Number(totalAmount);
           const priceToman = Number(loanAsset.price_toman);
@@ -350,9 +354,9 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             asset_id: loanAsset.id,
             amount: qty,
             price_toman: priceToman,
-            usd_rate: usdRate,
+            usd_rate: incomeUsdRate,
             amount_toman_at_time: qty * priceToman,
-            amount_usd_at_time: usdRate > 0 ? (qty * priceToman) / usdRate : null,
+            amount_usd_at_time: incomeUsdRate > 0 ? (qty * priceToman) / incomeUsdRate : null,
           };
           const { data: txData, error: txErr } = await supabase
             .from('transactions')
@@ -380,9 +384,9 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
               asset_id: null,
               amount: null,
               price_toman: incomeWallet.currency === 'IRT' ? null : rate,
-              usd_rate: incomeWallet.currency === 'IRT' ? null : usdRate,
+              usd_rate: incomeWallet.currency === 'IRT' ? null : incomeUsdRate,
               amount_toman_at_time: Number(totalAmount) * rate,
-              amount_usd_at_time: usdRate > 0 ? (Number(totalAmount) * rate) / usdRate : null,
+              amount_usd_at_time: incomeUsdRate > 0 ? (Number(totalAmount) * rate) / incomeUsdRate : null,
             };
             const { data: txData, error: txErr } = await supabase
               .from('transactions')

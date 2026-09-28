@@ -707,3 +707,24 @@ export function buildTradeSnapshots(
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
+
+/**
+ * When the date changes, move the prefilled USD rate to the rate of the new
+ * date — but only if the user did not type their own rate (the field still
+ * holds the suggestion for the old date). Returns the new field value.
+ */
+export function usdRateAfterDateChange(
+  prev: Pick<FormState, 'date' | 'usdRate'>,
+  nextDate: string,
+  suggest: (date: string) => number
+): string {
+  const oldSuggestion = suggest(prev.date);
+  const current = Number(prev.usdRate);
+  const untouched =
+    !prev.usdRate ||
+    !Number.isFinite(current) ||
+    (oldSuggestion > 0 && Math.abs(current - oldSuggestion) <= oldSuggestion * 1e-9);
+  if (!untouched) return prev.usdRate;
+  const next = suggest(nextDate);
+  return next > 0 ? canonicalNumber(next) : prev.usdRate;
+}

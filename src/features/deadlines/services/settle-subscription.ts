@@ -1,4 +1,6 @@
 import { addIntervalDate } from '@/features/deadlines/utils/schedule';
+import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { serverUsdRateOn } from '@/shared/utils/rate-history-store';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
 import type {
@@ -10,7 +12,7 @@ import type {
   Wallet,
 } from '@/shared/types/domain';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
-import { formatJalaali, parseJalaali } from '@/shared/utils/jalali';
+import { formatJalaali, parseJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 
 export type SettleSubscriptionResult =
   | { ok: true; transactionId: string; nextDueDateString: string }
@@ -119,6 +121,16 @@ export async function settleSubscription(input: {
     return { ok: false, error: 'تاریخ سررسید بعدی نامعتبر است.', code: 'invalid' };
   }
 
+  // USD snapshot at the rate of the row's date (the due date), from the
+  // stored history; falls back to the current rate.
+  const snapUsdRate = await serverUsdRateOn(
+    admin,
+    input.userId,
+    dueDateString,
+    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE)),
+    Number(usdRate)
+  );
+
   const txPayload: Record<string, unknown> = {
     user_id: input.userId,
     type: 'EXPENSE',
@@ -134,9 +146,9 @@ export async function settleSubscription(input: {
     asset_id: null,
     amount: null,
     price_toman: wallet.currency === 'IRT' ? null : payRate,
-    usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+    usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
     amount_toman_at_time: payAmount * payRate,
-    amount_usd_at_time: (payAmount * payRate) / usdRate,
+    amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
   };
 
   const { data: txData, error: txErr } = await admin
