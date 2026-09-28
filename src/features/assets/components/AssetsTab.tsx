@@ -330,12 +330,16 @@ function AssetListRow({
   const ytd = ytdStats ? ytdPnlDisplay(ytdStats, currencyMode) : null;
   const displayProfit = ytd?.total ?? null;
   const isProfit = (displayProfit ?? 0) >= 0;
-  const showOpenBreakdown =
-    ytd &&
-    ytd.open !== null &&
-    ytd.realized !== 0 &&
-    ytd.open !== 0;
   const decimals = assetDecimals(asset);
+  // Active (open) P/L on the units held now — shown first, it is the number
+  // you can still act on. Year P/L stays below as context.
+  const inPnl = asset.include_in_profit_loss !== false;
+  const openPnl =
+    currencyMode === 'USD' ? stats.unrealizedProfitUsd : stats.unrealizedProfitToman;
+  const openCost = currencyMode === 'USD' ? stats.totalCostUsd : stats.totalCostToman;
+  const hasOpen = inPnl && stats.totalAmount > 0 && openCost > 0;
+  const openPercent = hasOpen ? (openPnl / openCost) * 100 : 0;
+  const isOpenProfit = openPnl >= 0;
 
   return (
     <div
@@ -384,30 +388,37 @@ function AssetListRow({
         <p className="font-bold text-slate-200" dir="ltr">
           {formatCurrency(displayValue, currencyMode)}
         </p>
-        {displayProfit !== null ? (
+        {hasOpen && (
           <p
-            className={`text-xs mt-1 font-medium ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}
+            className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+              isOpenProfit ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'
+            }`}
             dir="ltr"
+            title="سود/زیان باز"
           >
-            {isProfit ? '+' : ''}
-            {formatCurrency(displayProfit, currencyMode)}
-          </p>
-        ) : (
-          <p className="text-[10px] mt-1 text-amber-400/80">امسال: —</p>
-        )}
-        {displayProfit !== null && (
-          <p className="text-[9px] text-slate-600 mt-0.5">
-            {ytd?.isPartial ? 'امسال · بدون باز' : 'امسال'}
+            {isOpenProfit ? '+' : ''}
+            {formatCurrency(openPnl, currencyMode)}
+            <span className="font-medium opacity-80">
+              {isOpenProfit ? '+' : ''}
+              {openPercent.toFixed(1)}%
+            </span>
           </p>
         )}
-        {showOpenBreakdown && ytd && (
-          <p className="text-[9px] text-slate-600 mt-0.5" dir="ltr">
-            {ytd.realized >= 0 ? '+' : ''}
-            {formatCurrency(ytd.realized, currencyMode)} ·{' '}
-            {ytd.open! >= 0 ? '+' : ''}
-            {formatCurrency(ytd.open!, currencyMode)} باز
-          </p>
-        )}
+        {inPnl &&
+          (displayProfit !== null ? (
+            <p
+              className={`text-[10px] mt-1 ${isProfit ? 'text-emerald-400/70' : 'text-rose-400/70'}`}
+              dir="rtl"
+            >
+              {ytd?.isPartial ? 'امسال (بدون باز)' : 'امسال'}{' '}
+              <span dir="ltr">
+                {isProfit ? '+' : ''}
+                {formatCurrency(displayProfit, currencyMode)}
+              </span>
+            </p>
+          ) : (
+            <p className="text-[10px] mt-1 text-amber-400/80">امسال: —</p>
+          ))}
       </div>
     </div>
   );

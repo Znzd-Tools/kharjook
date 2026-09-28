@@ -325,7 +325,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
       const { error: installmentErr } = await supabase
         .from('loan_installments')
         .insert(installmentsPayload);
-      if (installmentErr) throw installmentErr;
+      if (installmentErr) {
+        // Do not leave a loan with no installments behind.
+        await supabase.from('loans').delete().eq('id', loan.id);
+        throw installmentErr;
+      }
 
       if (form.type === 'loan' && form.autoIncomeOnCreate) {
         if (isAssetDenom && loanAsset) {

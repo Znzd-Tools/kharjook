@@ -1,4 +1,5 @@
 import type { Asset, DailyPrice } from '@/shared/types/domain';
+import { addDays, formatJalaali, type JalaaliDate } from '@/shared/utils/jalali';
 
 /**
  * Resolved price for an asset on a specific Jalali date.
@@ -80,4 +81,25 @@ export function effectivePriceAt(
     sourceDate: best.date_string,
     isLive: false,
   };
+}
+
+/**
+ * Opening price of a period = close of the day BEFORE `periodStart`.
+ * Holdings carried into the period must be valued at the previous close;
+ * using the first day's own close hid that day's move (and for a "today"
+ * period it always used the live price, so opening P/L was always 0).
+ * Falls back to `periodStart` itself when no earlier snapshot exists, so
+ * nothing that had a price before loses it.
+ */
+export function effectiveOpeningPriceAt(
+  asset: Asset,
+  periodStart: JalaaliDate,
+  dailyPrices: DailyPrice[],
+  todayDate: string
+): EffectivePrice | null {
+  const dayBefore = formatJalaali(addDays(periodStart, -1));
+  return (
+    effectivePriceAt(asset, dayBefore, dailyPrices, todayDate) ??
+    effectivePriceAt(asset, formatJalaali(periodStart), dailyPrices, todayDate)
+  );
 }

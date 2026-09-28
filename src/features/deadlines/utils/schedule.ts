@@ -40,6 +40,21 @@ export function addIntervalDate(
   return addYearsClamped(date, intervalNumber);
 }
 
+/**
+ * The `index`-th due date counted from `anchor` (index 0 = anchor).
+ * Always computed from the anchor, never from the previous result, so a
+ * month-end day does not drift (31 → 30 → 30 …) after a short month.
+ */
+export function nthIntervalDate(
+  anchor: JalaaliDate,
+  intervalNumber: number,
+  intervalPeriod: LoanIntervalPeriod,
+  index: number
+): JalaaliDate {
+  if (index === 0) return anchor;
+  return addIntervalDate(anchor, intervalNumber * index, intervalPeriod);
+}
+
 export function buildInstallmentSchedule(params: {
   firstDueDate: string;
   repeatCount: number;
@@ -49,10 +64,12 @@ export function buildInstallmentSchedule(params: {
   const first = parseJalaali(params.firstDueDate);
   if (!first) return [];
   const out: string[] = [];
-  let cursor = first;
   for (let i = 0; i < params.repeatCount; i += 1) {
-    out.push(formatJalaali(cursor));
-    cursor = addIntervalDate(cursor, params.intervalNumber, params.intervalPeriod);
+    out.push(
+      formatJalaali(
+        nthIntervalDate(first, params.intervalNumber, params.intervalPeriod, i)
+      )
+    );
   }
   return out;
 }

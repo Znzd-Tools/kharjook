@@ -160,21 +160,41 @@ export async function settleSubscription(input: {
     transaction_id: createdTx.id,
   });
 
+  // Roll back helper: deleting the transaction cascades to its
+  // subscription_payments row (ON DELETE CASCADE).
+  const rollback = async () => {
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', createdTx.id)
+      .eq('user_id', input.userId);
+  };
+
   if (paymentErr) {
+    await rollback();
+    if (paymentErr.code === '23505') {
+      return { ok: false, error: 'این دوره قبلاً پرداخت شده.', code: 'already_paid' };
+    }
     return { ok: false, error: 'ثبت پرداخت اشتراک ناموفق بود.', code: 'db' };
   }
 
-  const { error: subErr } = await admin
+  const { data: subRows, error: subErr } = await admin
     .from('subscriptions')
     .update({
       next_due_date_string: nextDueDateString,
       updated_at: new Date().toISOString(),
     })
     .eq('id', subscription.id)
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .eq('next_due_date_string', dueDateString)
+    .select('id');
 
-  if (subErr) {
-    return { ok: false, error: 'به‌روزرسانی اشتراک ناموفق بود.', code: 'db' };
+  if (subErr || !subRows || subRows.length === 0) {
+    await rollback();
+    if (subErr) {
+      return { ok: false, error: 'به‌روزرسانی اشتراک ناموفق بود.', code: 'db' };
+    }
+    return { ok: false, error: 'این دوره قبلاً پرداخت شده.', code: 'already_paid' };
   }
 
   await notifyExpenseTransaction(input.userId, createdTx);

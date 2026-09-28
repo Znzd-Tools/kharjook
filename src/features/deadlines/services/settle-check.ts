@@ -96,7 +96,7 @@ export async function settleCheck(input: {
   }
 
   const createdTx = txData as Transaction;
-  const { error: checkErr } = await admin
+  const { data: checkRows, error: checkErr } = await admin
     .from('checks')
     .update({
       status: 'cleared',
@@ -105,10 +105,20 @@ export async function settleCheck(input: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', check.id)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .select('id');
 
-  if (checkErr) {
-    return { ok: false, error: 'به‌روزرسانی چک ناموفق بود.', code: 'db' };
+  if (checkErr || !checkRows || checkRows.length === 0) {
+    // Roll back: the check was not marked, so the expense must not stay.
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', createdTx.id)
+      .eq('user_id', input.userId);
+    if (checkErr) {
+      return { ok: false, error: 'به‌روزرسانی چک ناموفق بود.', code: 'db' };
+    }
+    return { ok: false, error: 'این چک قبلاً تسویه شده.', code: 'already_cleared' };
   }
 
   await notifyExpenseTransaction(input.userId, createdTx);

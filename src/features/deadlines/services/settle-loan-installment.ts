@@ -175,7 +175,10 @@ export async function settleLoanInstallment(input: {
   const actuallyNewPaid = installmentPaidAmount(installment) + payInLoanCurrency;
   const fullyPaid = actuallyNewPaid >= Number(installment.amount) - 1e-9;
 
-  const { error: installmentErr } = await admin
+  // Optimistic lock: only update if nobody paid this installment since we
+  // read it. Otherwise a double tap / parallel partial pay would book two
+  // expenses but record one payment.
+  const { data: updatedRows, error: installmentErr } = await admin
     .from('loan_installments')
     .update({
       paid_amount: actuallyNewPaid,
@@ -184,10 +187,26 @@ export async function settleLoanInstallment(input: {
       paid_transaction_id: createdTx.id,
     })
     .eq('id', installment.id)
-    .eq('is_paid', false);
+    .eq('is_paid', false)
+    .eq('paid_amount', installmentPaidAmount(installment))
+    .select('id');
 
-  if (installmentErr) {
-    return { ok: false, error: 'به‌روزرسانی قسط ناموفق بود.', code: 'db' };
+  if (installmentErr || !updatedRows || updatedRows.length === 0) {
+    // Roll back the expense so money never leaves the wallet without the
+    // installment being marked.
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', createdTx.id)
+      .eq('user_id', input.userId);
+    if (installmentErr) {
+      return { ok: false, error: 'به‌روزرسانی قسط ناموفق بود.', code: 'db' };
+    }
+    return {
+      ok: false,
+      error: 'این قسط هم‌زمان تغییر کرد. صفحه را تازه کن و دوباره تلاش کن.',
+      code: 'already_paid',
+    };
   }
 
   await notifyExpenseTransaction(input.userId, createdTx);

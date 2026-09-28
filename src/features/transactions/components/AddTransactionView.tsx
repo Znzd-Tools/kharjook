@@ -42,6 +42,7 @@ import {
   buildTradeSnapshots,
   validateForm,
   validateSourceFunds,
+  sourceEndpointKey,
 } from '@/features/transactions/utils/transaction-form-logic';
 
 export type { AddTransactionViewProps };
@@ -82,6 +83,13 @@ export function AddTransactionView({
 
   const convertPair = useMemo(
     () => (txToEdit ? resolveConvertPair(txToEdit, transactions) : null),
+    [txToEdit, transactions]
+  );
+
+  // Balances for the form: when editing, the edited row's old amount must not
+  // count against its new amount (otherwise a valid edit shows "not enough").
+  const balanceTransactions = useMemo(
+    () => (txToEdit ? transactions.filter((t) => t.id !== txToEdit.id) : transactions),
     [txToEdit, transactions]
   );
 
@@ -344,10 +352,20 @@ export function AddTransactionView({
       return;
     }
 
+    // Rows in one batch share balances: reserve what earlier rows spend.
+    const reservedBySource = new Map<string, number>();
     for (let i = 0; i < rows.length; i++) {
+      const key = sourceEndpointKey(rows[i]);
+      const reserved = key ? (reservedBySource.get(key) ?? 0) : 0;
       const err =
         validateForm(rows[i], wallets) ??
-        validateSourceFunds(rows[i], wallets, transactions, persons);
+        validateSourceFunds(rows[i], wallets, balanceTransactions, persons, reserved);
+      if (key && !err) {
+        const amount = Number(rows[i].sourceAmount);
+        if (Number.isFinite(amount) && amount > 0) {
+          reservedBySource.set(key, reserved + amount);
+        }
+      }
       if (err) {
         const msg = rows.length > 1 ? `تراکنش #${i + 1}: ${err}` : err;
         setFormError(msg);
@@ -533,7 +551,7 @@ export function AddTransactionView({
                 assets={assets}
                 persons={persons}
                 categories={categories}
-                transactions={transactions}
+                transactions={balanceTransactions}
                 currencyRates={currencyRates}
                 usdRate={usdRate}
               />

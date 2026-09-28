@@ -415,7 +415,11 @@ export function calculateAssetPeriodStats(
   stats.currentAvgCostToman = units > 0 ? costToman / units : 0;
   stats.currentAvgCostUsd = units > 0 ? costUsd / units : 0;
 
-  const evalHoldings = units;
+  // Evaluate the period at its END: holdings as of period end (not "now").
+  // Using current holdings for a past period mixed later buys/sells with the
+  // period baseline and produced large false P/L. The pool only ever moves on
+  // in-period rows, so it is already the as-of-period-end baseline.
+  const evalHoldings = endUnits;
   const evalPoolCostToman = periodPoolCostToman;
   const evalPoolCostUsd = periodPoolCostUsd;
 
@@ -438,7 +442,7 @@ export function calculateAssetPeriodStats(
     stats.unrealizedAvailable = false;
   }
 
-  // True period unrealized at evaluation (current holdings for live periods).
+  // True period unrealized at period end (holdings as of `period.end`).
   if (evalHoldings <= 0) {
     stats.periodUnrealizedAvailable = true;
     stats.periodUnrealizedToman = 0;

@@ -1,7 +1,7 @@
 import { parseJalaali, formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
-import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
+import { assetQuantityFromTransactions } from '@/shared/utils/calculate-asset-stats';
 import type {
   Asset,
   CurrencyRate,
@@ -98,28 +98,9 @@ function deriveWalletAmount(
   return canonicalNumber((assetQty * priceToman) / rate);
 }
 
-/** Holdings including TRANSFER-acquired/disposed quantities. */
 /** Net units on hand — same replay as assets list (`calculateAssetStats.totalAmount`). */
 export function assetHolding(assetId: string, transactions: Transaction[]): number {
-  // Stub asset: only `id` matters for the quantity replay; prices unused for qty.
-  return calculateAssetStats(
-    {
-      id: assetId,
-      user_id: '',
-      category_id: null,
-      name: '',
-      unit: '',
-      decimal_places: 4,
-      price_toman: 0,
-      price_usd: 0,
-      icon_url: null,
-      price_source_id: null,
-      include_in_profit_loss: false,
-    },
-    transactions,
-    'TOMAN',
-    1
-  ).totalAmount;
+  return assetQuantityFromTransactions(assetId, transactions);
 }
 
 export function buildInitialConvertForm(

@@ -51,6 +51,11 @@ import { CategoryCapsWidget } from '@/features/dashboard/components/CategoryCaps
 import { GoalsDriftWidget } from '@/features/dashboard/components/GoalsDriftWidget';
 import { PendingChecksWidget } from '@/features/dashboard/components/PendingChecksWidget';
 import { PendingSubscriptionsWidget } from '@/features/dashboard/components/PendingSubscriptionsWidget';
+import {
+  ActivePnlCard,
+  formatMissingPriceWarning,
+  type ActivePnlMover,
+} from '@/features/dashboard/components/ActivePnlCard';
 
 export type HomeGoalRow = {
   id: string;
@@ -133,7 +138,9 @@ export function HomeTab() {
             const t = Number(tx.amount_toman_at_time);
             const r = Number(tx.usd_rate);
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            return 0;
+            // Same fallback as the yearly cashflow chart, so both agree.
+            const derived = Number(toman);
+            return usdRate > 0 && derived > 0 ? derived / usdRate : 0;
           })();
         monthIncomeToman += Number(toman) || 0;
         monthIncomeUsd += Number(usd) || 0;
@@ -147,7 +154,9 @@ export function HomeTab() {
             const t = Number(tx.amount_toman_at_time);
             const r = Number(tx.usd_rate);
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            return 0;
+            // Same fallback as the yearly cashflow chart, so both agree.
+            const derived = Number(toman);
+            return usdRate > 0 && derived > 0 ? derived / usdRate : 0;
           })();
         const valueToman = Number(toman) || 0;
         const valueUsd = Number(usd) || 0;
@@ -165,8 +174,42 @@ export function HomeTab() {
       }
     }
 
+    // Open (active) P/L on current holdings — assets counted in P/L only.
+    let openPnlToman = 0;
+    let openPnlUsd = 0;
+    let openCostToman = 0;
+    let openCostUsd = 0;
+    let realizedToman = 0;
+    let realizedUsd = 0;
+    const openRows: {
+      id: string;
+      name: string;
+      pnlToman: number;
+      pnlUsd: number;
+      costToman: number;
+      costUsd: number;
+    }[] = [];
+
     assets.forEach((asset) => {
       const s = calculateAssetStats(asset, transactions, currencyMode, usdRate);
+      if (asset.include_in_profit_loss !== false) {
+        realizedToman += s.realizedProfitToman;
+        realizedUsd += s.realizedProfitUsd;
+        if (s.totalAmount > 0 && s.totalCostToman > 0) {
+          openPnlToman += s.unrealizedProfitToman;
+          openPnlUsd += s.unrealizedProfitUsd;
+          openCostToman += s.totalCostToman;
+          openCostUsd += s.totalCostUsd;
+          openRows.push({
+            id: asset.id,
+            name: asset.name,
+            pnlToman: s.unrealizedProfitToman,
+            pnlUsd: s.unrealizedProfitUsd,
+            costToman: s.totalCostToman,
+            costUsd: s.totalCostUsd,
+          });
+        }
+      }
       if (asset.include_in_balance !== false) {
         assetsValueToman += s.currentValueToman;
       }
@@ -326,6 +369,13 @@ export function HomeTab() {
     return {
       totalPortfolioToman,
       cashToman,
+      openPnlToman,
+      openPnlUsd,
+      openCostToman,
+      openCostUsd,
+      realizedToman,
+      realizedUsd,
+      openRows,
       yearPnlToman,
       yearPnlUsd,
       yearPnlPartialCount,
@@ -437,6 +487,24 @@ export function HomeTab() {
       : 0;
   const displayYearPnl =
     currencyMode === 'USD' ? stats.yearPnlUsd : stats.yearPnlToman;
+  const displayOpenPnl = currencyMode === 'USD' ? stats.openPnlUsd : stats.openPnlToman;
+  const displayOpenCost = currencyMode === 'USD' ? stats.openCostUsd : stats.openCostToman;
+  const displayOpenPercent = displayOpenCost > 0 ? (displayOpenPnl / displayOpenCost) * 100 : 0;
+  const displayRealized = currencyMode === 'USD' ? stats.realizedUsd : stats.realizedToman;
+  // Biggest open positions by absolute P/L (winners and losers alike).
+  const openMovers: ActivePnlMover[] = stats.openRows
+    .map((row) => {
+      const value = currencyMode === 'USD' ? row.pnlUsd : row.pnlToman;
+      const cost = currencyMode === 'USD' ? row.costUsd : row.costToman;
+      return {
+        id: row.id,
+        name: row.name,
+        value,
+        percent: cost > 0 ? (value / cost) * 100 : 0,
+      };
+    })
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    .slice(0, 3);
   const displayMonthBalance =
     currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
   const activeMaxExpense =
@@ -550,6 +618,21 @@ export function HomeTab() {
         cashLabel={formatCurrency(displayCash, currencyMode)}
         assetShare={assetShare}
         cashShare={cashShare}
+      />
+
+      <ActivePnlCard
+        currencyMode={currencyMode}
+        openValue={displayOpenPnl}
+        openPercent={displayOpenPercent}
+        openCostBasis={displayOpenCost}
+        yearValue={displayYearPnl}
+        realizedValue={displayRealized}
+        movers={openMovers}
+        warning={formatMissingPriceWarning(
+          stats.yearUnrealizedMissingCount,
+          stats.yearPnlPartialCount
+        )}
+        onOpen={() => router.push('/assets')}
       />
 
       <AssetPriceTicker items={priceTickerItems} />
@@ -705,45 +788,6 @@ export function HomeTab() {
           tone="cyan"
           icon={<Wallet size={16} />}
         />
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
-          <div
-            className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
-              displayYearPnl >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
-            }`}
-          />
-          <div className="relative flex items-start gap-3">
-            <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                displayYearPnl >= 0
-                  ? 'bg-emerald-400/10 text-emerald-300'
-                  : 'bg-rose-400/10 text-rose-300'
-              }`}
-            >
-              <TrendingUp size={16} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-400 mb-1">سود/زیان امسال</p>
-              <p
-                className={`truncate text-xl font-black ${
-                  displayYearPnl >= 0 ? 'text-emerald-300' : 'text-rose-300'
-                }`}
-                dir="ltr"
-              >
-                {displayYearPnl >= 0 ? '+' : ''}
-                {formatCurrency(displayYearPnl, currencyMode)}
-              </p>
-            </div>
-          </div>
-          {(stats.yearUnrealizedMissingCount > 0 || stats.yearPnlPartialCount > 0) && (
-            <p className="relative text-[10px] text-amber-400/80 mt-3">
-              {stats.yearUnrealizedMissingCount > 0 &&
-                `${formatDisplayNumber(stats.yearUnrealizedMissingCount)} دارایی بدون قیمت تاریخی؛`}
-              {stats.yearPnlPartialCount > 0 &&
-                ` ${formatDisplayNumber(stats.yearPnlPartialCount)} دارایی فقط با سود محقق‌شده.`}
-              {stats.yearUnrealizedMissingCount > 0 && ' عدد کل ممکن است ناقص باشد.'}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

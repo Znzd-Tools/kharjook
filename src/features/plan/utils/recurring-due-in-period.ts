@@ -1,5 +1,5 @@
 import type { LoanIntervalPeriod, RecurringTransaction, Subscription } from '@/shared/types/domain';
-import { addIntervalDate } from '@/features/deadlines/utils/schedule';
+import { nthIntervalDate } from '@/features/deadlines/utils/schedule';
 import { compareJalaaliStrings } from '@/features/notifications/utils/jalali-days';
 import {
   addDays,
@@ -40,34 +40,28 @@ function dueDatesInPeriod(anchor: DueDatesAnchor, period: Period): string[] {
   const parsedAnchor = parseJalaali(anchor.dateString);
   if (!parsedAnchor) return [];
 
+  // Every date is computed from the anchor (anchor + i × interval) so
+  // month-end days do not drift after a short month.
+  const at = (i: number) =>
+    formatJalaali(
+      nthIntervalDate(parsedAnchor, anchor.intervalNumber, anchor.intervalPeriod, i)
+    );
+
   const periodStart = formatJalaali(period.start);
-  let cursor = parsedAnchor;
-  for (let i = 0; i < 500; i += 1) {
-    const cursorStr = formatJalaali(cursor);
-    if (compareJalaaliStrings(cursorStr, periodStart) < 0) {
-      cursor = addIntervalDate(cursor, anchor.intervalNumber, anchor.intervalPeriod);
-      continue;
-    }
-    break;
+  const periodEnd = formatJalaali(period.end);
+  let index = 0;
+  while (index < 500 && compareJalaaliStrings(at(index), periodStart) < 0) {
+    index += 1;
   }
 
   const dates: string[] = [];
-  let dueStr = formatJalaali(cursor);
-  for (let i = 0; i < 500; i += 1) {
+  for (let i = 0; i < 500; i += 1, index += 1) {
+    const dueStr = at(index);
     if (anchor.endDateString && compareJalaaliStrings(dueStr, anchor.endDateString) > 0) {
       break;
     }
-    if (isInPeriod(dueStr, period)) {
-      dates.push(dueStr);
-    }
-    if (compareJalaaliStrings(dueStr, formatJalaali(period.end)) > 0) {
-      break;
-    }
-    const parsed = parseJalaali(dueStr);
-    if (!parsed) break;
-    dueStr = formatJalaali(
-      addIntervalDate(parsed, anchor.intervalNumber, anchor.intervalPeriod)
-    );
+    if (compareJalaaliStrings(dueStr, periodEnd) > 0) break;
+    if (isInPeriod(dueStr, period)) dates.push(dueStr);
   }
 
   return dates;

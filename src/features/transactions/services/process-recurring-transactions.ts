@@ -1,16 +1,18 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { RecurringTransaction } from '@/shared/types/domain';
-import { addIntervalDate } from '@/features/deadlines/utils/schedule';
+import { nthIntervalDate } from '@/features/deadlines/utils/schedule';
 import { createBotWalletTransaction } from '@/features/notifications/services/bot-quick-add-transaction';
 import { compareJalaaliStrings } from '@/features/notifications/utils/jalali-days';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
 import { formatJalaali, parseJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 
+type InstanceResult = 'created' | 'exists' | 'failed';
+
 async function generateDueInstance(
   row: RecurringTransaction,
   dueDateString: string,
   todayStr: string
-): Promise<boolean> {
+): Promise<InstanceResult> {
   const admin = createSupabaseAdminClient();
 
   const { data: existing } = await admin
@@ -19,7 +21,7 @@ async function generateDueInstance(
     .eq('recurring_id', row.id)
     .eq('due_date_string', dueDateString)
     .maybeSingle();
-  if (existing) return false;
+  if (existing) return 'exists';
 
   const note = [row.title, row.note?.trim()].filter(Boolean).join(' · ');
   const notifyExpense =
@@ -38,7 +40,7 @@ async function generateDueInstance(
 
   if (!result.ok) {
     console.error(`recurring ${row.id} @ ${dueDateString}: ${result.error}`);
-    return false;
+    return 'failed';
   }
 
   const { error: runErr } = await admin.from('recurring_transaction_runs').insert({
@@ -47,35 +49,57 @@ async function generateDueInstance(
     transaction_id: result.transactionId,
   });
   if (runErr) {
+    // Roll back the transaction we just created so a retry (or a parallel
+    // run that already owns this due date) never leaves a duplicate.
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', result.transactionId)
+      .eq('user_id', row.user_id);
+    if (runErr.code === '23505') return 'exists';
     console.error('recurring_transaction_runs insert failed', runErr);
-    return false;
+    return 'failed';
   }
 
-  return true;
+  return 'created';
 }
 
 async function processOneRecurring(row: RecurringTransaction, todayStr: string): Promise<number> {
   if (!row.is_active || row.deleted_at) return 0;
 
-  let dueStr = row.next_due_date_string;
+  const anchor = parseJalaali(row.next_due_date_string);
+  if (!anchor) return 0;
+
+  // Dates are computed from this run's anchor (anchor + i × interval) so a
+  // catch-up over several months does not drift month-end days.
+  const dueAt = (i: number) =>
+    formatJalaali(nthIntervalDate(anchor, row.interval_number, row.interval_period, i));
+
+  let index = 0;
+  let dueStr = dueAt(0);
   let created = 0;
+  let failed = false;
   const maxCatchUp = 24;
 
-  for (let i = 0; i < maxCatchUp && compareJalaaliStrings(dueStr, todayStr) <= 0; i += 1) {
+  while (index < maxCatchUp && compareJalaaliStrings(dueStr, todayStr) <= 0) {
     if (row.end_date_string && compareJalaaliStrings(dueStr, row.end_date_string) > 0) {
       break;
     }
 
-    if (await generateDueInstance(row, dueStr, todayStr)) {
-      created += 1;
+    const outcome = await generateDueInstance(row, dueStr, todayStr);
+    if (outcome === 'failed') {
+      // Keep `next_due_date_string` on the failed date so the next cron run
+      // retries it. Moving past it would lose this instance forever.
+      failed = true;
+      break;
     }
+    if (outcome === 'created') created += 1;
 
-    const due = parseJalaali(dueStr);
-    if (!due) break;
-    dueStr = formatJalaali(
-      addIntervalDate(due, row.interval_number, row.interval_period)
-    );
+    index += 1;
+    dueStr = dueAt(index);
   }
+
+  if (failed && index === 0) return created;
 
   const admin = createSupabaseAdminClient();
   const stillActive =

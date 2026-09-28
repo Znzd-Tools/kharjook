@@ -98,14 +98,34 @@ export function sumCategoryCapsToman(
   categories: Category[],
   kind: Category['kind'] = 'expense'
 ): number {
-  const scopedIds = new Set(
-    categories.filter((category) => category.kind === kind).map((category) => category.id)
+  const scoped = categories.filter((category) => category.kind === kind);
+  const scopedById = new Map(scoped.map((category) => [category.id, category]));
+  const cappedIds = new Set(
+    caps
+      .filter((cap) => scopedById.has(cap.category_id) && Number(cap.monthly_limit_toman) > 0)
+      .map((cap) => cap.category_id)
   );
+
+  // A parent cap already covers its whole subtree (see `buildCapStatuses`),
+  // so a child cap under a capped ancestor must not be added again.
+  const hasCappedAncestor = (categoryId: string): boolean => {
+    const seen = new Set<string>([categoryId]);
+    let parentId = scopedById.get(categoryId)?.parent_id ?? null;
+    while (parentId && scopedById.has(parentId) && !seen.has(parentId)) {
+      if (cappedIds.has(parentId)) return true;
+      seen.add(parentId);
+      parentId = scopedById.get(parentId)?.parent_id ?? null;
+    }
+    return false;
+  };
+
   let total = 0;
   for (const cap of caps) {
-    if (!scopedIds.has(cap.category_id)) continue;
+    if (!scopedById.has(cap.category_id)) continue;
     const limitToman = Number(cap.monthly_limit_toman);
-    if (Number.isFinite(limitToman) && limitToman > 0) total += limitToman;
+    if (!Number.isFinite(limitToman) || limitToman <= 0) continue;
+    if (hasCappedAncestor(cap.category_id)) continue;
+    total += limitToman;
   }
   return total;
 }

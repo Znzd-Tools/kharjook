@@ -452,7 +452,9 @@ export function LoansHubView() {
       const newPaidAmount = installmentPaidAmount(settlementTarget) + payInLoanCurrency;
       const fullyPaid = newPaidAmount >= Number(settlementTarget.amount) - 1e-9;
 
-      const { error: installmentErr } = await supabase
+      // Optimistic lock + rollback: never keep the expense when the
+      // installment row was not updated (double tap / changed elsewhere).
+      const { data: updatedRows, error: installmentErr } = await supabase
         .from('loan_installments')
         .update({
           paid_amount: newPaidAmount,
@@ -461,8 +463,16 @@ export function LoansHubView() {
           paid_transaction_id: createdTx.id,
         })
         .eq('id', settlementTarget.id)
-        .eq('is_paid', false);
-      if (installmentErr) throw installmentErr;
+        .eq('is_paid', false)
+        .eq('paid_amount', installmentPaidAmount(settlementTarget))
+        .select('id');
+      if (installmentErr || !updatedRows || updatedRows.length === 0) {
+        await supabase.from('transactions').delete().eq('id', createdTx.id);
+        if (installmentErr) throw installmentErr;
+        toast.error('این قسط هم‌زمان تغییر کرد. صفحه را تازه کن و دوباره تلاش کن.');
+        await refresh();
+        return;
+      }
 
       setTransactions((prev) => [createdTx, ...prev]);
       fireExpenseAlert([createdTx.id]);

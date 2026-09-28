@@ -79,7 +79,16 @@ export function calculateAssetStats(
     const isDispose = isDisposeType(tx) || isTransferDispose(tx);
     if (!isAcquire && !isDispose) return;
 
-    const amount = Number(tx.amount);
+    // Legacy `amount` first; fall back to the polymorphic side that touches
+    // this asset (same rule as `asset-period-stats`).
+    const polyAmount = isAcquire
+      ? tx.target_asset_id === asset.id
+        ? tx.target_amount
+        : null
+      : tx.source_asset_id === asset.id
+        ? tx.source_amount
+        : null;
+    const amount = Number(tx.amount ?? polyAmount);
     const priceToman = Number(tx.price_toman);
     if (!Number.isFinite(amount) || amount <= 0) return;
     if (!Number.isFinite(priceToman) || priceToman <= 0) return;
@@ -96,15 +105,17 @@ export function calculateAssetStats(
       if (totalAmount > 0) {
         const avgCostToman = totalCostToman / totalAmount;
         const avgCostUsd = totalCostUsd / totalAmount;
+        // Never realize P/L on units that were not held (oversell).
+        const drain = Math.min(amount, totalAmount);
 
         // Calculate Realized Profit
-        realizedProfitToman += amount * (priceToman - avgCostToman);
-        realizedProfitUsd += amount * (priceUsd - avgCostUsd);
+        realizedProfitToman += drain * (priceToman - avgCostToman);
+        realizedProfitUsd += drain * (priceUsd - avgCostUsd);
 
         // Reduce Cost Basis proportionately
-        totalCostToman -= amount * avgCostToman;
-        totalCostUsd -= amount * avgCostUsd;
-        totalAmount -= amount;
+        totalCostToman -= drain * avgCostToman;
+        totalCostUsd -= drain * avgCostUsd;
+        totalAmount -= drain;
       }
 
       // Handle JS floating point issues when amount reaches 0
@@ -160,4 +171,33 @@ export function calculateAssetStats(
     unrealizedProfitToman: includePnl ? unrealizedProfitToman : 0,
     unrealizedProfitUsd: includePnl ? unrealizedProfitUsd : 0,
   };
+}
+
+/**
+ * Net units on hand from a transaction list — the single quantity replay
+ * used by the assets list, holdings checks and historical charts.
+ * Pass a pre-filtered list (e.g. `date <= X`) for point-in-time holdings.
+ */
+export function assetQuantityFromTransactions(
+  assetId: string,
+  transactions: Transaction[]
+): number {
+  return calculateAssetStats(
+    {
+      id: assetId,
+      user_id: '',
+      category_id: null,
+      name: '',
+      unit: '',
+      decimal_places: 4,
+      price_toman: 0,
+      price_usd: 0,
+      icon_url: null,
+      price_source_id: null,
+      include_in_profit_loss: false,
+    },
+    transactions,
+    'TOMAN',
+    1
+  ).totalAmount;
 }
