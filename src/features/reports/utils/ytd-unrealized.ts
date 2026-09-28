@@ -3,7 +3,7 @@ import {
   calculateAssetPeriodStats,
   type AssetPeriodStats,
 } from '@/features/reports/utils/asset-period-stats';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { effectiveOpeningPriceAt, effectivePriceAt } from '@/features/reports/utils/price-history';
 import { formatJalaali } from '@/shared/utils/jalali';
 import {
   clampPeriodToToday,
@@ -58,7 +58,7 @@ export function ytdPnlDisplay(
       total: realized + open!,
       realized,
       open,
-      isPartial: false,
+      isPartial: stats.periodBaselineMissing,
       unavailable: false,
     };
   }
@@ -98,7 +98,6 @@ export function computeYtdUnrealizedSummary(
   todayStr: string
 ): YtdUnrealizedSummary {
   const period = currentJalaliYearPeriod();
-  const startStr = formatJalaali(period.start);
   const endStr = formatJalaali(period.end);
 
   const rows: AssetYtdUnrealizedRow[] = [];
@@ -115,8 +114,8 @@ export function computeYtdUnrealizedSummary(
   for (const asset of assets) {
     if (asset.include_in_profit_loss === false) continue;
 
-    const startPrice = effectivePriceAt(asset, startStr, dailyPrices, todayStr);
-    const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+    const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr, transactions);
+    const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
     const stats = calculateAssetPeriodStats(
       asset,
       transactions,
@@ -173,10 +172,9 @@ export function ytdUnrealizedForAsset(
   todayStr: string
 ): AssetPeriodStats {
   const period = currentJalaliYearPeriod();
-  const startStr = formatJalaali(period.start);
   const endStr = formatJalaali(period.end);
-  const startPrice = effectivePriceAt(asset, startStr, dailyPrices, todayStr);
-  const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+  const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr, transactions);
+  const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
   return calculateAssetPeriodStats(
     asset,
     transactions,

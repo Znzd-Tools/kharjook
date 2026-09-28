@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -54,6 +55,7 @@ export function ChecksHubView() {
   const { user } = useAuth();
   const { wallets, categories, currencyRates, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
 
   const [checks, setChecks] = useState<Check[]>([]);
   const [filter, setFilter] = useState<FilterKey>('pending');
@@ -152,6 +154,9 @@ export function ChecksHubView() {
     }
 
     const payAmount = (settlementTarget.amount * checkRate) / payRate;
+
+    // USD snapshot at the rate of the row's date (due date), not today's.
+    const snapUsdRate = usdRateOn(rateHistories, settlementTarget.due_date_string, todayStr, usdRate);
     if (!Number.isFinite(payAmount) || payAmount <= 0) {
       toast.error('مبلغ تسویه نامعتبر است.');
       return;
@@ -176,9 +181,9 @@ export function ChecksHubView() {
       asset_id: null,
       amount: null,
       price_toman: wallet.currency === 'IRT' ? null : payRate,
-      usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+      usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
       amount_toman_at_time: payAmount * payRate,
-      amount_usd_at_time: (payAmount * payRate) / usdRate,
+      amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
     };
 
     setIsSubmitting(true);
@@ -191,7 +196,7 @@ export function ChecksHubView() {
       if (txErr) throw txErr;
       const createdTx = txData as Transaction;
 
-      const { error: checkErr } = await supabase
+      const { data: checkRows, error: checkErr } = await supabase
         .from('checks')
         .update({
           status: 'cleared',
@@ -200,8 +205,17 @@ export function ChecksHubView() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', settlementTarget.id)
-        .eq('status', 'pending');
-      if (checkErr) throw checkErr;
+        .eq('status', 'pending')
+        .select('id');
+      if (checkErr || !checkRows || checkRows.length === 0) {
+        // Roll back: the check was not marked, so the expense must not stay.
+        await supabase.from('transactions').delete().eq('id', createdTx.id);
+        if (checkErr) throw checkErr;
+        toast.error('این چک قبلاً تسویه شده.');
+        closeSettle();
+        await refresh();
+        return;
+      }
 
       setTransactions((prev) => [createdTx, ...prev]);
       fireExpenseAlert([createdTx.id]);

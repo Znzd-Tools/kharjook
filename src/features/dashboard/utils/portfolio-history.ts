@@ -6,13 +6,14 @@ import type {
   Transaction,
   Wallet,
 } from '@/shared/types/domain';
+import { assetQuantityFromTransactions } from '@/shared/utils/calculate-asset-stats';
 import {
   calculateWalletStats,
   walletBalanceThroughDate,
 } from '@/shared/utils/calculate-wallet-balance';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { parseDateToNumber } from '@/shared/utils/parse-date';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { effectiveOpeningPriceAt, effectivePriceAt } from '@/features/reports/utils/price-history';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import {
   addDays,
@@ -29,65 +30,13 @@ export function assetNetAmountThroughDate(
   transactions: Transaction[],
   throughDateStr: string
 ): number {
+  // Same quantity replay as the assets list, limited to rows on/before the date,
+  // so the chart and the assets tab can never disagree on holdings.
   const limit = parseDateToNumber(throughDateStr);
-  const isAcquire = (tx: Transaction) => {
-    if (tx.type === 'BUY' || tx.type === 'INCOME') {
-      return tx.asset_id === assetId || tx.target_asset_id === assetId;
-    }
-    if (tx.type === 'TRANSFER') {
-      return tx.target_asset_id === assetId;
-    }
-    return false;
-  };
-  const isDispose = (tx: Transaction) => {
-    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
-      return tx.asset_id === assetId || tx.source_asset_id === assetId;
-    }
-    if (tx.type === 'TRANSFER') {
-      return tx.source_asset_id === assetId;
-    }
-    return false;
-  };
-  const assetTxs = transactions.filter((tx) => isAcquire(tx) || isDispose(tx));
-
-  const txAmountForAsset = (tx: Transaction): number => {
-    if (tx.type === 'BUY' || tx.type === 'INCOME') {
-      return Number(tx.target_amount ?? tx.amount);
-    }
-    if (tx.type === 'SELL' || tx.type === 'EXPENSE') {
-      return Number(tx.source_amount ?? tx.amount);
-    }
-    // TRANSFER: acquire side uses target amount, dispose side uses source amount.
-    if (isAcquire(tx)) return Number(tx.target_amount ?? tx.amount);
-    return Number(tx.source_amount ?? tx.amount);
-  };
-
-  const sortedTxs = [...assetTxs].sort((a, b) => {
-    const dateA = parseDateToNumber(a.date_string);
-    const dateB = parseDateToNumber(b.date_string);
-    if (dateA !== dateB) return dateA - dateB;
-    const ra = isAcquire(a) ? 0 : 1;
-    const rb = isAcquire(b) ? 0 : 1;
-    if (ra !== rb) return ra - rb;
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
-
-  let totalAmount = 0;
-  for (const tx of sortedTxs) {
-    if (parseDateToNumber(tx.date_string) > limit) continue;
-    const acquiring = isAcquire(tx);
-    const disposing = isDispose(tx);
-    if (!acquiring && !disposing) continue;
-    const amount = txAmountForAsset(tx);
-    if (!Number.isFinite(amount) || amount <= 0) continue;
-    if (acquiring) {
-      totalAmount += amount;
-    } else {
-      totalAmount -= amount;
-      if (totalAmount <= 0.000001) totalAmount = 0;
-    }
-  }
-  return totalAmount;
+  return assetQuantityFromTransactions(
+    assetId,
+    transactions.filter((tx) => parseDateToNumber(tx.date_string) <= limit)
+  );
 }
 
 export interface PortfolioAssetsValueResult {
@@ -111,7 +60,7 @@ export function portfolioAssetsValueAtDate(
     if (asset.include_in_balance === false) continue;
     const qty = assetNetAmountThroughDate(asset.id, transactions, asOfDateStr);
     if (qty <= 0) continue;
-    const p = effectivePriceAt(asset, asOfDateStr, dailyPrices, todayStr);
+    const p = effectivePriceAt(asset, asOfDateStr, dailyPrices, todayStr, transactions);
     if (!p) {
       missingPriceCount += 1;
       continue;
@@ -162,7 +111,9 @@ export function portfolioTotalTomanAtDate(
   const totalToman = a.valueToman + cash;
   const usdRow = currencyRates.find((r) => r.currency === 'USD');
   const usd = Number(usdRow?.toman_per_unit) || 0;
-  const totalUsd = usd > 0 ? totalToman / usd : 0;
+  // Assets use their own historical USD price; only cash is converted at the
+  // current rate (no historical FX table yet).
+  const totalUsd = a.valueUsd + (usd > 0 ? cash / usd : 0);
   return {
     totalToman,
     totalUsd,
@@ -258,15 +209,14 @@ export function ytdCumulativeProfitMonthlySeries(
           }
         : today;
     const period: Period = { kind: 'month', start: yearStart, end };
-    const startStr = formatJalaali(yearStart);
     const endStr = formatJalaali(end);
     let profitToman = 0;
     let profitUsd = 0;
 
     for (const asset of assets) {
       if (asset.include_in_profit_loss === false) continue;
-      const startPrice = effectivePriceAt(asset, startStr, dailyPrices, todayStr);
-      const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+      const startPrice = effectiveOpeningPriceAt(asset, yearStart, dailyPrices, todayStr, transactions);
+      const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
       const s = calculateAssetPeriodStats(
         asset,
         transactions,

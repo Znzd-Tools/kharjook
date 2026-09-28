@@ -344,6 +344,11 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
       if (form.sourceKind === 'person' && form.targetKind === 'asset') {
         return 'انتقال از شخص به دارایی مجاز نیست.';
       }
+      if (form.sourceKind === 'asset' && form.targetKind === 'asset') {
+        // Asset→asset needs prices on both legs; a plain transfer has none, so
+        // holdings/P&L cannot be replayed. «تبدیل» records it correctly.
+        return 'برای جابه‌جایی بین دو دارایی از «تبدیل» استفاده کن.';
+      }
       if (form.sourceId === form.targetId) return 'مبدأ و مقصد نباید یکی باشند.';
       break;
     case 'INCOME':
@@ -390,17 +395,38 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
   return null;
 }
 
-/** Blocks submit when source amount exceeds wallet/asset holding (not persons). */
+/** Float noise tolerance when spending a full balance / holding. */
+const FUNDS_EPSILON = 1e-9;
+
+/** Stable key of the form's source endpoint (for multi-row reservations). */
+export function sourceEndpointKey(form: FormState): string | null {
+  if (!form.sourceKind || !form.sourceId) return null;
+  return `${form.sourceKind}:${form.sourceId}`;
+}
+
+/**
+ * Blocks submit when source amount exceeds wallet/asset holding (not persons).
+ *
+ * - When editing, pass `transactions` WITHOUT the edited row, so its own old
+ *   amount is not counted against the new one.
+ * - `alreadyReserved` = amount earlier rows of the same batch already take
+ *   from this same source (multi-row add).
+ */
 export function validateSourceFunds(
   form: FormState,
   wallets: Wallet[],
   transactions: Transaction[],
-  persons: { id: string }[]
+  persons: { id: string }[],
+  alreadyReserved = 0
 ): string | null {
   if (form.type === 'INCOME' || form.sourceKind === 'person') return null;
   const bal = sourceBalance(form, wallets, transactions, persons);
   const amount = Number(form.sourceAmount);
-  if (bal != null && Number.isFinite(amount) && amount > bal) {
+  if (
+    bal != null &&
+    Number.isFinite(amount) &&
+    amount + alreadyReserved > bal + FUNDS_EPSILON
+  ) {
     return 'موجودی مبدأ کافی نیست.';
   }
   return null;
@@ -681,3 +707,24 @@ export function buildTradeSnapshots(
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
+
+/**
+ * When the date changes, move the prefilled USD rate to the rate of the new
+ * date — but only if the user did not type their own rate (the field still
+ * holds the suggestion for the old date). Returns the new field value.
+ */
+export function usdRateAfterDateChange(
+  prev: Pick<FormState, 'date' | 'usdRate'>,
+  nextDate: string,
+  suggest: (date: string) => number
+): string {
+  const oldSuggestion = suggest(prev.date);
+  const current = Number(prev.usdRate);
+  const untouched =
+    !prev.usdRate ||
+    !Number.isFinite(current) ||
+    (oldSuggestion > 0 && Math.abs(current - oldSuggestion) <= oldSuggestion * 1e-9);
+  if (!untouched) return prev.usdRate;
+  const next = suggest(nextDate);
+  return next > 0 ? canonicalNumber(next) : prev.usdRate;
+}

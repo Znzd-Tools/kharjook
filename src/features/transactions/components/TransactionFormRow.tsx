@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useEffect, useId, useState } from 'react';
 import {
   ArrowDown,
@@ -34,6 +35,7 @@ import {
 import {
   canonicalNumber,
   recomputeMoneySide,
+  usdRateAfterDateChange,
   recomputeTransferTarget,
   sourceBalance,
   walletRateForTransfer,
@@ -82,6 +84,8 @@ export function TransactionFormRow({
   currencyRates: CurrencyRate[];
   usdRate: number;
 }) {
+  const rateHistories = useRateHistories();
+  const todayStr = formatJalaali(todayJalaali());
   const shape = TYPE_SHAPES[form.type];
   const style = TYPE_STYLES[form.type];
   const pricing = pricingContextOf(form, wallets);
@@ -178,6 +182,22 @@ export function TransactionFormRow({
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     onChange((prev) => {
       const next = { ...prev, [key]: value };
+      if (key === 'date') {
+        // Past date → prefill the USD rate of THAT date (history), unless the
+        // user typed their own rate.
+        next.usdRate = usdRateAfterDateChange(prev, String(value), (d) =>
+          usdRateOn(rateHistories, d, todayStr, usdRate)
+        );
+        if (next.usdRate !== prev.usdRate) {
+          if (next.type === 'BUY' || next.type === 'SELL') {
+            return recomputeMoneySide(next, wallets, currencyRates, usdRate);
+          }
+          if (next.type === 'TRANSFER') {
+            return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+          }
+        }
+        return next;
+      }
       if (
         (next.type === 'BUY' || next.type === 'SELL') &&
         (key === 'targetAmount' ||

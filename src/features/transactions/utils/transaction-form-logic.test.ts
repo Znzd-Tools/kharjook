@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   recomputeTransferTarget,
   validateForm,
+  sourceEndpointKey,
+  usdRateAfterDateChange,
   validateSourceFunds,
 } from '@/features/transactions/utils/transaction-form-logic';
 import type { FormState } from '@/features/transactions/utils/transaction-form-types';
@@ -151,5 +153,71 @@ describe('recomputeTransferTarget wallet→asset', () => {
       60000
     );
     expect(next.targetAmount).toBe('');
+  });
+});
+
+describe('validateSourceFunds — edit, batch and float cases', () => {
+  const wallet = {
+    id: 'w1',
+    user_id: 'u1',
+    name: 'نقد',
+    currency: 'IRT',
+    initial_balance: 500,
+    icon_url: null,
+    archived_at: null,
+    created_at: '2024-01-01',
+  } as Wallet;
+
+  it('counts amounts reserved by earlier rows of the same batch', () => {
+    const form = { ...baseForm, sourceAmount: '300' };
+    expect(validateSourceFunds(form, [wallet], [], [], 0)).toBe(null);
+    expect(validateSourceFunds(form, [wallet], [], [], 300)).toBe('موجودی مبدأ کافی نیست.');
+  });
+
+  it('allows spending the exact balance despite float noise', () => {
+    const w = { ...wallet, initial_balance: 0.3 } as Wallet;
+    const form = { ...baseForm, sourceAmount: String(0.1 + 0.2) };
+    expect(validateSourceFunds(form, [w], [], [])).toBe(null);
+  });
+
+  it('builds a stable source key', () => {
+    expect(sourceEndpointKey(baseForm)).toBe('wallet:w1');
+    expect(sourceEndpointKey({ ...baseForm, sourceId: null })).toBe(null);
+  });
+});
+
+describe('validateForm — asset to asset transfer', () => {
+  it('points the user to convert', () => {
+    expect(
+      validateForm(
+        {
+          ...baseForm,
+          type: 'TRANSFER',
+          sourceKind: 'asset',
+          sourceId: 'a1',
+          targetKind: 'asset',
+          targetId: 'a2',
+          sourceAmount: '1',
+          targetAmount: '1',
+        },
+        []
+      )
+    ).toBe('برای جابه‌جایی بین دو دارایی از «تبدیل» استفاده کن.');
+  });
+});
+
+describe('usdRateAfterDateChange', () => {
+  const suggest = (d: string) => (d === '1403/05/01' ? 60_000 : d === '1403/01/01' ? 50_000 : 0);
+
+  it('moves an untouched rate to the rate of the new date', () => {
+    expect(
+      usdRateAfterDateChange({ date: '1403/05/01', usdRate: '60000' }, '1403/01/01', suggest)
+    ).toBe('50000');
+  });
+
+  it('keeps a rate the user typed', () => {
+    expect(
+      usdRateAfterDateChange({ date: '1403/05/01', usdRate: '61234' }, '1403/01/01', suggest)
+    ).toBe('61234');
   });
 });

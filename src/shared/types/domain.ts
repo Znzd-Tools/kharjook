@@ -433,6 +433,21 @@ export interface AssetStats {
   realizedProfitUsd: number;
   unrealizedProfitToman: number;
   unrealizedProfitUsd: number;
+  /** Sum of all acquisitions ever (cost of every buy / income). */
+  investedToman: number;
+  investedUsd: number;
+  /** Sum of all disposal proceeds ever (sells / asset expenses / transfers out). */
+  proceedsToman: number;
+  proceedsUsd: number;
+  /** First acquisition date of the current open position (after the last zero). */
+  activeSinceDate: string | null;
+  /** Unit price used for the current value. */
+  currentPriceToman: number;
+  currentPriceUsd: number;
+  /** live = cached asset price; trade = newest BUY/SELL price (no live price); none = no price. */
+  currentPriceSource: 'live' | 'trade' | 'none';
+  /** Date of the trade price when `currentPriceSource === 'trade'`. */
+  currentPriceDate: string | null;
 }
 
 export type AuthUser = User;

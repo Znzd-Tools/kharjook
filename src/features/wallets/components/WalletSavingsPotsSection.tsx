@@ -253,6 +253,12 @@ export function WalletSavingsPotsSection({
         </div>
       </div>
 
+      {allocated > walletBalance + 1e-6 && (
+        <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+          جمع قلک‌ها از موجودی فعلی کیف پول بیشتر است. یکی از قلک‌ها را کم کن.
+        </p>
+      )}
+
       {formOpen && (
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-3">
           <div className="flex items-center justify-between">

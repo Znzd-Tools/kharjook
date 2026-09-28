@@ -1,4 +1,7 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { serverUsdRateOn } from '@/shared/utils/rate-history-store';
 import {
   installmentPaidAmount,
   installmentRemainingAmount,
@@ -70,6 +73,16 @@ export async function settleLoanInstallment(input: {
   const rates = ratesRows ?? [];
   const usdRate = rates.find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
 
+  // USD snapshot at the rate of the row's date (the due date), from the
+  // stored history; falls back to the current rate.
+  const snapUsdRate = await serverUsdRateOn(
+    admin,
+    input.userId,
+    installment.due_date_string,
+    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE)),
+    Number(usdRate)
+  );
+
   let txPayload: Record<string, unknown>;
 
   if (isAssetLoan(loan)) {
@@ -106,9 +119,9 @@ export async function settleLoanInstallment(input: {
       asset_id: asset.id,
       amount: payInLoanCurrency,
       price_toman: priceToman,
-      usd_rate: usdRate,
+      usd_rate: snapUsdRate,
       amount_toman_at_time: payInLoanCurrency * priceToman,
-      amount_usd_at_time: (payInLoanCurrency * priceToman) / usdRate,
+      amount_usd_at_time: (payInLoanCurrency * priceToman) / snapUsdRate,
     };
   } else {
     if (!input.walletId) {
@@ -155,9 +168,9 @@ export async function settleLoanInstallment(input: {
       asset_id: null,
       amount: null,
       price_toman: wallet.currency === 'IRT' ? null : payRate,
-      usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+      usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
       amount_toman_at_time: payAmount * payRate,
-      amount_usd_at_time: (payAmount * payRate) / usdRate,
+      amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
     };
   }
 
@@ -175,7 +188,10 @@ export async function settleLoanInstallment(input: {
   const actuallyNewPaid = installmentPaidAmount(installment) + payInLoanCurrency;
   const fullyPaid = actuallyNewPaid >= Number(installment.amount) - 1e-9;
 
-  const { error: installmentErr } = await admin
+  // Optimistic lock: only update if nobody paid this installment since we
+  // read it. Otherwise a double tap / parallel partial pay would book two
+  // expenses but record one payment.
+  const { data: updatedRows, error: installmentErr } = await admin
     .from('loan_installments')
     .update({
       paid_amount: actuallyNewPaid,
@@ -184,10 +200,26 @@ export async function settleLoanInstallment(input: {
       paid_transaction_id: createdTx.id,
     })
     .eq('id', installment.id)
-    .eq('is_paid', false);
+    .eq('is_paid', false)
+    .eq('paid_amount', installmentPaidAmount(installment))
+    .select('id');
 
-  if (installmentErr) {
-    return { ok: false, error: 'به‌روزرسانی قسط ناموفق بود.', code: 'db' };
+  if (installmentErr || !updatedRows || updatedRows.length === 0) {
+    // Roll back the expense so money never leaves the wallet without the
+    // installment being marked.
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', createdTx.id)
+      .eq('user_id', input.userId);
+    if (installmentErr) {
+      return { ok: false, error: 'به‌روزرسانی قسط ناموفق بود.', code: 'db' };
+    }
+    return {
+      ok: false,
+      error: 'این قسط هم‌زمان تغییر کرد. صفحه را تازه کن و دوباره تلاش کن.',
+      code: 'already_paid',
+    };
   }
 
   await notifyExpenseTransaction(input.userId, createdTx);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -55,6 +56,7 @@ export function LoansHubView() {
   const { user } = useAuth();
   const { wallets, assets, categories, currencyRates, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const assetsById = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
   const [tab, setTab] = useState<TabKey>('loans');
@@ -376,6 +378,9 @@ export function LoansHubView() {
 
     let txPayload: Record<string, unknown>;
 
+    // USD snapshot at the rate of the row's date (due date), not today's.
+    const snapUsdRate = usdRateOn(rateHistories, settlementTarget.due_date_string, todayStr, usdRate);
+
     if (assetLoan && asset) {
       const priceToman = Number(asset.price_toman);
       if (!(priceToman > 0) || !(usdRate > 0)) {
@@ -397,9 +402,9 @@ export function LoansHubView() {
         asset_id: asset.id,
         amount: payInLoanCurrency,
         price_toman: priceToman,
-        usd_rate: usdRate,
+        usd_rate: snapUsdRate,
         amount_toman_at_time: payInLoanCurrency * priceToman,
-        amount_usd_at_time: (payInLoanCurrency * priceToman) / usdRate,
+        amount_usd_at_time: (payInLoanCurrency * priceToman) / snapUsdRate,
       };
     } else if (wallet) {
       const loanRate = tomanPerUnit(loan.currency, currencyRates);
@@ -430,9 +435,9 @@ export function LoansHubView() {
         asset_id: null,
         amount: null,
         price_toman: wallet.currency === 'IRT' ? null : payRate,
-        usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+        usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
         amount_toman_at_time: payAmount * payRate,
-        amount_usd_at_time: (payAmount * payRate) / usdRate,
+        amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
       };
     } else {
       toast.error('اطلاعات پرداخت نامعتبر است.');
@@ -452,7 +457,9 @@ export function LoansHubView() {
       const newPaidAmount = installmentPaidAmount(settlementTarget) + payInLoanCurrency;
       const fullyPaid = newPaidAmount >= Number(settlementTarget.amount) - 1e-9;
 
-      const { error: installmentErr } = await supabase
+      // Optimistic lock + rollback: never keep the expense when the
+      // installment row was not updated (double tap / changed elsewhere).
+      const { data: updatedRows, error: installmentErr } = await supabase
         .from('loan_installments')
         .update({
           paid_amount: newPaidAmount,
@@ -461,8 +468,16 @@ export function LoansHubView() {
           paid_transaction_id: createdTx.id,
         })
         .eq('id', settlementTarget.id)
-        .eq('is_paid', false);
-      if (installmentErr) throw installmentErr;
+        .eq('is_paid', false)
+        .eq('paid_amount', installmentPaidAmount(settlementTarget))
+        .select('id');
+      if (installmentErr || !updatedRows || updatedRows.length === 0) {
+        await supabase.from('transactions').delete().eq('id', createdTx.id);
+        if (installmentErr) throw installmentErr;
+        toast.error('این قسط هم‌زمان تغییر کرد. صفحه را تازه کن و دوباره تلاش کن.');
+        await refresh();
+        return;
+      }
 
       setTransactions((prev) => [createdTx, ...prev]);
       fireExpenseAlert([createdTx.id]);

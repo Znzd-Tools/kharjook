@@ -43,7 +43,7 @@ import {
   calculateAssetPeriodStats,
   type AssetPeriodStats,
 } from '@/features/reports/utils/asset-period-stats';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { effectivePriceAt, effectiveOpeningPriceAt } from '@/features/reports/utils/price-history';
 import type { Asset } from '@/shared/types/domain';
 import {
   filterAssetsForList,
@@ -103,7 +103,6 @@ export function AssetsReportView() {
   // asset; with hundreds of snapshots × tens of assets still well under a
   // frame. Memoization keeps it off the render hot path.
   const allStats = useMemo(() => {
-    const periodStartStr = formatJalaali(period.start);
     const periodEndStr = formatJalaali(period.end);
     return assets
       .filter((a) => a.include_in_profit_loss !== false)
@@ -112,8 +111,8 @@ export function AssetsReportView() {
         const startPrice =
           period.kind === 'all'
             ? null
-            : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
-        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+            : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr, transactions);
+        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr, transactions);
         return {
           asset: a,
           stats: calculateAssetPeriodStats(

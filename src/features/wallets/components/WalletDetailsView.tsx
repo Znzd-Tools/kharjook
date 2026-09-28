@@ -22,7 +22,8 @@ import { supabase } from '@/shared/lib/supabase/client';
 import type { Asset, Transaction, TransactionType, Wallet } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
-import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
+import { walletRateNow } from '@/features/rates/utils/wallet-rate';
 import { formatCurrency, formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
@@ -80,6 +81,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
     currencyRates,
   } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
   const [txSearchQuery, setTxSearchQuery] = useState('');
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
@@ -159,7 +161,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   }
 
   const meta = CURRENCY_META[wallet.currency];
-  const rate = tomanPerUnit(wallet.currency, currencyRates);
+  const { rate } = walletRateNow(wallet.currency, currencyRates, rateHistories);
   const balanceToman = stats.balance * rate;
   const balanceDisplay =
     currencyMode === 'USD' && usdRate > 0

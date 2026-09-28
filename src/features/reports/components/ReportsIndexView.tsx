@@ -25,7 +25,7 @@ import {
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { rollupCategories } from '@/features/reports/utils/category-rollup';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import { effectivePriceAt, effectiveOpeningPriceAt } from '@/features/reports/utils/price-history';
 import { countConvertOperations } from '@/features/transactions/utils/convert-transaction';
 import { PeriodComparisonCard } from '@/features/reports/components/PeriodComparisonCard';
 import {
@@ -69,7 +69,6 @@ export function ReportsIndexView() {
 
   const assetsSummary = useMemo(() => {
     const period = clampPeriodToToday(currentPeriod(scope));
-    const periodStartStr = formatJalaali(period.start);
     const periodEndStr = formatJalaali(period.end);
     let totalToman = 0;
     let totalUsd = 0;
@@ -79,8 +78,8 @@ export function ReportsIndexView() {
       const startPrice =
         period.kind === 'all'
           ? null
-          : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
-      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+          : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr, transactions);
+      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr, transactions);
       const s = calculateAssetPeriodStats(
         a,
         transactions,
@@ -148,7 +147,6 @@ export function ReportsIndexView() {
     const previousCash = rollupNet(previous);
 
     const assetsTotal = (period: typeof current) => {
-      const periodStartStr = formatJalaali(period.start);
       const periodEndStr = formatJalaali(period.end);
       let totalToman = 0;
       let totalUsd = 0;
@@ -157,8 +155,8 @@ export function ReportsIndexView() {
         const startPrice =
           period.kind === 'all'
             ? null
-            : effectivePriceAt(a, periodStartStr, dailyPrices, todayStr);
-        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+            : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr, transactions);
+        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr, transactions);
         const s = calculateAssetPeriodStats(
           a,
           transactions,

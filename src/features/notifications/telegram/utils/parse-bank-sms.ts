@@ -16,7 +16,7 @@ function normalizeDigits(value: string): string {
 }
 
 function parseNumberToken(raw: string): number | null {
-  const normalized = normalizeDigits(raw).replace(/[,،_\s]/g, '');
+  const normalized = normalizeDigits(raw).replace(/[,،٬_\s]/g, '');
   const n = Number(normalized);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
@@ -30,8 +30,9 @@ function normalizeForMatch(text: string): string {
 
 const INCOME_PATTERN =
   /واری[زز]|واري[زز]|دری[اا]فت|واریز به|سود(?:\s|$)|deposit|credit/i;
+// `\bpos\b` — a bare `pos` also matched inside "deposit".
 const EXPENSE_PATTERN =
-  /برداشت|خری[دد]|خري[دد]|پرداخت|انتقال(?:\s+وجه|\s|$)|pos|خرید|purchase|withdraw/i;
+  /برداشت|خری[دد]|خري[دد]|پرداخت|انتقال(?:\s+وجه|\s|$)|\bpos\b|خرید|purchase|withdraw/i;
 
 const BANK_PATTERN =
   /بانک\s+[\u0600-\u06FFa-zA-Z]+|bank\s+[\w]+/i;
@@ -72,37 +73,70 @@ function extractNote(text: string, bankHint: string | null): string {
   return note.slice(0, 120);
 }
 
-function extractAmountToman(text: string): number | null {
-  const normalized = normalizeForMatch(text);
+/**
+ * One money number: digits with optional thousands separators. No spaces or
+ * dots inside, so "250,000 1403" is never merged into one number. The
+ * look-arounds reject pieces of dates such as "1403/07/05" (lines with
+ * times are skipped separately).
+ */
+const NUM = String.raw`(?<![\d/,،٬])(\d{1,3}(?:[,،٬]\d{3})+|\d+)(?![\d/:])`;
+const RIAL_RE = /ریال|ريال|rial/i;
+const TOMAN_RE = /تومان/i;
+const AMOUNT_KEYWORD_RE = new RegExp(
+  String.raw`(?:مبلغ|amount|برداشت|واری[زز]|واري[زز]|خری[دد]|خري[دد]|پرداخت|انتقال|دری[اا]فت)[\s:：\-]*` +
+    NUM +
+    String.raw`\s*(تومان|ریال|ريال|rial)?`,
+  'i'
+);
+/** Lines that hold balances, accounts, cards, dates or times — never the amount. */
+const NON_AMOUNT_LINE_RE =
+  /مانده|موجودی|balance|حساب|کارت|card|شبا|\d{1,2}:\d{2}|\d{2,4}\/\d{1,2}\/\d{1,2}|\*/i;
 
-  const tomanMatch = normalized.match(/([\d,،._\s]+)\s*تومان/i);
-  if (tomanMatch) {
-    return parseNumberToken(tomanMatch[1] ?? '');
-  }
+/**
+ * Iranian bank SMS report amounts in RIAL unless they say تومان.
+ * An explicit unit next to the number wins; then a unit anywhere in the
+ * text; with no unit at all we assume Rial (bank standard).
+ */
+function toToman(raw: number, unitNearNumber: string | undefined, fullText: string): number {
+  if (unitNearNumber) return TOMAN_RE.test(unitNearNumber) ? raw : raw / 10;
+  if (TOMAN_RE.test(fullText) && !RIAL_RE.test(fullText)) return raw;
+  return raw / 10;
+}
 
-  const labeled = normalized.match(/(?:مبلغ|amount)[:\s-]*([\d,،._\s]+)/i);
-  if (labeled) {
-    const raw = parseNumberToken(labeled[1] ?? '');
-    if (!raw) return null;
-    if (/ریال|ريال|rial/i.test(normalized) && !/تومان/i.test(normalized)) {
-      return raw / 10;
+function extractAmountToman(rawText: string): number | null {
+  // Keep line breaks: they separate amount lines from balance/date lines.
+  const text = normalizeDigits(rawText).replace(/‌/g, ' ');
+
+  // 1) A number directly followed by a unit.
+  const withUnit = text.match(new RegExp(NUM + String.raw`\s*(تومان|ریال|ريال|rial)`, 'i'));
+  if (withUnit) {
+    const lineOfMatch = text
+      .split(/\n/)
+      .find((line) => line.includes(withUnit[0]));
+    if (!lineOfMatch || !/مانده|موجودی|balance/i.test(lineOfMatch)) {
+      const raw = parseNumberToken(withUnit[1] ?? '');
+      if (raw) return toToman(raw, withUnit[2], text);
     }
-    return raw >= 1_000_000 ? raw / 10 : raw;
   }
 
-  const rialMatch = normalized.match(/([\d,،._\s]{3,})\s*(?:ریال|ريال|rial)/i);
-  if (rialMatch) {
-    const raw = parseNumberToken(rialMatch[1] ?? '');
-    return raw ? raw / 10 : null;
+  // 2) A number right after an amount / transaction keyword.
+  for (const line of text.split(/\n/)) {
+    if (/مانده|موجودی|balance/i.test(line)) continue;
+    const m = line.match(AMOUNT_KEYWORD_RE);
+    if (!m) continue;
+    const raw = parseNumberToken(m[1] ?? '');
+    if (raw) return toToman(raw, m[2], text);
   }
 
-  const looseNumber = normalized.match(/([\d,،._\s]{4,})/);
-  if (looseNumber) {
-    const raw = parseNumberToken(looseNumber[1] ?? '');
-    if (!raw) return null;
-    if (/ریال|ريال|rial/i.test(normalized)) return raw / 10;
-    if (/تومان/i.test(normalized)) return raw;
-    return raw >= 1_000_000 ? raw / 10 : raw;
+  // 3) First plausible number on a line that is not a balance/account/date.
+  for (const line of text.split(/\n/)) {
+    if (NON_AMOUNT_LINE_RE.test(line)) continue;
+    const m = line.match(new RegExp(NUM));
+    if (!m) continue;
+    const digits = (m[1] ?? '').replace(/[,،٬]/g, '');
+    if (digits.length < 4) continue;
+    const raw = parseNumberToken(m[1] ?? '');
+    if (raw) return toToman(raw, undefined, text);
   }
 
   return null;
@@ -143,7 +177,7 @@ export function parseBankSms(rawText: string): ParsedBankSms | null {
   if (!looksLikeBankSms(text)) return null;
 
   const normalized = normalizeForMatch(text);
-  const amountToman = extractAmountToman(normalized);
+  const amountToman = extractAmountToman(text);
   if (!amountToman || amountToman <= 0) return null;
 
   const txType = detectTxType(normalized) ?? 'EXPENSE';

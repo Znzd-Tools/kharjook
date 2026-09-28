@@ -32,6 +32,9 @@
 import type { Asset, Transaction } from '@/shared/types/domain';
 import { parseDateToNumber } from '@/shared/utils/parse-date';
 import { isInPeriod, jalaaliToNumber, type Period } from '@/shared/utils/period';
+import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
+import { orderAssetTxsForReplay } from '@/shared/utils/asset-replay-order';
+import { type RateHistory, usdHistoryFromTransactions } from '@/shared/utils/rate-history';
 import type { EffectivePrice } from './price-history';
 
 export interface SideAggregate {
@@ -47,8 +50,18 @@ export interface AssetPeriodStats {
   assetId: string;
   bought: SideAggregate;
   sold: SideAggregate;
-  realizedToman: number; // booked from period SELLs only
+  /**
+   * Realized P/L of disposals inside the period, measured against the
+   * PERIOD baseline: units held at period start count at the opening price,
+   * in-period buys at their own price. So realized + periodUnrealized is
+   * exactly: value at end − value at start − buys + sells (in the period).
+   * For `all`, the baseline is the lifetime average cost (no opening units).
+   */
+  realizedToman: number;
   realizedUsd: number;
+  /** Realized of in-period disposals against LIFETIME average cost (tax view). */
+  realizedVsCostToman: number;
+  realizedVsCostUsd: number;
   /** Units held immediately before the first in-period tx (or at period start). */
   startHoldings: number;
   /** Holdings + cost basis at the end of the period. */
@@ -82,6 +95,9 @@ export interface AssetPeriodStats {
   unrealizedToman: number;
   unrealizedUsd: number;
   unrealizedAvailable: boolean;
+  /** Opening price used for units held at period start (null if none). */
+  periodStartPriceToman: number | null;
+  periodStartPriceUsd: number | null;
   /** The price used for the mark (null if unavailable / no holdings). */
   periodEndPriceToman: number | null;
   periodEndPriceUsd: number | null;
@@ -89,6 +105,12 @@ export interface AssetPeriodStats {
   periodEndPriceSourceDate: string | null;
   periodEndPriceIsLive: boolean;
   hadActivity: boolean;
+  /**
+   * Units were held at period start but no opening price exists (no snapshot
+   * and no earlier trade price). Period realized then uses lifetime cost, so
+   * the period total is approximate.
+   */
+  periodBaselineMissing: boolean;
   /** Asset-touching rows skipped because price/amount/rate was invalid. */
   invalidTradeCount: number;
   /** Number of sells/asset-expenses that exceeded available holdings. */
@@ -113,6 +135,8 @@ export function emptyAssetPeriodStats(assetId: string): AssetPeriodStats {
     sold: emptySide(),
     realizedToman: 0,
     realizedUsd: 0,
+    realizedVsCostToman: 0,
+    realizedVsCostUsd: 0,
     startHoldings: 0,
     endHoldings: 0,
     endCostBasisToman: 0,
@@ -130,11 +154,14 @@ export function emptyAssetPeriodStats(assetId: string): AssetPeriodStats {
     unrealizedToman: 0,
     unrealizedUsd: 0,
     unrealizedAvailable: true,
+    periodStartPriceToman: null,
+    periodStartPriceUsd: null,
     periodEndPriceToman: null,
     periodEndPriceUsd: null,
     periodEndPriceSourceDate: null,
     periodEndPriceIsLive: false,
     hadActivity: false,
+    periodBaselineMissing: false,
     invalidTradeCount: 0,
     oversellCount: 0,
   };
@@ -160,7 +187,8 @@ function finalizeSide(s: SideAggregate): void {
  */
 function readTrade(
   tx: Transaction,
-  usdRateFallback: number
+  usdRateFallback: number,
+  rateAtDate?: (date: string) => number | null
 ): { amount: number; priceToman: number; priceUsd: number } | null {
   const polyAmount =
     tx.type === 'BUY' || tx.type === 'INCOME'
@@ -181,7 +209,14 @@ function readTrade(
   }
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (!Number.isFinite(priceToman) || priceToman <= 0) return null;
-  const rate = Number(tx.usd_rate) > 0 ? Number(tx.usd_rate) : usdRateFallback;
+  // Own rate first; then the estimated rate of the row's date; then today's.
+  const historical = Number(tx.usd_rate) > 0 ? null : (rateAtDate?.(tx.date_string) ?? null);
+  const rate =
+    Number(tx.usd_rate) > 0
+      ? Number(tx.usd_rate)
+      : historical && historical > 0
+        ? historical
+        : usdRateFallback;
   if (!(rate > 0)) return null;
   return { amount, priceToman, priceUsd: priceToman / rate };
 }
@@ -232,7 +267,7 @@ function drainPeriodPool(
   let units = poolUnits - drain;
   let costToman = poolCostToman - drain * avgT;
   let costUsd = poolCostUsd - drain * avgU;
-  if (units <= 1e-6) {
+  if (isClosedPosition(units, poolUnits)) {
     units = 0;
     costToman = 0;
     costUsd = 0;
@@ -269,18 +304,19 @@ export function calculateAssetPeriodStats(
     return false;
   });
 
-  const acquireRank = (tx: Transaction) =>
-    isAcquireForAsset(tx, asset.id) ? 0 : 1;
+  let usdHistory: RateHistory | null = null;
+  const usdAt = (date: string) => {
+    usdHistory ??= usdHistoryFromTransactions(transactions);
+    return usdHistory.at(date);
+  };
 
-  const sorted = [...assetTxs].sort((a, b) => {
-    const da = parseDateToNumber(a.date_string);
-    const db = parseDateToNumber(b.date_string);
-    if (da !== db) return da - db;
-    const ra = acquireRank(a);
-    const rb = acquireRank(b);
-    if (ra !== rb) return ra - rb;
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
+  // Same replay order as the lifetime engine: date, then real creation order;
+  // acquisitions-first only on a day where the real order would oversell.
+  const sorted = orderAssetTxsForReplay(
+    assetTxs,
+    (tx) => isAcquireForAsset(tx, asset.id),
+    (tx) => readTrade(tx, usdRateFallback, usdAt)?.amount ?? 0
+  );
 
   const stats = emptyAssetPeriodStats(asset.id);
   const startNum = jalaaliToNumber(period.start);
@@ -316,7 +352,7 @@ export function calculateAssetPeriodStats(
   };
 
   for (const tx of sorted) {
-    const trade = readTrade(tx, usdRateFallback);
+    const trade = readTrade(tx, usdRateFallback, usdAt);
     if (!trade) {
       stats.invalidTradeCount += 1;
       continue;
@@ -358,12 +394,20 @@ export function calculateAssetPeriodStats(
       const avgT = units > 0 ? costToman / units : 0;
       const avgU = units > 0 ? costUsd / units : 0;
       const drain = Math.min(amount, units);
-      if (amount > units + 1e-6) stats.oversellCount += 1;
+      if (amount > units * (1 + 1e-9) + 1e-15) stats.oversellCount += 1;
 
       if (inPeriod) {
         initPeriodPool();
-        stats.realizedToman += drain * (priceToman - avgT);
-        stats.realizedUsd += drain * (priceUsd - avgU);
+        // Period baseline average. If opening units have no start price the
+        // pool is incomplete — fall back to lifetime cost for this row (the
+        // period result is then flagged unavailable below).
+        const usePool = !missingStartPrice && periodPoolUnits > 0;
+        const baseT = usePool ? periodPoolCostToman / periodPoolUnits : avgT;
+        const baseU = usePool ? periodPoolCostUsd / periodPoolUnits : avgU;
+        stats.realizedToman += drain * (priceToman - baseT);
+        stats.realizedUsd += drain * (priceUsd - baseU);
+        stats.realizedVsCostToman += drain * (priceToman - avgT);
+        stats.realizedVsCostUsd += drain * (priceUsd - avgU);
         stats.sold.units += amount;
         stats.sold.totalToman += amount * priceToman;
         stats.sold.totalUsd += amount * priceUsd;
@@ -381,11 +425,12 @@ export function calculateAssetPeriodStats(
         periodPoolCostUsd = drained.costUsd;
       }
 
+      const unitsBefore = units;
       units -= drain;
       costToman -= drain * avgT;
       costUsd -= drain * avgU;
 
-      if (units <= 1e-6) {
+      if (isClosedPosition(units, unitsBefore)) {
         units = 0;
         costToman = 0;
         costUsd = 0;
@@ -415,7 +460,11 @@ export function calculateAssetPeriodStats(
   stats.currentAvgCostToman = units > 0 ? costToman / units : 0;
   stats.currentAvgCostUsd = units > 0 ? costUsd / units : 0;
 
-  const evalHoldings = units;
+  // Evaluate the period at its END: holdings as of period end (not "now").
+  // Using current holdings for a past period mixed later buys/sells with the
+  // period baseline and produced large false P/L. The pool only ever moves on
+  // in-period rows, so it is already the as-of-period-end baseline.
+  const evalHoldings = endUnits;
   const evalPoolCostToman = periodPoolCostToman;
   const evalPoolCostUsd = periodPoolCostUsd;
 
@@ -438,7 +487,13 @@ export function calculateAssetPeriodStats(
     stats.unrealizedAvailable = false;
   }
 
-  // True period unrealized at evaluation (current holdings for live periods).
+  stats.periodBaselineMissing = missingStartPrice;
+  if (stats.startHoldings > 0 && periodStartPrice) {
+    stats.periodStartPriceToman = periodStartPrice.priceToman;
+    stats.periodStartPriceUsd = periodStartPrice.priceUsd;
+  }
+
+  // True period unrealized at period end (holdings as of `period.end`).
   if (evalHoldings <= 0) {
     stats.periodUnrealizedAvailable = true;
     stats.periodUnrealizedToman = 0;

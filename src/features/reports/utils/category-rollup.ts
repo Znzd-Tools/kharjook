@@ -105,8 +105,42 @@ function txCashflow(
   return { value, walletId, isAsset };
 }
 
+/**
+ * Ids of `kind` categories reachable from a root (a category whose parent is
+ * missing or of another kind). Categories inside a parent cycle are excluded,
+ * which also protects the recursive rollup from infinite recursion.
+ */
+function reachableCategoryIds(categories: Category[], kind: CashflowKind): Set<string> {
+  const scoped = categories.filter((c) => c.kind === kind);
+  const scopedIds = new Set(scoped.map((c) => c.id));
+  const childrenOf = new Map<string, string[]>();
+  const roots: string[] = [];
+  for (const c of scoped) {
+    if (c.parent_id && scopedIds.has(c.parent_id)) {
+      const arr = childrenOf.get(c.parent_id) ?? [];
+      arr.push(c.id);
+      childrenOf.set(c.parent_id, arr);
+    } else {
+      roots.push(c.id);
+    }
+  }
+  const out = new Set<string>();
+  const stack = [...roots];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (out.has(id)) continue;
+    out.add(id);
+    for (const child of childrenOf.get(id) ?? []) stack.push(child);
+  }
+  return out;
+}
+
 export function rollupCategories(input: RollupInput): RollupResult {
   const { transactions, categories, period, kind, walletId, currencyMode } = input;
+
+  // 0) Categories reachable from a root of this kind (cycle-safe). Only these
+  //    appear in the tree, so only these may hold totals.
+  const reachableIds = reachableCategoryIds(categories, kind);
 
   // 1) Bucket txs into own totals per category.
   const ownByCat = new Map<string, { amount: number; count: number }>();
@@ -135,7 +169,10 @@ export function rollupCategories(input: RollupInput): RollupResult {
       continue;
     }
 
-    const catId = tx.category_id;
+    // A category that is missing / of the other kind / unreachable from a
+    // root would never be rolled into `total`; treat it as uncategorized.
+    const catId =
+      tx.category_id && reachableIds.has(tx.category_id) ? tx.category_id : null;
     if (catId) {
       const cur = ownByCat.get(catId) ?? { amount: 0, count: 0 };
       cur.amount += value;
@@ -154,6 +191,7 @@ export function rollupCategories(input: RollupInput): RollupResult {
   const roots: Category[] = [];
 
   for (const c of scoped) {
+    if (!reachableIds.has(c.id)) continue; // part of a parent cycle
     if (c.parent_id && scopedIds.has(c.parent_id)) {
       const arr = childrenOf.get(c.parent_id) ?? [];
       arr.push(c.id);

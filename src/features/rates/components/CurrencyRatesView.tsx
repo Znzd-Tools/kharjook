@@ -1,5 +1,7 @@
 'use client';
 
+import { recordRateHistory } from '@/shared/utils/rate-history-store';
+import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -77,6 +79,14 @@ export function CurrencyRatesView() {
         .upsert(rows, { onConflict: 'user_id,currency' })
         .select();
       if (error) throw error;
+
+      // Keep a dated copy for historical conversions (best-effort).
+      const todayStr = formatJalaali(todayJalaaliInTimezone('Asia/Tehran'));
+      await Promise.all(
+        rows.map((r) =>
+          recordRateHistory(supabase, user.id, r.currency, todayStr, r.toman_per_unit, 'manual')
+        )
+      );
 
       const fresh = (data as CurrencyRate[]) || [];
       // Merge: keep any existing rate the user didn't touch, replace the rest.

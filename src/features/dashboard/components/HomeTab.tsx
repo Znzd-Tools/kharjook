@@ -32,6 +32,9 @@ import {
   todayJalaali,
 } from '@/shared/utils/jalali';
 import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
+import { computeAssetPnl } from '@/features/reports/utils/asset-pnl';
+import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
+import { walletRateNow } from '@/features/rates/utils/wallet-rate';
 import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
 import {
   computeGoalDelta,
@@ -51,6 +54,11 @@ import { CategoryCapsWidget } from '@/features/dashboard/components/CategoryCaps
 import { GoalsDriftWidget } from '@/features/dashboard/components/GoalsDriftWidget';
 import { PendingChecksWidget } from '@/features/dashboard/components/PendingChecksWidget';
 import { PendingSubscriptionsWidget } from '@/features/dashboard/components/PendingSubscriptionsWidget';
+import {
+  ActivePnlCard,
+  formatMissingPriceWarning,
+  type ActivePnlMover,
+} from '@/features/dashboard/components/ActivePnlCard';
 
 export type HomeGoalRow = {
   id: string;
@@ -84,6 +92,7 @@ export function HomeTab() {
     upcomingDeadlines,
   } = useData();
   const { currencyMode, usdRate } = useUI();
+  const rateHistories = useRateHistories();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const today = useMemo(() => todayJalaali(), []);
@@ -108,15 +117,26 @@ export function HomeTab() {
     const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
 
+    // Legacy rows without a snapshot: convert at the rate of THEIR date.
     const txToToman = (
       txAmount: number | null | undefined,
-      walletId: string | null | undefined
+      walletId: string | null | undefined,
+      date: string
     ) => {
       const amount = Number(txAmount ?? 0);
       if (!Number.isFinite(amount)) return 0;
       const wallet = walletId ? walletsById.get(walletId) : null;
-      const rate = wallet ? tomanPerUnit(wallet.currency, currencyRates) : 0;
+      if (!wallet) return 0;
+      let rate = tomanPerUnit(wallet.currency, currencyRates);
+      if (wallet.currency !== 'IRT') {
+        const hist = rateHistories[wallet.currency].at(date);
+        if (hist && hist > 0) rate = hist;
+      }
       return Math.abs(amount) * (rate > 0 ? rate : 0);
+    };
+    const usdRateForDate = (date: string) => {
+      const hist = rateHistories.USD.at(date);
+      return hist && hist > 0 ? hist : usdRate;
     };
 
     for (const tx of transactions) {
@@ -126,28 +146,34 @@ export function HomeTab() {
       if (!inMonth) continue;
       if (tx.type === 'INCOME') {
         const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id);
+          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id, tx.date_string);
         const usd =
           tx.amount_usd_at_time ??
           (() => {
             const t = Number(tx.amount_toman_at_time);
             const r = Number(tx.usd_rate);
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            return 0;
+            // Same fallback as the yearly cashflow chart, so both agree.
+            const derived = Number(toman);
+            const rate = usdRateForDate(tx.date_string);
+            return rate > 0 && derived > 0 ? derived / rate : 0;
           })();
         monthIncomeToman += Number(toman) || 0;
         monthIncomeUsd += Number(usd) || 0;
       }
       if (tx.type === 'EXPENSE') {
         const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id);
+          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id, tx.date_string);
         const usd =
           tx.amount_usd_at_time ??
           (() => {
             const t = Number(tx.amount_toman_at_time);
             const r = Number(tx.usd_rate);
             if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            return 0;
+            // Same fallback as the yearly cashflow chart, so both agree.
+            const derived = Number(toman);
+            const rate = usdRateForDate(tx.date_string);
+            return rate > 0 && derived > 0 ? derived / rate : 0;
           })();
         const valueToman = Number(toman) || 0;
         const valueUsd = Number(usd) || 0;
@@ -165,8 +191,44 @@ export function HomeTab() {
       }
     }
 
+    // The 3 P/L numbers per asset come from one shared function, so the
+    // dashboard, the assets list and the asset page always agree.
+    let openPnlToman = 0;
+    let openPnlUsd = 0;
+    let openCostToman = 0;
+    let openCostUsd = 0;
+    let allTimeToman = 0;
+    let allTimeUsd = 0;
+    const openRows: {
+      id: string;
+      name: string;
+      pnlToman: number;
+      pnlUsd: number;
+      costToman: number;
+      costUsd: number;
+    }[] = [];
+
     assets.forEach((asset) => {
       const s = calculateAssetStats(asset, transactions, currencyMode, usdRate);
+      const pnl = computeAssetPnl(asset, transactions, dailyPrices, usdRate, todayStr);
+      if (pnl.included) {
+        allTimeToman += pnl.allTime.value.toman;
+        allTimeUsd += pnl.allTime.value.usd;
+        if (pnl.holdings > 0 && pnl.active.cost.toman > 0) {
+          openPnlToman += pnl.active.value.toman;
+          openPnlUsd += pnl.active.value.usd;
+          openCostToman += pnl.active.cost.toman;
+          openCostUsd += pnl.active.cost.usd;
+          openRows.push({
+            id: asset.id,
+            name: asset.name,
+            pnlToman: pnl.active.value.toman,
+            pnlUsd: pnl.active.value.usd,
+            costToman: pnl.active.cost.toman,
+            costUsd: pnl.active.cost.usd,
+          });
+        }
+      }
       if (asset.include_in_balance !== false) {
         assetsValueToman += s.currentValueToman;
       }
@@ -185,10 +247,21 @@ export function HomeTab() {
       }
     });
 
+    // Wallets in a currency without a saved rate use the last known rate
+    // (history); if there is none at all they are listed so the UI can warn.
     let cashToman = 0;
+    const walletsMissingRate: { name: string; currency: string }[] = [];
+    const walletsOnHistoryRate: { name: string; currency: string }[] = [];
     wallets.forEach((w) => {
       const balance = calculateWalletStats(w, transactions).balance;
-      cashToman += balance * tomanPerUnit(w.currency, currencyRates);
+      const { rate, source } = walletRateNow(w.currency, currencyRates, rateHistories);
+      if (balance !== 0 && source === 'missing') {
+        walletsMissingRate.push({ name: w.name, currency: w.currency });
+      }
+      if (balance !== 0 && source === 'history') {
+        walletsOnHistoryRate.push({ name: w.name, currency: w.currency });
+      }
+      cashToman += balance * rate;
     });
 
     const totalPortfolioToman = assetsValueToman + cashToman;
@@ -326,6 +399,15 @@ export function HomeTab() {
     return {
       totalPortfolioToman,
       cashToman,
+      walletsMissingRate,
+      walletsOnHistoryRate,
+      openPnlToman,
+      openPnlUsd,
+      openCostToman,
+      openCostUsd,
+      allTimeToman,
+      allTimeUsd,
+      openRows,
       yearPnlToman,
       yearPnlUsd,
       yearPnlPartialCount,
@@ -354,6 +436,7 @@ export function HomeTab() {
     usdRate,
     todayStr,
     monthPeriod,
+    rateHistories,
   ]);
 
   const priceTickerItems = useMemo((): PriceTickerItem[] => {
@@ -396,9 +479,10 @@ export function HomeTab() {
         wallets,
         currencyRates,
         currencyMode,
-        usdRate
+        usdRate,
+        rateHistories
       ),
-    [transactions, wallets, currencyRates, currencyMode, usdRate]
+    [transactions, wallets, currencyRates, currencyMode, usdRate, rateHistories]
   );
 
   const yearLabel = useMemo(
@@ -437,6 +521,24 @@ export function HomeTab() {
       : 0;
   const displayYearPnl =
     currencyMode === 'USD' ? stats.yearPnlUsd : stats.yearPnlToman;
+  const displayOpenPnl = currencyMode === 'USD' ? stats.openPnlUsd : stats.openPnlToman;
+  const displayOpenCost = currencyMode === 'USD' ? stats.openCostUsd : stats.openCostToman;
+  const displayOpenPercent = displayOpenCost > 0 ? (displayOpenPnl / displayOpenCost) * 100 : 0;
+  const displayAllTime = currencyMode === 'USD' ? stats.allTimeUsd : stats.allTimeToman;
+  // Biggest open positions by absolute P/L (winners and losers alike).
+  const openMovers: ActivePnlMover[] = stats.openRows
+    .map((row) => {
+      const value = currencyMode === 'USD' ? row.pnlUsd : row.pnlToman;
+      const cost = currencyMode === 'USD' ? row.costUsd : row.costToman;
+      return {
+        id: row.id,
+        name: row.name,
+        value,
+        percent: cost > 0 ? (value / cost) * 100 : 0,
+      };
+    })
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    .slice(0, 3);
   const displayMonthBalance =
     currencyMode === 'USD' ? stats.monthBalanceUsd : stats.monthBalanceToman;
   const activeMaxExpense =
@@ -550,6 +652,44 @@ export function HomeTab() {
         cashLabel={formatCurrency(displayCash, currencyMode)}
         assetShare={assetShare}
         cashShare={cashShare}
+      />
+
+      {(stats.walletsMissingRate.length > 0 || stats.walletsOnHistoryRate.length > 0) && (
+        <button
+          type="button"
+          onClick={() => router.push('/prices')}
+          className="w-full rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-right text-[11px] leading-5 text-amber-200"
+        >
+          {stats.walletsMissingRate.length > 0 && (
+            <span className="block">
+              نرخ {[...new Set(stats.walletsMissingRate.map((w) => w.currency))].join('، ')} ثبت
+              نشده؛ {formatDisplayNumber(stats.walletsMissingRate.length)} کیف پول در جمع کل حساب
+              نشده.
+            </span>
+          )}
+          {stats.walletsOnHistoryRate.length > 0 && (
+            <span className="block">
+              نرخ {[...new Set(stats.walletsOnHistoryRate.map((w) => w.currency))].join('، ')} ثبت
+              نشده؛ با آخرین نرخ شناخته‌شده حساب شد.
+            </span>
+          )}
+          <span className="block text-amber-300/80">برای ثبت نرخ بزن.</span>
+        </button>
+      )}
+
+      <ActivePnlCard
+        currencyMode={currencyMode}
+        openValue={displayOpenPnl}
+        openPercent={displayOpenPercent}
+        openCostBasis={displayOpenCost}
+        yearValue={displayYearPnl}
+        allTimeValue={displayAllTime}
+        movers={openMovers}
+        warning={formatMissingPriceWarning(
+          stats.yearUnrealizedMissingCount,
+          stats.yearPnlPartialCount
+        )}
+        onOpen={() => router.push('/assets')}
       />
 
       <AssetPriceTicker items={priceTickerItems} />
@@ -705,45 +845,6 @@ export function HomeTab() {
           tone="cyan"
           icon={<Wallet size={16} />}
         />
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
-          <div
-            className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${
-              displayYearPnl >= 0 ? 'bg-emerald-400/10' : 'bg-rose-400/10'
-            }`}
-          />
-          <div className="relative flex items-start gap-3">
-            <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                displayYearPnl >= 0
-                  ? 'bg-emerald-400/10 text-emerald-300'
-                  : 'bg-rose-400/10 text-rose-300'
-              }`}
-            >
-              <TrendingUp size={16} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-400 mb-1">سود/زیان امسال</p>
-              <p
-                className={`truncate text-xl font-black ${
-                  displayYearPnl >= 0 ? 'text-emerald-300' : 'text-rose-300'
-                }`}
-                dir="ltr"
-              >
-                {displayYearPnl >= 0 ? '+' : ''}
-                {formatCurrency(displayYearPnl, currencyMode)}
-              </p>
-            </div>
-          </div>
-          {(stats.yearUnrealizedMissingCount > 0 || stats.yearPnlPartialCount > 0) && (
-            <p className="relative text-[10px] text-amber-400/80 mt-3">
-              {stats.yearUnrealizedMissingCount > 0 &&
-                `${formatDisplayNumber(stats.yearUnrealizedMissingCount)} دارایی بدون قیمت تاریخی؛`}
-              {stats.yearPnlPartialCount > 0 &&
-                ` ${formatDisplayNumber(stats.yearPnlPartialCount)} دارایی فقط با سود محقق‌شده.`}
-              {stats.yearUnrealizedMissingCount > 0 && ' عدد کل ممکن است ناقص باشد.'}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

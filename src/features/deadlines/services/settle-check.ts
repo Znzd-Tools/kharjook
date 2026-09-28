@@ -1,4 +1,7 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { serverUsdRateOn } from '@/shared/utils/rate-history-store';
 import type { Check, Transaction, Wallet } from '@/shared/types/domain';
 import { notifyExpenseTransaction } from '@/features/notifications/services/notify-expense-transaction';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
@@ -65,6 +68,16 @@ export async function settleCheck(input: {
   if (check.bank_name) noteParts.push(check.bank_name);
   if (check.check_number) noteParts.push(`#${check.check_number}`);
 
+  // USD snapshot at the rate of the row's date (the due date), from the
+  // stored history; falls back to the current rate.
+  const snapUsdRate = await serverUsdRateOn(
+    admin,
+    input.userId,
+    check.due_date_string,
+    formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE)),
+    Number(usdRate)
+  );
+
   const txPayload: Record<string, unknown> = {
     user_id: input.userId,
     type: 'EXPENSE',
@@ -80,9 +93,9 @@ export async function settleCheck(input: {
     asset_id: null,
     amount: null,
     price_toman: wallet.currency === 'IRT' ? null : payRate,
-    usd_rate: wallet.currency === 'IRT' ? null : usdRate,
+    usd_rate: wallet.currency === 'IRT' ? null : snapUsdRate,
     amount_toman_at_time: payAmount * payRate,
-    amount_usd_at_time: (payAmount * payRate) / usdRate,
+    amount_usd_at_time: (payAmount * payRate) / snapUsdRate,
   };
 
   const { data: txData, error: txErr } = await admin
@@ -96,7 +109,7 @@ export async function settleCheck(input: {
   }
 
   const createdTx = txData as Transaction;
-  const { error: checkErr } = await admin
+  const { data: checkRows, error: checkErr } = await admin
     .from('checks')
     .update({
       status: 'cleared',
@@ -105,10 +118,20 @@ export async function settleCheck(input: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', check.id)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .select('id');
 
-  if (checkErr) {
-    return { ok: false, error: 'به‌روزرسانی چک ناموفق بود.', code: 'db' };
+  if (checkErr || !checkRows || checkRows.length === 0) {
+    // Roll back: the check was not marked, so the expense must not stay.
+    await admin
+      .from('transactions')
+      .delete()
+      .eq('id', createdTx.id)
+      .eq('user_id', input.userId);
+    if (checkErr) {
+      return { ok: false, error: 'به‌روزرسانی چک ناموفق بود.', code: 'db' };
+    }
+    return { ok: false, error: 'این چک قبلاً تسویه شده.', code: 'already_cleared' };
   }
 
   await notifyExpenseTransaction(input.userId, createdTx);
