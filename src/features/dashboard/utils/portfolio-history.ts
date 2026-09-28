@@ -60,7 +60,7 @@ export function portfolioAssetsValueAtDate(
     if (asset.include_in_balance === false) continue;
     const qty = assetNetAmountThroughDate(asset.id, transactions, asOfDateStr);
     if (qty <= 0) continue;
-    const p = effectivePriceAt(asset, asOfDateStr, dailyPrices, todayStr);
+    const p = effectivePriceAt(asset, asOfDateStr, dailyPrices, todayStr, transactions);
     if (!p) {
       missingPriceCount += 1;
       continue;
@@ -215,8 +215,8 @@ export function ytdCumulativeProfitMonthlySeries(
 
     for (const asset of assets) {
       if (asset.include_in_profit_loss === false) continue;
-      const startPrice = effectiveOpeningPriceAt(asset, yearStart, dailyPrices, todayStr);
-      const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+      const startPrice = effectiveOpeningPriceAt(asset, yearStart, dailyPrices, todayStr, transactions);
+      const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
       const s = calculateAssetPeriodStats(
         asset,
         transactions,

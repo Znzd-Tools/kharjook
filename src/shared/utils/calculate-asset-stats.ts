@@ -1,5 +1,6 @@
 import type { Asset, AssetStats, CurrencyMode, Transaction } from '@/shared/types/domain';
 import { parseDateToNumber } from '@/shared/utils/parse-date';
+import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
 
 function resolvePriceUsd(
   tx: Transaction,
@@ -56,6 +57,10 @@ export function calculateAssetStats(
   let realizedProfitUsd = 0;
   let historicalCostToman = 0;
   let historicalCostUsd = 0;
+  let totalProceedsToman = 0;
+  let totalProceedsUsd = 0;
+  /** Date the current (still open) position started — last reset point. */
+  let activeSinceDate: string | null = null;
 
   // Bulletproof sort: Oldest to Newest, handling same-day trades logically
   const sortedTxs = [...assetTxs].sort((a, b) => {
@@ -95,6 +100,7 @@ export function calculateAssetStats(
     const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate);
 
     if (isAcquire) {
+      if (totalAmount <= 0) activeSinceDate = tx.date_string;
       totalAmount += amount;
       const txCostToman = amount * priceToman;
       totalCostToman += txCostToman;
@@ -102,11 +108,15 @@ export function calculateAssetStats(
       historicalCostToman += txCostToman;
       historicalCostUsd += amount * priceUsd;
     } else {
+      const unitsBefore = totalAmount;
       if (totalAmount > 0) {
         const avgCostToman = totalCostToman / totalAmount;
         const avgCostUsd = totalCostUsd / totalAmount;
         // Never realize P/L on units that were not held (oversell).
         const drain = Math.min(amount, totalAmount);
+
+        totalProceedsToman += drain * priceToman;
+        totalProceedsUsd += drain * priceUsd;
 
         // Calculate Realized Profit
         realizedProfitToman += drain * (priceToman - avgCostToman);
@@ -118,11 +128,13 @@ export function calculateAssetStats(
         totalAmount -= drain;
       }
 
-      // Handle JS floating point issues when amount reaches 0
-      if (totalAmount <= 0.000001) {
+      // Position closed (only float noise left): reset quantity AND cost
+      // basis, so the next buy starts a fresh "active" position.
+      if (isClosedPosition(totalAmount, unitsBefore)) {
         totalAmount = 0;
         totalCostToman = 0;
         totalCostUsd = 0;
+        activeSinceDate = null;
       }
     }
   });
@@ -170,6 +182,11 @@ export function calculateAssetStats(
     realizedProfitUsd: includePnl ? realizedProfitUsd : 0,
     unrealizedProfitToman: includePnl ? unrealizedProfitToman : 0,
     unrealizedProfitUsd: includePnl ? unrealizedProfitUsd : 0,
+    investedToman: historicalCostToman,
+    investedUsd: historicalCostUsd,
+    proceedsToman: totalProceedsToman,
+    proceedsUsd: totalProceedsUsd,
+    activeSinceDate: totalAmount > 0 ? activeSinceDate : null,
   };
 }
 

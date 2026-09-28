@@ -78,8 +78,8 @@ export function ReportsIndexView() {
       const startPrice =
         period.kind === 'all'
           ? null
-          : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr);
-      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+          : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr, transactions);
+      const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr, transactions);
       const s = calculateAssetPeriodStats(
         a,
         transactions,
@@ -155,8 +155,8 @@ export function ReportsIndexView() {
         const startPrice =
           period.kind === 'all'
             ? null
-            : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr);
-        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr);
+            : effectiveOpeningPriceAt(a, period.start, dailyPrices, todayStr, transactions);
+        const endPrice = effectivePriceAt(a, periodEndStr, dailyPrices, todayStr, transactions);
         const s = calculateAssetPeriodStats(
           a,
           transactions,

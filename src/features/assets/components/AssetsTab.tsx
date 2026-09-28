@@ -13,8 +13,12 @@ import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
-import { computeYtdUnrealizedSummary, ytdPnlDisplay } from '@/features/reports/utils/ytd-unrealized';
-import type { AssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
+import {
+  computeAssetPnl,
+  pick,
+  pnlPercent,
+  type AssetPnl,
+} from '@/features/reports/utils/asset-pnl';
 import {
   buildAssetSnapshots,
   calculateAssetGoalProgress,
@@ -38,15 +42,13 @@ export function AssetsTab() {
   const [zeroValueFilter, setZeroValueFilter] = useState<ZeroValueFilter>('hide');
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
-  const ytdByAssetId = useMemo(() => {
-    const summary = computeYtdUnrealizedSummary(
-      assets,
-      transactions,
-      dailyPrices,
-      usdRate,
-      todayStr
-    );
-    return new Map(summary.rows.map((row) => [row.asset.id, row.stats]));
+  // Active / this-year / from-the-beginning P/L per asset (one shared engine).
+  const pnlByAssetId = useMemo(() => {
+    const map = new Map<string, AssetPnl>();
+    for (const asset of assets) {
+      map.set(asset.id, computeAssetPnl(asset, transactions, dailyPrices, usdRate, todayStr));
+    }
+    return map;
   }, [assets, transactions, dailyPrices, usdRate, todayStr]);
 
   const visibleAssets = useMemo(
@@ -197,7 +199,7 @@ export function AssetsTab() {
                   transactions={transactions}
                   currencyMode={currencyMode}
                   usdRate={usdRate}
-                  ytdByAssetId={ytdByAssetId}
+                  pnlByAssetId={pnlByAssetId}
                   assetGoalsByAsset={assetGoalsByAsset}
                   groupGoalByCategory={groupGoalByCategory}
                   snapshots={snapshots}
@@ -219,7 +221,7 @@ export function AssetsTab() {
                     transactions={transactions}
                     currencyMode={currencyMode}
                     usdRate={usdRate}
-                    ytdStats={ytdByAssetId.get(asset.id)}
+                    pnl={pnlByAssetId.get(asset.id)}
                     assetGoals={assetGoalsByAsset.get(asset.id) ?? []}
                     snapshots={snapshots}
                     totalValueToman={totalValueToman}
@@ -240,7 +242,7 @@ function AssetGroupSection({
   transactions,
   currencyMode,
   usdRate,
-  ytdByAssetId,
+  pnlByAssetId,
   assetGoalsByAsset,
   groupGoalByCategory,
   snapshots,
@@ -251,7 +253,7 @@ function AssetGroupSection({
   transactions: Parameters<typeof calculateAssetStats>[1];
   currencyMode: Parameters<typeof calculateAssetStats>[2];
   usdRate: number;
-  ytdByAssetId: Map<string, AssetPeriodStats>;
+  pnlByAssetId: Map<string, AssetPnl>;
   assetGoalsByAsset: Map<string, Goal[]>;
   groupGoalByCategory: Map<string, Goal>;
   snapshots: ReturnType<typeof buildAssetSnapshots>;
@@ -290,7 +292,7 @@ function AssetGroupSection({
           transactions={transactions}
           currencyMode={currencyMode}
           usdRate={usdRate}
-          ytdStats={ytdByAssetId.get(asset.id)}
+          pnl={pnlByAssetId.get(asset.id)}
           assetGoals={assetGoalsByAsset.get(asset.id) ?? []}
           snapshots={snapshots}
           totalValueToman={totalValueToman}
@@ -307,7 +309,7 @@ function AssetListRow({
   transactions,
   currencyMode,
   usdRate,
-  ytdStats,
+  pnl,
   assetGoals,
   snapshots,
   totalValueToman,
@@ -318,7 +320,7 @@ function AssetListRow({
   transactions: Parameters<typeof calculateAssetStats>[1];
   currencyMode: Parameters<typeof calculateAssetStats>[2];
   usdRate: number;
-  ytdStats: AssetPeriodStats | undefined;
+  pnl: AssetPnl | undefined;
   assetGoals: Goal[];
   snapshots: ReturnType<typeof buildAssetSnapshots>;
   totalValueToman: number;
@@ -327,19 +329,18 @@ function AssetListRow({
   const stats = calculateAssetStats(asset, transactions, currencyMode, usdRate);
   const displayValue =
     currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
-  const ytd = ytdStats ? ytdPnlDisplay(ytdStats, currencyMode) : null;
-  const displayProfit = ytd?.total ?? null;
-  const isProfit = (displayProfit ?? 0) >= 0;
   const decimals = assetDecimals(asset);
   // Active (open) P/L on the units held now — shown first, it is the number
-  // you can still act on. Year P/L stays below as context.
-  const inPnl = asset.include_in_profit_loss !== false;
-  const openPnl =
-    currencyMode === 'USD' ? stats.unrealizedProfitUsd : stats.unrealizedProfitToman;
-  const openCost = currencyMode === 'USD' ? stats.totalCostUsd : stats.totalCostToman;
-  const hasOpen = inPnl && stats.totalAmount > 0 && openCost > 0;
-  const openPercent = hasOpen ? (openPnl / openCost) * 100 : 0;
+  // you can still act on. This-year and from-the-beginning stay below.
+  const inPnl = pnl != null && pnl.included;
+  const hasOpen = inPnl && pnl.holdings > 0 && pnl.active.available && pnl.active.cost.toman > 0;
+  const openPnl = pnl ? pick(pnl.active.value, currencyMode) : 0;
+  const openPercent = pnl ? (pnlPercent(pnl.active.value, pnl.active.cost, currencyMode) ?? 0) : 0;
   const isOpenProfit = openPnl >= 0;
+  const yearPnl = pnl ? pick(pnl.year.value, currencyMode) : 0;
+  const allTimePnl = pnl ? pick(pnl.allTime.value, currencyMode) : 0;
+  const showYear = inPnl && !pnl.year.empty;
+  const showAllTime = inPnl && pick(pnl.allTime.invested, currencyMode) > 0;
 
   return (
     <div
@@ -404,21 +405,35 @@ function AssetListRow({
             </span>
           </p>
         )}
-        {inPnl &&
-          (displayProfit !== null ? (
-            <p
-              className={`text-[10px] mt-1 ${isProfit ? 'text-emerald-400/70' : 'text-rose-400/70'}`}
-              dir="rtl"
-            >
-              {ytd?.isPartial ? 'امسال (بدون باز)' : 'امسال'}{' '}
-              <span dir="ltr">
-                {isProfit ? '+' : ''}
-                {formatCurrency(displayProfit, currencyMode)}
-              </span>
-            </p>
-          ) : (
-            <p className="text-[10px] mt-1 text-amber-400/80">امسال: —</p>
-          ))}
+        {(showYear || showAllTime) && (
+          <p className="text-[10px] mt-1 text-slate-500 leading-4" dir="rtl">
+            {showYear && (
+              <>
+                امسال{pnl.year.partial ? '*' : ''}{' '}
+                <span
+                  dir="ltr"
+                  className={yearPnl >= 0 ? 'text-emerald-400/80' : 'text-rose-400/80'}
+                >
+                  {yearPnl >= 0 ? '+' : ''}
+                  {formatCurrency(yearPnl, currencyMode)}
+                </span>
+              </>
+            )}
+            {showYear && showAllTime && <br />}
+            {showAllTime && (
+              <>
+                از ابتدا{' '}
+                <span
+                  dir="ltr"
+                  className={allTimePnl >= 0 ? 'text-emerald-400/80' : 'text-rose-400/80'}
+                >
+                  {allTimePnl >= 0 ? '+' : ''}
+                  {formatCurrency(allTimePnl, currencyMode)}
+                </span>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

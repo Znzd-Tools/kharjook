@@ -32,6 +32,7 @@ import {
   todayJalaali,
 } from '@/shared/utils/jalali';
 import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
+import { computeAssetPnl } from '@/features/reports/utils/asset-pnl';
 import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
 import {
   computeGoalDelta,
@@ -174,13 +175,14 @@ export function HomeTab() {
       }
     }
 
-    // Open (active) P/L on current holdings — assets counted in P/L only.
+    // The 3 P/L numbers per asset come from one shared function, so the
+    // dashboard, the assets list and the asset page always agree.
     let openPnlToman = 0;
     let openPnlUsd = 0;
     let openCostToman = 0;
     let openCostUsd = 0;
-    let realizedToman = 0;
-    let realizedUsd = 0;
+    let allTimeToman = 0;
+    let allTimeUsd = 0;
     const openRows: {
       id: string;
       name: string;
@@ -192,21 +194,22 @@ export function HomeTab() {
 
     assets.forEach((asset) => {
       const s = calculateAssetStats(asset, transactions, currencyMode, usdRate);
-      if (asset.include_in_profit_loss !== false) {
-        realizedToman += s.realizedProfitToman;
-        realizedUsd += s.realizedProfitUsd;
-        if (s.totalAmount > 0 && s.totalCostToman > 0) {
-          openPnlToman += s.unrealizedProfitToman;
-          openPnlUsd += s.unrealizedProfitUsd;
-          openCostToman += s.totalCostToman;
-          openCostUsd += s.totalCostUsd;
+      const pnl = computeAssetPnl(asset, transactions, dailyPrices, usdRate, todayStr);
+      if (pnl.included) {
+        allTimeToman += pnl.allTime.value.toman;
+        allTimeUsd += pnl.allTime.value.usd;
+        if (pnl.holdings > 0 && pnl.active.cost.toman > 0) {
+          openPnlToman += pnl.active.value.toman;
+          openPnlUsd += pnl.active.value.usd;
+          openCostToman += pnl.active.cost.toman;
+          openCostUsd += pnl.active.cost.usd;
           openRows.push({
             id: asset.id,
             name: asset.name,
-            pnlToman: s.unrealizedProfitToman,
-            pnlUsd: s.unrealizedProfitUsd,
-            costToman: s.totalCostToman,
-            costUsd: s.totalCostUsd,
+            pnlToman: pnl.active.value.toman,
+            pnlUsd: pnl.active.value.usd,
+            costToman: pnl.active.cost.toman,
+            costUsd: pnl.active.cost.usd,
           });
         }
       }
@@ -373,8 +376,8 @@ export function HomeTab() {
       openPnlUsd,
       openCostToman,
       openCostUsd,
-      realizedToman,
-      realizedUsd,
+      allTimeToman,
+      allTimeUsd,
       openRows,
       yearPnlToman,
       yearPnlUsd,
@@ -490,7 +493,7 @@ export function HomeTab() {
   const displayOpenPnl = currencyMode === 'USD' ? stats.openPnlUsd : stats.openPnlToman;
   const displayOpenCost = currencyMode === 'USD' ? stats.openCostUsd : stats.openCostToman;
   const displayOpenPercent = displayOpenCost > 0 ? (displayOpenPnl / displayOpenCost) * 100 : 0;
-  const displayRealized = currencyMode === 'USD' ? stats.realizedUsd : stats.realizedToman;
+  const displayAllTime = currencyMode === 'USD' ? stats.allTimeUsd : stats.allTimeToman;
   // Biggest open positions by absolute P/L (winners and losers alike).
   const openMovers: ActivePnlMover[] = stats.openRows
     .map((row) => {
@@ -626,7 +629,7 @@ export function HomeTab() {
         openPercent={displayOpenPercent}
         openCostBasis={displayOpenCost}
         yearValue={displayYearPnl}
-        realizedValue={displayRealized}
+        allTimeValue={displayAllTime}
         movers={openMovers}
         warning={formatMissingPriceWarning(
           stats.yearUnrealizedMissingCount,

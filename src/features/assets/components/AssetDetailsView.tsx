@@ -14,7 +14,8 @@ import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-am
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { sortTransactionsNewestFirst } from '@/shared/utils/sort-transactions';
-import { ytdUnrealizedForAsset, ytdPnlDisplay } from '@/features/reports/utils/ytd-unrealized';
+import { computeAssetPnl, pick, pnlPercent } from '@/features/reports/utils/asset-pnl';
+import { AssetPnlBreakdown } from '@/features/assets/components/AssetPnlBreakdown';
 import { DetailCard } from '@/features/assets/components/DetailCard';
 import {
   buildAssetSnapshots,
@@ -52,7 +53,6 @@ const TYPE_LABELS: Record<string, string> = {
   EXPENSE: 'هزینه',
 };
 
-type PnlScope = 'lifetime' | 'year';
 
 export interface AssetDetailsViewProps {
   assetId: string;
@@ -66,7 +66,6 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
   const [txSearchQuery, setTxSearchQuery] = useState('');
-  const [pnlScope, setPnlScope] = useState<PnlScope>('year');
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
   const asset = assets.find((a) => a.id === assetId);
@@ -183,9 +182,9 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
       .filter((row): row is NonNullable<typeof row> => row !== null);
   }, [asset, assetGoals, snapshots, totalValueToman, currencyMode, usdRate]);
 
-  const ytdStats = useMemo(() => {
+  const pnl = useMemo(() => {
     if (!asset) return null;
-    return ytdUnrealizedForAsset(asset, transactions, dailyPrices, usdRate, todayStr);
+    return computeAssetPnl(asset, transactions, dailyPrices, usdRate, todayStr);
   }, [asset, transactions, dailyPrices, usdRate, todayStr]);
 
   if (!asset) {
@@ -204,51 +203,14 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const displayValue =
     currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
 
-  const ytdPnl = ytdStats ? ytdPnlDisplay(ytdStats, currencyMode) : null;
-  const headerProfit = ytdPnl?.total ?? null;
-  const isHeaderProfit = (headerProfit ?? 0) >= 0;
-  const ytdBaseline =
-    currencyMode === 'USD'
-      ? ytdStats && ytdStats.periodEndPriceUsd && ytdStats.startHoldings > 0
-        ? ytdStats.startHoldings * ytdStats.periodEndPriceUsd
-        : stats.totalCostUsd
-      : ytdStats && ytdStats.periodEndPriceToman && ytdStats.startHoldings > 0
-        ? ytdStats.startHoldings * ytdStats.periodEndPriceToman
-        : stats.totalCostToman;
-  const headerOpen = ytdPnl?.open ?? null;
-  const showHeaderPercent =
-    headerOpen !== null &&
-    ytdPnl !== null &&
-    ytdPnl.realized === 0 &&
-    !ytdPnl.isPartial &&
-    ytdBaseline > 0;
-  const headerProfitPercent = showHeaderPercent
-    ? (headerOpen / ytdBaseline) * 100
+  // Header shows the ACTIVE (open) P/L — the number you can act on.
+  const headerHasOpen =
+    !!pnl && pnl.included && pnl.holdings > 0 && pnl.active.available;
+  const headerOpen = pnl ? pick(pnl.active.value, currencyMode) : 0;
+  const headerOpenPercent = pnl
+    ? pnlPercent(pnl.active.value, pnl.active.cost, currencyMode)
     : null;
-
-  const displayRealized =
-    pnlScope === 'year' && ytdStats
-      ? currencyMode === 'USD'
-        ? ytdStats.realizedUsd
-        : ytdStats.realizedToman
-      : currencyMode === 'USD'
-        ? stats.realizedProfitUsd
-        : stats.realizedProfitToman;
-  const isRealizedProfit = displayRealized >= 0;
-
-  const unrealizedAvailable =
-    pnlScope === 'year'
-      ? (ytdStats?.periodUnrealizedAvailable ?? false)
-      : true;
-  const displayUnrealized =
-    pnlScope === 'year' && ytdStats
-      ? currencyMode === 'USD'
-        ? ytdStats.periodUnrealizedUsd
-        : ytdStats.periodUnrealizedToman
-      : currencyMode === 'USD'
-        ? stats.unrealizedProfitUsd
-        : stats.unrealizedProfitToman;
-  const isUnrealizedProfit = displayUnrealized >= 0;
+  const isHeaderProfit = headerOpen >= 0;
   const pnlExcluded = asset.include_in_profit_loss === false;
   const balanceExcluded = asset.include_in_balance === false;
 
@@ -318,35 +280,30 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           <h2 className="text-3xl font-bold text-white mb-2" dir="ltr">
             {formatCurrency(displayValue, currencyMode)}
           </h2>
-          {headerProfit !== null ? (
+          {headerHasOpen ? (
             <div
-              className={`inline-flex flex-col items-center gap-0.5 text-sm font-medium ${isHeaderProfit ? 'text-emerald-400' : 'text-rose-400'}`}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${
+                isHeaderProfit
+                  ? 'bg-emerald-400/10 text-emerald-300'
+                  : 'bg-rose-400/10 text-rose-300'
+              }`}
               dir="ltr"
             >
               <span>
                 {isHeaderProfit ? '+' : ''}
-                {formatCurrency(headerProfit, currencyMode)}
-                {headerProfitPercent !== null &&
-                  ` (${headerProfitPercent.toFixed(2)}%)`}
+                {formatCurrency(headerOpen, currencyMode)}
               </span>
-              {ytdPnl &&
-                ytdPnl.realized !== 0 &&
-                ytdPnl.open !== null &&
-                ytdPnl.open !== 0 && (
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    محقق {ytdPnl.realized >= 0 ? '+' : ''}
-                    {formatCurrency(ytdPnl.realized, currencyMode)} · باز{' '}
-                    {ytdPnl.open >= 0 ? '+' : ''}
-                    {formatCurrency(ytdPnl.open, currencyMode)}
-                  </span>
-                )}
+              {headerOpenPercent !== null && (
+                <span className="text-xs opacity-80">
+                  {headerOpenPercent >= 0 ? '+' : ''}
+                  {headerOpenPercent.toFixed(2)}%
+                </span>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-amber-400/80">سود/زیان امسال: —</p>
+          ) : null}
+          {headerHasOpen && (
+            <p className="text-[10px] text-slate-500 mt-1">سود/زیان باز</p>
           )}
-          <p className="text-[10px] text-slate-500 mt-1">
-            {ytdPnl?.isPartial ? 'سود/زیان امسال · بدون باز' : 'سود/زیان امسال'}
-          </p>
           {balanceExcluded && (
             <p className="text-[11px] text-sky-300/80 mt-2">
               این دارایی در «ارزش کل سبد» و پراکندگی داشبورد لحاظ نمی‌شود؛ ارزش
@@ -366,64 +323,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-slate-500">سود/زیان</p>
-          <div className="flex rounded-lg border border-white/10 overflow-hidden text-[10px]">
-            <button
-              type="button"
-              onClick={() => setPnlScope('year')}
-              className={`px-2.5 py-1 font-semibold transition ${
-                pnlScope === 'year'
-                  ? 'bg-purple-500/25 text-purple-200'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              امسال
-            </button>
-            <button
-              type="button"
-              onClick={() => setPnlScope('lifetime')}
-              className={`px-2.5 py-1 font-semibold transition ${
-                pnlScope === 'lifetime'
-                  ? 'bg-purple-500/25 text-purple-200'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              از ابتدا
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5">
-            <p className="text-slate-500 text-xs mb-1">
-              سود/زیان محقق شده ({pnlScope === 'year' ? 'امسال' : 'از ابتدا'})
-            </p>
-            <p
-              className={`font-bold text-sm ${isRealizedProfit ? 'text-emerald-400' : 'text-rose-400'}`}
-              dir="ltr"
-            >
-              {isRealizedProfit ? '+' : ''}
-              {formatCurrency(displayRealized, currencyMode)}
-            </p>
-          </div>
-          <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5">
-            <p className="text-slate-500 text-xs mb-1">
-              سود/زیان مانده ({pnlScope === 'year' ? 'امسال' : 'ارزش روز'})
-            </p>
-            {unrealizedAvailable ? (
-              <p
-                className={`font-bold text-sm ${isUnrealizedProfit ? 'text-emerald-400' : 'text-rose-400'}`}
-                dir="ltr"
-              >
-                {isUnrealizedProfit ? '+' : ''}
-                {formatCurrency(displayUnrealized, currencyMode)}
-              </p>
-            ) : (
-              <p className="text-sm text-amber-400/80">—</p>
-            )}
-          </div>
-        </div>
+        {pnl && pnl.included && <AssetPnlBreakdown pnl={pnl} mode={currencyMode} />}
 
         {assetGoals.length > 0 && (
           <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3">

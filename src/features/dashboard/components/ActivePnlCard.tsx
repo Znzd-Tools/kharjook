@@ -24,8 +24,8 @@ function signedPercent(value: number): string {
 
 /**
  * Open (active / unrealized) P/L of what you hold right now — the number you
- * can still act on. Year and lifetime-realized P/L are shown smaller, as
- * context, because they mostly describe the past.
+ * can still act on. This-year and from-the-beginning P/L are shown smaller,
+ * as context, because they mostly describe the past.
  */
 export function ActivePnlCard({
   currencyMode,
@@ -33,7 +33,7 @@ export function ActivePnlCard({
   openPercent,
   openCostBasis,
   yearValue,
-  realizedValue,
+  allTimeValue,
   movers,
   warning,
   onOpen,
@@ -43,7 +43,7 @@ export function ActivePnlCard({
   openPercent: number;
   openCostBasis: number;
   yearValue: number;
-  realizedValue: number;
+  allTimeValue: number;
   movers: ActivePnlMover[];
   warning?: string | null;
   onOpen?: () => void;
@@ -154,14 +154,14 @@ export function ActivePnlCard({
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] text-slate-500">سود محقق‌شده (کل)</p>
+          <p className="text-[10px] text-slate-500">سود/زیان از ابتدا</p>
           <p
             className={`truncate text-sm font-bold ${
-              realizedValue >= 0 ? 'text-emerald-300/80' : 'text-rose-300/80'
+              allTimeValue >= 0 ? 'text-emerald-300/80' : 'text-rose-300/80'
             }`}
             dir="ltr"
           >
-            {signed(realizedValue, currencyMode)}
+            {signed(allTimeValue, currencyMode)}
           </p>
         </div>
       </div>

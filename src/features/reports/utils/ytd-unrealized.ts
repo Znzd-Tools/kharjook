@@ -58,7 +58,7 @@ export function ytdPnlDisplay(
       total: realized + open!,
       realized,
       open,
-      isPartial: false,
+      isPartial: stats.periodBaselineMissing,
       unavailable: false,
     };
   }
@@ -114,8 +114,8 @@ export function computeYtdUnrealizedSummary(
   for (const asset of assets) {
     if (asset.include_in_profit_loss === false) continue;
 
-    const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr);
-    const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+    const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr, transactions);
+    const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
     const stats = calculateAssetPeriodStats(
       asset,
       transactions,
@@ -173,8 +173,8 @@ export function ytdUnrealizedForAsset(
 ): AssetPeriodStats {
   const period = currentJalaliYearPeriod();
   const endStr = formatJalaali(period.end);
-  const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr);
-  const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr);
+  const startPrice = effectiveOpeningPriceAt(asset, period.start, dailyPrices, todayStr, transactions);
+  const endPrice = effectivePriceAt(asset, endStr, dailyPrices, todayStr, transactions);
   return calculateAssetPeriodStats(
     asset,
     transactions,
