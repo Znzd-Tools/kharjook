@@ -389,6 +389,9 @@ function AssetListRow({
         <p className="font-bold text-slate-200" dir="ltr">
           {formatCurrency(displayValue, currencyMode)}
         </p>
+        {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
+          <p className="text-[9px] text-amber-300/70 mt-0.5">با قیمت آخرین معامله</p>
+        )}
         {hasOpen && (
           <p
             className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${

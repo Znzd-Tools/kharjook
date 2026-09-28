@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { calculateAssetPeriodStats } from '@/features/reports/utils/asset-period-stats';
 import type { EffectivePrice } from '@/features/reports/utils/price-history';
 import type { Period } from '@/shared/utils/period';
-import { buy, testAsset } from '@/test/fixtures';
+import { buy, sell, testAsset } from '@/test/fixtures';
 
 const price = (toman: number): EffectivePrice => ({
   priceToman: toman,
@@ -32,5 +32,20 @@ describe('calculateAssetPeriodStats — past period', () => {
     const txs = [buy('1403/01/10', 1, 100), buy('1403/02/10', 1, 110)];
     const s = calculateAssetPeriodStats(testAsset, txs, ordibehesht, 100, price(120), price(100));
     expect(s.periodUnrealizedToman).toBe(2 * 120 - (100 + 110));
+  });
+});
+
+describe('calculateAssetPeriodStats — same-day sell all then rebuy', () => {
+  it('matches the lifetime engine order', () => {
+    const T = (h: number) => `2024-07-22T0${h}:00:00Z`;
+    const txs = [
+      buy('1403/01/10', 10, 100, T(1)),
+      { ...buy('1403/02/10', 10, 130, T(3)) },
+      sell('1403/02/10', 10, 120, T(2)),
+    ];
+    const s = calculateAssetPeriodStats(testAsset, txs, ordibehesht, 100, price(150), price(100));
+    // Opening 10 @100 (start price 100) sold @120 → +200; new 10 @130 → open +200.
+    expect(s.realizedToman).toBeCloseTo(200, 9);
+    expect(s.periodUnrealizedToman).toBeCloseTo(200, 9);
   });
 });

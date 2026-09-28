@@ -15,12 +15,11 @@
  *
  * Price history: a daily snapshot is used when it exists; otherwise the unit
  * price of the newest BUY / SELL on or before that date is used. With no live
- * price cached, the newest historical price marks today.
+ * price cached, the newest BUY / SELL price marks today (same as the value).
  */
 
 import type { Asset, CurrencyMode, DailyPrice, Transaction } from '@/shared/types/domain';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
-import { effectivePriceAt } from '@/features/reports/utils/price-history';
 import { ytdUnrealizedForAsset } from '@/features/reports/utils/ytd-unrealized';
 
 export interface PnlPart {
@@ -72,24 +71,6 @@ export function pnlPercent(value: PnlPart, base: PnlPart, mode: CurrencyMode): n
   return (pick(value, mode) / b) * 100;
 }
 
-/** Price that marks holdings today: live cache first, then newest history. */
-function markPrice(
-  asset: Asset,
-  dailyPrices: DailyPrice[],
-  transactions: Transaction[],
-  usdRate: number,
-  todayStr: string
-): PnlPart | null {
-  const liveToman = Number(asset.price_toman);
-  if (Number.isFinite(liveToman) && liveToman > 0) {
-    // Same rule as `calculateAssetStats` so value and P/L always agree.
-    const liveUsd = Number(asset.price_usd) || (usdRate > 0 ? liveToman / usdRate : 0);
-    return { toman: liveToman, usd: liveUsd };
-  }
-  const hist = effectivePriceAt(asset, todayStr, dailyPrices, todayStr, transactions);
-  return hist ? { toman: hist.priceToman, usd: hist.priceUsd } : null;
-}
-
 export function computeAssetPnl(
   asset: Asset,
   transactions: Transaction[],
@@ -102,14 +83,12 @@ export function computeAssetPnl(
   const holdings = stats.totalAmount;
 
   // ── Active + all-time (lifetime replay) ────────────────────────────────
-  const mark = holdings > 0 ? markPrice(asset, dailyPrices, transactions, usdRate, todayStr) : null;
-  const activeAvailable = holdings <= 0 || mark !== null;
+  // Marked with the same price as the displayed value (`calculateAssetStats`:
+  // live price, else newest BUY/SELL price), so value and P/L always agree.
+  const activeAvailable = holdings <= 0 || stats.currentPriceSource !== 'none';
   const activeValue: PnlPart =
-    holdings > 0 && mark
-      ? {
-          toman: holdings * mark.toman - stats.totalCostToman,
-          usd: holdings * mark.usd - stats.totalCostUsd,
-        }
+    holdings > 0 && activeAvailable
+      ? { toman: stats.unrealizedProfitToman, usd: stats.unrealizedProfitUsd }
       : { toman: 0, usd: 0 };
 
   const rawRealized: PnlPart = included

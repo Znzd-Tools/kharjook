@@ -10,6 +10,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
@@ -280,6 +281,12 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           <h2 className="text-3xl font-bold text-white mb-2" dir="ltr">
             {formatCurrency(displayValue, currencyMode)}
           </h2>
+          {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
+            <p className="text-[11px] text-amber-300/80 mb-2">
+              قیمت روز ثبت نشده؛ با قیمت آخرین معامله
+              {stats.currentPriceDate ? ` (${toPersianDigits(stats.currentPriceDate)})` : ''} حساب شد.
+            </p>
+          )}
           {headerHasOpen ? (
             <div
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${

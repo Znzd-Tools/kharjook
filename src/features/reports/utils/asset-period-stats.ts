@@ -33,6 +33,7 @@ import type { Asset, Transaction } from '@/shared/types/domain';
 import { parseDateToNumber } from '@/shared/utils/parse-date';
 import { isInPeriod, jalaaliToNumber, type Period } from '@/shared/utils/period';
 import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
+import { orderAssetTxsForReplay } from '@/shared/utils/asset-replay-order';
 import type { EffectivePrice } from './price-history';
 
 export interface SideAggregate {
@@ -294,18 +295,13 @@ export function calculateAssetPeriodStats(
     return false;
   });
 
-  const acquireRank = (tx: Transaction) =>
-    isAcquireForAsset(tx, asset.id) ? 0 : 1;
-
-  const sorted = [...assetTxs].sort((a, b) => {
-    const da = parseDateToNumber(a.date_string);
-    const db = parseDateToNumber(b.date_string);
-    if (da !== db) return da - db;
-    const ra = acquireRank(a);
-    const rb = acquireRank(b);
-    if (ra !== rb) return ra - rb;
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
+  // Same replay order as the lifetime engine: date, then real creation order;
+  // acquisitions-first only on a day where the real order would oversell.
+  const sorted = orderAssetTxsForReplay(
+    assetTxs,
+    (tx) => isAcquireForAsset(tx, asset.id),
+    (tx) => readTrade(tx, usdRateFallback)?.amount ?? 0
+  );
 
   const stats = emptyAssetPeriodStats(asset.id);
   const startNum = jalaaliToNumber(period.start);

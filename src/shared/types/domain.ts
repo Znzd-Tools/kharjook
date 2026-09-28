@@ -441,6 +441,13 @@ export interface AssetStats {
   proceedsUsd: number;
   /** First acquisition date of the current open position (after the last zero). */
   activeSinceDate: string | null;
+  /** Unit price used for the current value. */
+  currentPriceToman: number;
+  currentPriceUsd: number;
+  /** live = cached asset price; trade = newest BUY/SELL price (no live price); none = no price. */
+  currentPriceSource: 'live' | 'trade' | 'none';
+  /** Date of the trade price when `currentPriceSource === 'trade'`. */
+  currentPriceDate: string | null;
 }
 
 export type AuthUser = User;

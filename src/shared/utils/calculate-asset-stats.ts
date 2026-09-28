@@ -1,6 +1,7 @@
 import type { Asset, AssetStats, CurrencyMode, Transaction } from '@/shared/types/domain';
-import { parseDateToNumber } from '@/shared/utils/parse-date';
 import { isClosedPosition } from '@/shared/utils/quantity-epsilon';
+import { orderAssetTxsForReplay } from '@/shared/utils/asset-replay-order';
+import { latestTradePriceAt } from '@/shared/utils/last-trade-price';
 
 function resolvePriceUsd(
   tx: Transaction,
@@ -62,31 +63,13 @@ export function calculateAssetStats(
   /** Date the current (still open) position started — last reset point. */
   let activeSinceDate: string | null = null;
 
-  // Bulletproof sort: Oldest to Newest, handling same-day trades logically
-  const sortedTxs = [...assetTxs].sort((a, b) => {
-    const dateA = parseDateToNumber(a.date_string);
-    const dateB = parseDateToNumber(b.date_string);
+  const isAcquireRow = (tx: Transaction) => isAcquireType(tx) || isTransferAcquire(tx);
 
-    if (dateA !== dateB) return dateA - dateB;
-
-    // If exact same date, process acquisitions before disposals to avoid
-    // phantom zero balances.
-    const ra = isAcquireType(a) || isTransferAcquire(a) ? 0 : 1;
-    const rb = isAcquireType(b) || isTransferAcquire(b) ? 0 : 1;
-    if (ra !== rb) return ra - rb;
-
-    // Final fallback to real creation timestamp
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
-
-  sortedTxs.forEach((tx) => {
-    const isAcquire = isAcquireType(tx) || isTransferAcquire(tx);
-    const isDispose = isDisposeType(tx) || isTransferDispose(tx);
-    if (!isAcquire && !isDispose) return;
-
-    // Legacy `amount` first; fall back to the polymorphic side that touches
-    // this asset (same rule as `asset-period-stats`).
-    const polyAmount = isAcquire
+  // Units this replay applies for a row (0 = the row is skipped below).
+  // Legacy `amount` first; fall back to the polymorphic side that touches
+  // this asset (same rule as `asset-period-stats`).
+  const replayQty = (tx: Transaction): number => {
+    const polyAmount = isAcquireRow(tx)
       ? tx.target_asset_id === asset.id
         ? tx.target_amount
         : null
@@ -95,8 +78,24 @@ export function calculateAssetStats(
         : null;
     const amount = Number(tx.amount ?? polyAmount);
     const priceToman = Number(tx.price_toman);
-    if (!Number.isFinite(amount) || amount <= 0) return;
-    if (!Number.isFinite(priceToman) || priceToman <= 0) return;
+    if (!Number.isFinite(amount) || amount <= 0) return 0;
+    if (!Number.isFinite(priceToman) || priceToman <= 0) return 0;
+    return amount;
+  };
+
+  // Date, then real creation order (so "sell all → buy again" on one day
+  // closes the old position first); acquisitions-first only when the real
+  // order would oversell.
+  const sortedTxs = orderAssetTxsForReplay(assetTxs, isAcquireRow, replayQty);
+
+  sortedTxs.forEach((tx) => {
+    const isAcquire = isAcquireType(tx) || isTransferAcquire(tx);
+    const isDispose = isDisposeType(tx) || isTransferDispose(tx);
+    if (!isAcquire && !isDispose) return;
+
+    const amount = replayQty(tx);
+    if (!(amount > 0)) return;
+    const priceToman = Number(tx.price_toman);
     const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate);
 
     if (isAcquire) {
@@ -141,9 +140,24 @@ export function calculateAssetStats(
 
   const avgBuyPriceToman = totalAmount > 0 ? totalCostToman / totalAmount : 0;
   const avgBuyPriceUsd = totalAmount > 0 ? totalCostUsd / totalAmount : 0;
-  const currentPriceToman = asset.price_toman || 0;
-  const currentPriceUsd =
-    asset.price_usd || (usdRate > 0 ? currentPriceToman / usdRate : 0);
+  // Current price: the live cached price. When the asset has none (manual
+  // asset never priced), use the newest BUY/SELL price instead of 0, so value
+  // and P/L never show a false −100%.
+  let currentPriceToman = Number(asset.price_toman) || 0;
+  let currentPriceUsd =
+    Number(asset.price_usd) || (usdRate > 0 ? currentPriceToman / usdRate : 0);
+  let currentPriceSource: AssetStats['currentPriceSource'] =
+    currentPriceToman > 0 ? 'live' : 'none';
+  let currentPriceDate: string | null = null;
+  if (!(currentPriceToman > 0)) {
+    const last = latestTradePriceAt(asset.id, null, assetTxs);
+    if (last) {
+      currentPriceToman = last.priceToman;
+      currentPriceUsd = last.priceUsd;
+      currentPriceSource = 'trade';
+      currentPriceDate = last.date;
+    }
+  }
 
   const currentValueToman = totalAmount * currentPriceToman;
   const currentValueUsd = totalAmount * currentPriceUsd;
@@ -187,6 +201,10 @@ export function calculateAssetStats(
     proceedsToman: totalProceedsToman,
     proceedsUsd: totalProceedsUsd,
     activeSinceDate: totalAmount > 0 ? activeSinceDate : null,
+    currentPriceToman,
+    currentPriceUsd,
+    currentPriceSource,
+    currentPriceDate,
   };
 }
 

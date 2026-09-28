@@ -46,8 +46,9 @@ export function makeTx(partial: Partial<Transaction> & Pick<Transaction, 'type'>
 }
 
 /** BUY `qty` of asset a1 at `price` Toman per unit on `date`. */
-export function buy(date: string, qty: number, price: number): Transaction {
+export function buy(date: string, qty: number, price: number, createdAt?: string): Transaction {
   return makeTx({
+    ...(createdAt ? { created_at: createdAt } : {}),
     type: 'BUY',
     date_string: date,
     target_asset_id: 'a1',
@@ -59,8 +60,9 @@ export function buy(date: string, qty: number, price: number): Transaction {
 }
 
 /** SELL `qty` of asset a1 at `price` Toman per unit on `date`. */
-export function sell(date: string, qty: number, price: number): Transaction {
+export function sell(date: string, qty: number, price: number, createdAt?: string): Transaction {
   return makeTx({
+    ...(createdAt ? { created_at: createdAt } : {}),
     type: 'SELL',
     date_string: date,
     source_asset_id: 'a1',
