@@ -114,6 +114,20 @@ export function LoansHubView() {
     return new Map(loans.map((loan) => [loan.id, loan]));
   }, [loans]);
 
+  const installmentMetaByLoan = useMemo(() => {
+    const meta = new Map<string, { total: number; lastSeq: number }>();
+    for (const it of installments) {
+      const prev = meta.get(it.loan_id);
+      if (!prev) {
+        meta.set(it.loan_id, { total: 1, lastSeq: it.sequence_no });
+      } else {
+        prev.total += 1;
+        if (it.sequence_no > prev.lastSeq) prev.lastSeq = it.sequence_no;
+      }
+    }
+    return meta;
+  }, [installments]);
+
   const loansRows = useMemo(() => {
     return loans.map((loan) => {
       const all = installments.filter((it) => it.loan_id === loan.id);
@@ -747,13 +761,26 @@ export function LoansHubView() {
                 const parsed = parseJalaali(installment.due_date_string);
                 const dueLabel = parsed ? formatJalaaliHuman(parsed) : installment.due_date_string;
                 const amountDisplay = displayAmount({ installment, loan });
+                const meta = installmentMetaByLoan.get(loan.id);
+                const total = meta?.total ?? installment.sequence_no;
+                const isLast = installment.sequence_no === (meta?.lastSeq ?? installment.sequence_no);
                 return (
                   <div
                     key={installment.id}
                     className="bg-[#1A1B26] border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-100 truncate">{loan.title}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-semibold text-slate-100 truncate">{loan.title}</p>
+                        <span className="text-[11px] font-semibold text-slate-400 shrink-0" dir="ltr">
+                          {toPersianDigits(`${installment.sequence_no}/${total}`)}
+                        </span>
+                        {isLast && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
+                            آخرین قسط
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 mt-1">{dueLabel}</p>
                       <p className="text-xs text-slate-300 mt-1" dir="ltr">
                         {isAssetLoan(loan)
@@ -880,15 +907,26 @@ export function LoansHubView() {
               <p className="text-xs text-slate-500 py-3 text-center">برای این روز قسطی ثبت نشده.</p>
             ) : (
               <div className="space-y-2">
-                {selectedDayRows.map((row) => (
+                {selectedDayRows.map((row) => {
+                  const meta = installmentMetaByLoan.get(row.loan.id);
+                  const total = meta?.total ?? row.installment.sequence_no;
+                  const isLast = row.installment.sequence_no === (meta?.lastSeq ?? row.installment.sequence_no);
+                  return (
                   <div
                     key={row.installment.id}
                     className="bg-white/3 border border-white/5 rounded-xl p-3 flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm text-slate-100 truncate">{row.loan.title}</p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        قسط {toPersianDigits(row.installment.sequence_no)}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm text-slate-100 truncate">{row.loan.title}</p>
+                        {isLast && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
+                            آخرین قسط
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1" dir="ltr">
+                        {toPersianDigits(`${row.installment.sequence_no}/${total}`)}
                       </p>
                       <p className="text-xs text-slate-200 mt-1" dir="ltr">
                         {isAssetLoan(row.loan)
@@ -908,7 +946,8 @@ export function LoansHubView() {
                       تسویه
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
