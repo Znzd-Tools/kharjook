@@ -68,6 +68,15 @@ export function calculateAssetStats(
   let totalProceedsUsd = 0;
   /** Date the current (still open) position started — last reset point. */
   let activeSinceDate: string | null = null;
+  // Units sold that were NOT held at that date (in date order). This happens
+  // when a row is back-dated before a sell, e.g. a loan installment settled
+  // late but dated on its due date. They are carried as a short and the next
+  // acquisitions cover it first, so the quantity always equals the ledger sum
+  // (acquired − disposed). Before, these units were dropped for good, and the
+  // holding showed MORE than the user really had.
+  let shortUnits = 0;
+  let shortProceedsToman = 0;
+  let shortProceedsUsd = 0;
 
   // Lazily built (only if some row lacks its own USD rate).
   let usdHistory: RateHistory | null = null;
@@ -112,13 +121,34 @@ export function calculateAssetStats(
     const priceUsd = resolvePriceUsd(tx, amount, priceToman, usdRate, usdAt);
 
     if (isAcquire) {
-      if (totalAmount <= 0) activeSinceDate = tx.date_string;
-      totalAmount += amount;
-      const txCostToman = amount * priceToman;
-      totalCostToman += txCostToman;
-      totalCostUsd += amount * priceUsd;
-      historicalCostToman += txCostToman;
+      historicalCostToman += amount * priceToman;
       historicalCostUsd += amount * priceUsd;
+
+      // Cover an open short first: realize it against the price it was sold at.
+      let units = amount;
+      if (shortUnits > 0) {
+        const cover = Math.min(units, shortUnits);
+        const shortAvgToman = shortProceedsToman / shortUnits;
+        const shortAvgUsd = shortProceedsUsd / shortUnits;
+        realizedProfitToman += cover * (shortAvgToman - priceToman);
+        realizedProfitUsd += cover * (shortAvgUsd - priceUsd);
+        const shortBefore = shortUnits;
+        shortUnits -= cover;
+        shortProceedsToman -= cover * shortAvgToman;
+        shortProceedsUsd -= cover * shortAvgUsd;
+        if (isClosedPosition(shortUnits, shortBefore)) {
+          shortUnits = 0;
+          shortProceedsToman = 0;
+          shortProceedsUsd = 0;
+        }
+        units -= cover;
+      }
+      if (isClosedPosition(units, amount)) return;
+
+      if (totalAmount <= 0) activeSinceDate = tx.date_string;
+      totalAmount += units;
+      totalCostToman += units * priceToman;
+      totalCostUsd += units * priceUsd;
     } else {
       const unitsBefore = totalAmount;
       if (totalAmount > 0) {
@@ -138,6 +168,16 @@ export function calculateAssetStats(
         totalCostToman -= drain * avgCostToman;
         totalCostUsd -= drain * avgCostUsd;
         totalAmount -= drain;
+      }
+
+      // The part not held at this date becomes a short (see `shortUnits`).
+      const excess = amount - Math.min(amount, Math.max(unitsBefore, 0));
+      if (excess > Math.max(amount * 1e-9, 1e-15)) {
+        shortUnits += excess;
+        shortProceedsToman += excess * priceToman;
+        shortProceedsUsd += excess * priceUsd;
+        totalProceedsToman += excess * priceToman;
+        totalProceedsUsd += excess * priceUsd;
       }
 
       // Position closed (only float noise left): reset quantity AND cost

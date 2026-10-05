@@ -14,6 +14,22 @@ describe('calculateAssetStats', () => {
     expect(s.totalAmount).toBe(0);
   });
 
+  it('carries an oversell as a short that later buys cover (back-dated rows)', () => {
+    // A row back-dated before a sell leaves only 50 held at the sell date.
+    // The 50 units not held must not vanish: quantity = ledger sum.
+    const txs = [
+      buy('1403/01/01', 100, 100),
+      sell('1403/01/02', 50, 100), // back-dated expense
+      sell('1403/01/03', 100, 200), // 50 held, 50 short
+      buy('1403/01/04', 1000, 150), // covers the 50 short first
+    ];
+    const s = calculateAssetStats(testAsset, txs, 'TOMAN', 100);
+    expect(s.totalAmount).toBe(950); // 100 − 50 − 100 + 1000
+    expect(s.totalCostToman).toBe(950 * 150);
+    // 50 × (200 − 100) on held units + 50 × (200 − 150) on the covered short.
+    expect(s.realizedProfitToman).toBe(5000 + 2500);
+  });
+
   it('keeps average-cost math for normal sells', () => {
     const txs = [buy('1403/01/01', 2, 100), buy('1403/01/02', 2, 200), sell('1403/01/03', 1, 300)];
     const s = calculateAssetStats(testAsset, txs, 'TOMAN', 100);

@@ -59,7 +59,7 @@ export function orderAssetTxsForReplay(
           feasible = false;
           break;
         }
-        sim = Math.max(0, sim - q);
+        sim -= q;
       }
     }
 
@@ -71,7 +71,8 @@ export function orderAssetTxsForReplay(
     for (const tx of ordered) {
       const q = qtyOf(tx);
       if (!(q > 0)) continue;
-      held = isAcquire(tx) ? held + q : Math.max(0, held - q);
+      // Net units (may go below 0: the engine carries an oversell as a short).
+      held = isAcquire(tx) ? held + q : held - q;
       out.push(tx);
     }
     // Keep rows the engine skips too (it will ignore them itself).

@@ -414,7 +414,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           <DetailCard
             label="قیمت روز"
             value={formatCurrency(
-              currencyMode === 'USD' ? asset.price_usd : asset.price_toman,
+              // Same price the value above uses (live, else last trade).
+              currencyMode === 'USD' ? stats.currentPriceUsd : stats.currentPriceToman,
               currencyMode
             )}
           />

@@ -325,6 +325,11 @@ export function calculateAssetPeriodStats(
   let units = 0;
   let costToman = 0;
   let costUsd = 0;
+  // Oversold units carried as a short; covered by later acquisitions
+  // (same rule as `calculateAssetStats`).
+  let shortUnits = 0;
+  let shortProceedsToman = 0;
+  let shortProceedsUsd = 0;
 
   let endUnits = 0;
   let endCostToman = 0;
@@ -375,15 +380,39 @@ export function calculateAssetPeriodStats(
     const isAcquire = isAcquireForAsset(tx, asset.id);
 
     if (isAcquire) {
-      units += amount;
-      costToman += amount * priceToman;
-      costUsd += amount * priceUsd;
+      let held = amount;
+      if (shortUnits > 0) {
+        const cover = Math.min(held, shortUnits);
+        const shortAvgT = shortProceedsToman / shortUnits;
+        const shortAvgU = shortProceedsUsd / shortUnits;
+        if (inPeriod) {
+          stats.realizedToman += cover * (shortAvgT - priceToman);
+          stats.realizedUsd += cover * (shortAvgU - priceUsd);
+          stats.realizedVsCostToman += cover * (shortAvgT - priceToman);
+          stats.realizedVsCostUsd += cover * (shortAvgU - priceUsd);
+        }
+        const shortBefore = shortUnits;
+        shortUnits -= cover;
+        shortProceedsToman -= cover * shortAvgT;
+        shortProceedsUsd -= cover * shortAvgU;
+        if (isClosedPosition(shortUnits, shortBefore)) {
+          shortUnits = 0;
+          shortProceedsToman = 0;
+          shortProceedsUsd = 0;
+        }
+        held -= cover;
+        if (isClosedPosition(held, amount)) held = 0;
+      }
+
+      units += held;
+      costToman += held * priceToman;
+      costUsd += held * priceUsd;
 
       if (inPeriod) {
         initPeriodPool();
-        periodPoolUnits += amount;
-        periodPoolCostToman += amount * priceToman;
-        periodPoolCostUsd += amount * priceUsd;
+        periodPoolUnits += held;
+        periodPoolCostToman += held * priceToman;
+        periodPoolCostUsd += held * priceUsd;
         stats.bought.units += amount;
         stats.bought.totalToman += amount * priceToman;
         stats.bought.totalUsd += amount * priceUsd;
@@ -429,6 +458,13 @@ export function calculateAssetPeriodStats(
       units -= drain;
       costToman -= drain * avgT;
       costUsd -= drain * avgU;
+
+      const excess = amount - drain;
+      if (excess > Math.max(amount * 1e-9, 1e-15)) {
+        shortUnits += excess;
+        shortProceedsToman += excess * priceToman;
+        shortProceedsUsd += excess * priceUsd;
+      }
 
       if (isClosedPosition(units, unitsBefore)) {
         units = 0;

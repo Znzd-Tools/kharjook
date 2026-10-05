@@ -197,6 +197,9 @@ export function PortfolioProvider({
           .from('transactions')
           .select('*', { count: 'exact' })
           .order('created_at', { ascending: false })
+          // Tie-breaker: rows inserted in one statement (import, convert)
+          // share `created_at`; without it, pages can repeat or skip rows.
+          .order('id', { ascending: false })
           .range(0, TRANSACTIONS_PAGE_SIZE - 1),
         supabase
           .from('wallets')
@@ -401,9 +404,13 @@ export function PortfolioProvider({
               .from('transactions')
               .select('*')
               .order('created_at', { ascending: false })
+              .order('id', { ascending: false })
               .range(offset, offset + TRANSACTIONS_PAGE_SIZE - 1);
             if (pageError || !page?.length) break;
-            merged = [...merged, ...(page as Transaction[])];
+            // A row added while paging shifts the offsets; never count a
+            // row twice (a doubled BUY doubles the asset quantity).
+            const seen = new Set(merged.map((tx) => tx.id));
+            merged = [...merged, ...(page as Transaction[]).filter((tx) => !seen.has(tx.id))];
             offset += TRANSACTIONS_PAGE_SIZE;
             if (seq === fetchSeq.current) {
               setTransactions(merged);
