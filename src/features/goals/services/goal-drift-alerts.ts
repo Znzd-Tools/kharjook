@@ -18,6 +18,7 @@ import {
   TelegramSendError,
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
+import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 
 async function loadGoalDriftContext(userId: string) {
   const admin = createSupabaseAdminClient();
@@ -26,7 +27,7 @@ async function loadGoalDriftContext(userId: string) {
       admin.from('goals').select('*').eq('user_id', userId),
       admin.from('assets').select('*').eq('user_id', userId),
       admin.from('categories').select('*').eq('user_id', userId),
-      admin.from('transactions').select('*').eq('user_id', userId),
+      fetchAllUserTransactions(admin, userId),
       admin.from('currency_rates').select('*').eq('user_id', userId),
     ]);
 

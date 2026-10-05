@@ -27,6 +27,7 @@ import type {
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
 
@@ -299,7 +300,7 @@ export async function loadUserAssetsWithRates(userId: string): Promise<{
   const [{ data: assets }, { data: rates }, { data: transactions }] = await Promise.all([
     admin.from('assets').select('*').eq('user_id', userId),
     admin.from('currency_rates').select('*').eq('user_id', userId),
-    admin.from('transactions').select('*').eq('user_id', userId),
+    fetchAllUserTransactions(admin, userId),
   ]);
   const usdRate =
     ((rates ?? []) as CurrencyRate[]).find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;

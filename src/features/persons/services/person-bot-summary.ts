@@ -8,12 +8,13 @@ import {
   sendTelegramMessage,
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
+import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 
 async function loadPersonSummaryContext(userId: string) {
   const admin = createSupabaseAdminClient();
   const [{ data: persons }, { data: transactions }] = await Promise.all([
     admin.from('persons').select('*').eq('user_id', userId).order('order_index', { ascending: true }),
-    admin.from('transactions').select('*').eq('user_id', userId),
+    fetchAllUserTransactions(admin, userId),
   ]);
 
   return {

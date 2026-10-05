@@ -65,6 +65,7 @@ import {
   loadPriceAlertEnabled,
   type BotNotificationSettings,
 } from '@/features/notifications/services/bot-notification-settings';
+import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 
 /** Defaults for new rows. */
 export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
@@ -96,7 +97,7 @@ async function loadUserData(userId: string) {
     { data: assets },
     { data: currencyRates },
   ] = await Promise.all([
-    admin.from('transactions').select('*').eq('user_id', userId),
+    fetchAllUserTransactions(admin, userId),
     admin.from('categories').select('*').eq('user_id', userId),
     admin.from('wallets').select('*').eq('user_id', userId).is('archived_at', null),
     admin.from('assets').select('*').eq('user_id', userId),
