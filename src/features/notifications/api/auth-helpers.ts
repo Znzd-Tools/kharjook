@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/shared/lib/supabase/server';
+import {
+  bearerTokenFromRequest,
+  createSupabaseServerClient,
+} from '@/shared/lib/supabase/server';
 
 export async function requireAuthUser() {
   const supabase = await createSupabaseServerClient();
+  // Bearer clients (native app) carry no stored session: verify the JWT itself.
+  const token = await bearerTokenFromRequest();
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = token ? await supabase.auth.getUser(token) : await supabase.auth.getUser();
   if (error || !user) return null;
   return user;
 }

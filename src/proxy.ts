@@ -25,6 +25,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // Native app: API routes check the Bearer token themselves (requireAuthUser).
+  if (
+    pathname.startsWith('/api/') &&
+    /^Bearer\s+\S+/i.test(request.headers.get('authorization') ?? '')
+  ) {
+    return NextResponse.next({ request });
+  }
+
   const { response, user } = await updateSession(request);
 
   if (!user && !isPublic) {
