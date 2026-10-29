@@ -20,16 +20,16 @@ export function EmptyState({
   onSecondaryAction,
 }: EmptyStateProps) {
   return (
-    <div className="text-center py-10 px-4 space-y-4">
+    <div className="text-center py-12 px-4 space-y-4">
       {icon && (
-        <div className="mx-auto w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
+        <div className="mx-auto w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-zinc-500">
           {icon}
         </div>
       )}
       <div className="space-y-1.5">
-        <p className="text-slate-400 text-sm font-medium">{title}</p>
+        <p className="text-zinc-200 text-sm font-medium">{title}</p>
         {description && (
-          <p className="text-slate-600 text-xs leading-relaxed max-w-xs mx-auto">{description}</p>
+          <p className="text-zinc-500 text-xs leading-relaxed max-w-xs mx-auto">{description}</p>
         )}
       </div>
       {(actionLabel && onAction) || (secondaryActionLabel && onSecondaryAction) ? (
@@ -38,7 +38,7 @@ export function EmptyState({
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex items-center gap-1.5 text-purple-400 hover:text-purple-300 text-sm font-medium"
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-white/6 hover:bg-white/10 text-zinc-100 text-sm font-medium"
             >
               {actionLabel}
             </button>
@@ -47,7 +47,7 @@ export function EmptyState({
             <button
               type="button"
               onClick={onSecondaryAction}
-              className="text-slate-500 hover:text-slate-400 text-xs"
+              className="text-zinc-500 hover:text-zinc-400 text-xs"
             >
               {secondaryActionLabel}
             </button>

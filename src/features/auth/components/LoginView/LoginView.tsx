@@ -24,16 +24,14 @@ export function LoginView() {
 	const justRegistered = searchParams.get('registered') === '1';
  
   return (
-    <div className="bg-background text-slate-200 min-h-screen font-sans flex items-stretch sm:items-center justify-center sm:p-4 selection:bg-purple-500/30">
-      <div className="w-full sm:max-w-md bg-surface-shell p-6 sm:p-8 sm:rounded-3xl sm:border border-white/5 sm:shadow-2xl relative overflow-hidden flex flex-col justify-center sm:block animate-[fade-in_500ms_ease-out] sm:animate-[fade-zoom-in_500ms_ease-out]">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -ml-10 -mb-10"></div>
+    <div className="bg-background text-zinc-200 min-h-screen font-sans flex items-stretch sm:items-center justify-center sm:p-4">
+      <div className="w-full sm:max-w-md bg-surface-shell p-6 sm:p-8 sm:rounded-2xl sm:border border-white/5 relative overflow-hidden flex flex-col justify-center sm:block animate-[fade-in_500ms_ease-out] sm:animate-[fade-zoom-in_500ms_ease-out]">
 
         <div className="text-center mb-8 relative z-10">
-          <div className="w-16 h-16 bg-purple-500/10 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-purple-500/20">
-            <Wallet size={32} className="text-purple-500" />
+          <div className="w-12 h-12 bg-accent-600 rounded-2xl mx-auto flex items-center justify-center mb-5">
+            <Wallet size={22} className="text-white" strokeWidth={1.75} />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+          <h1 className="text-2xl font-semibold text-zinc-50 mb-1.5 tracking-tight">
             خرجوک
           </h1>
         </div>
@@ -57,11 +55,11 @@ export function LoginView() {
           )}
 
           <div>
-            <label htmlFor="login-email" className="block text-xs text-slate-400 mb-1.5 ml-1">
+            <label htmlFor="login-email" className="block text-xs font-medium text-zinc-400 mb-1.5">
               ایمیل
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
                 <UserIcon size={18} />
               </span>
               <input
@@ -69,7 +67,7 @@ export function LoginView() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-raised border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500/40 outline-none transition-all "
+                className="w-full bg-surface-inset border border-white/8 rounded-xl h-12 px-4 pl-10 text-white text-left focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 outline-none transition-all "
                 dir="ltr"
                 autoComplete="email"
                 required
@@ -78,11 +76,11 @@ export function LoginView() {
           </div>
 
           <div>
-            <label htmlFor="login-password" className="block text-xs text-slate-400 mb-1.5 ml-1">
+            <label htmlFor="login-password" className="block text-xs font-medium text-zinc-400 mb-1.5">
               رمز عبور
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
                 <Lock size={18} />
               </span>
               <input
@@ -90,7 +88,7 @@ export function LoginView() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-raised border border-white/5 rounded-xl py-3 px-4 pl-10 text-white text-left focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500/40 outline-none transition-all  tracking-widest"
+                className="w-full bg-surface-inset border border-white/8 rounded-xl h-12 px-4 pl-10 text-white text-left focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 outline-none transition-all  tracking-widest"
                 dir="ltr"
                 autoComplete="current-password"
                 required
@@ -101,7 +99,7 @@ export function LoginView() {
           <button
             type="submit"
             disabled={isSubmitting || isPasskeySubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white min-h-11 p-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.3)] transition-all mt-6 active:scale-95 disabled:opacity-50 flex justify-center items-center focus-visible:ring-2 focus-visible:ring-purple-400/50 focus-visible:outline-none"
+            className="w-full bg-zinc-50 hover:bg-white text-zinc-900 h-12 px-4 rounded-xl font-semibold transition-all mt-6 active:scale-95 disabled:opacity-50 flex justify-center items-center focus-visible:ring-2 focus-visible:ring-accent-400/50 focus-visible:outline-none"
           >
             {isSubmitting ? (
               <RefreshCw size={20} className="animate-spin" />
@@ -115,7 +113,7 @@ export function LoginView() {
               type="button"
               onClick={() => void handlePasskeyLogin()}
               disabled={isSubmitting || isPasskeySubmitting}
-              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white p-4 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2"
+              className="w-full bg-white/6 hover:bg-white/10 text-zinc-100 h-12 px-4 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2"
             >
               {isPasskeySubmitting ? (
                 <RefreshCw size={18} className="animate-spin" />
@@ -128,11 +126,11 @@ export function LoginView() {
             </button>
           ) : null}
 
-          <p className="text-center text-xs text-slate-500 pt-2">
+          <p className="text-center text-xs text-zinc-500 pt-2">
             حساب نداری؟{' '}
             <Link
               href="/register"
-              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+              className="text-accent-400 hover:text-accent-300 font-medium transition-colors"
             >
               ثبت‌نام
             </Link>

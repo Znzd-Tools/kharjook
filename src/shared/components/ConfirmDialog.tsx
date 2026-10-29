@@ -53,7 +53,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         onClose={() => finish(false)}
         title={options?.title ?? 'تأیید'}
       >
-        <p className="text-sm text-slate-300 leading-relaxed mb-6">{options?.message}</p>
+        <p className="text-sm text-zinc-300 leading-relaxed mb-6">{options?.message}</p>
         <div className="flex gap-3">
           <Button variant="secondary" className="flex-1" onClick={() => finish(false)}>
             {options?.cancelLabel ?? 'انصراف'}

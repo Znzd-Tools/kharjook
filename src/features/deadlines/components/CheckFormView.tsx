@@ -166,7 +166,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center text-slate-500 animate-pulse">در حال دریافت...</div>;
+    return <div className="p-6 text-center text-zinc-500 animate-pulse">در حال دریافت...</div>;
   }
 
   const walletItems = wallets.map((wallet) => ({
@@ -175,59 +175,59 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   }));
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">
+        <h2 className="text-lg font-semibold text-white flex-1">
           {isEdit ? 'ویرایش چک' : 'ثبت چک جدید'}
         </h2>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">عنوان / دریافت‌کننده</label>
+          <label className="block text-xs text-zinc-400 mb-1">عنوان / دریافت‌کننده</label>
           <input
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
             placeholder="مثال: اجاره دفتر"
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">نام بانک</label>
+          <label className="block text-xs text-zinc-400 mb-1">نام بانک</label>
           <input
             value={form.bankName}
             onChange={(e) => setForm((prev) => ({ ...prev, bankName: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
             placeholder="اختیاری"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره چک</label>
+          <label className="block text-xs text-zinc-400 mb-1">شماره چک</label>
           <input
             value={form.checkNumber}
             onChange={(e) => setForm((prev) => ({ ...prev, checkNumber: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
             dir="ltr"
             placeholder="اختیاری"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">مبلغ چک</label>
+          <label className="block text-xs text-zinc-400 mb-1">مبلغ چک</label>
           <FormattedNumberInput
             value={form.amount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -236,45 +236,45 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         <button
           type="button"
           onClick={() => setWalletOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
         >
           <div>
-            <p className="text-xs text-slate-500">کیف پول (ارز و تسویه پیش‌فرض)</p>
-            <p className="text-sm text-slate-100 mt-1">
+            <p className="text-xs text-zinc-500">کیف پول (ارز و تسویه پیش‌فرض)</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {selectedWallet
                 ? `${selectedWallet.name} · ${selectedWallet.currency}`
                 : 'انتخاب کنید'}
             </p>
           </div>
-          <ChevronLeft size={16} className="text-slate-500" />
+          <ChevronLeft size={16} className="text-zinc-500" />
         </button>
 
         <button
           type="button"
           onClick={() => setCategoryOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
         >
           <div>
-            <p className="text-xs text-slate-500">دسته هزینه</p>
-            <p className="text-sm text-slate-100 mt-1">
+            <p className="text-xs text-zinc-500">دسته هزینه</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {form.categoryId
                 ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
                   'انتخاب کنید'
                 : 'انتخاب کنید'}
             </p>
           </div>
-          <ChevronLeft size={16} className="text-slate-500" />
+          <ChevronLeft size={16} className="text-zinc-500" />
         </button>
 
         <button
           type="button"
           onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition"
+          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition"
         >
-          <Calendar size={16} className="text-purple-400" />
+          <Calendar size={16} className="text-accent-400" />
           <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ سررسید</p>
-            <p className="text-sm text-slate-100 mt-1">
+            <p className="text-xs text-zinc-500">تاریخ سررسید</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {parseJalaali(form.dueDate)
                 ? formatJalaaliHuman(parseJalaali(form.dueDate)!)
                 : form.dueDate}
@@ -283,12 +283,12 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         </button>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">یادداشت</label>
+          <label className="block text-xs text-zinc-400 mb-1">یادداشت</label>
           <textarea
             value={form.note}
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={3}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none resize-none"
             placeholder="اختیاری"
           />
         </div>
@@ -296,7 +296,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium disabled:opacity-50"
+          className="w-full py-3 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 font-medium disabled:opacity-50"
         >
           {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت چک'}
         </button>

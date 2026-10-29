@@ -411,7 +411,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
   if (isLoading) {
     return (
-      <div className="p-6 text-center text-slate-500 animate-pulse">
+      <div className="p-6 text-center text-zinc-500 animate-pulse">
         در حال دریافت...
       </div>
     );
@@ -433,43 +433,43 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
       : [];
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">
+        <h2 className="text-lg font-semibold text-white flex-1">
           {isEdit ? 'ویرایش وام' : 'ثبت وام جدید'}
         </h2>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">عنوان</label>
+          <label className="block text-xs text-zinc-400 mb-1">عنوان</label>
           <input
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
             placeholder="مثال: خرید لپ‌تاپ"
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">نوع وام</label>
-          <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <label className="block text-xs text-zinc-400 mb-1">نوع وام</label>
+          <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl">
             <button
               type="button"
               disabled={isEdit}
               onClick={() => setForm((prev) => ({ ...prev, type: 'expense' }))}
-              className={`py-2 text-xs font-bold rounded-lg transition ${
+              className={`py-2 text-xs font-semibold rounded-lg transition ${
                 form.type === 'expense'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-zinc-50 text-zinc-900'
+                  : 'text-zinc-400 hover:text-zinc-200'
               } disabled:opacity-60`}
             >
               خرید اعتباری
@@ -478,10 +478,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
               type="button"
               disabled={isEdit}
               onClick={() => setForm((prev) => ({ ...prev, type: 'loan' }))}
-              className={`py-2 text-xs font-bold rounded-lg transition ${
+              className={`py-2 text-xs font-semibold rounded-lg transition ${
                 form.type === 'loan'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-zinc-50 text-zinc-900'
+                  : 'text-zinc-400 hover:text-zinc-200'
               } disabled:opacity-60`}
             >
               وام نقدی
@@ -491,8 +491,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
         {!isEdit && (
           <div>
-            <label className="block text-xs text-slate-400 mb-1">واحد وام</label>
-            <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+            <label className="block text-xs text-zinc-400 mb-1">واحد وام</label>
+            <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() =>
@@ -504,10 +504,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                     autoIncomeWalletId: null,
                   }))
                 }
-                className={`py-2 text-xs font-bold rounded-lg transition ${
+                className={`py-2 text-xs font-semibold rounded-lg transition ${
                   form.denomination === 'currency'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-zinc-50 text-zinc-900'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 ارز
@@ -522,10 +522,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                     autoIncomeWalletId: null,
                   }))
                 }
-                className={`py-2 text-xs font-bold rounded-lg transition ${
+                className={`py-2 text-xs font-semibold rounded-lg transition ${
                   form.denomination === 'asset'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-zinc-50 text-zinc-900'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 دارایی
@@ -538,17 +538,17 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <button
             type="button"
             onClick={() => setCurrencyWalletOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
           >
             <div>
-              <p className="text-xs text-slate-500">کیف پول مبنا (ارز وام)</p>
-              <p className="text-sm text-slate-100 mt-1">
+              <p className="text-xs text-zinc-500">کیف پول مبنا (ارز وام)</p>
+              <p className="text-sm text-zinc-100 mt-1">
                 {currencyWallet
                   ? `${currencyWallet.name} · ${currencyWallet.currency}`
                   : 'انتخاب کنید'}
               </p>
             </div>
-            <ChevronLeft size={16} className="text-slate-500" />
+            <ChevronLeft size={16} className="text-zinc-500" />
           </button>
         )}
 
@@ -556,24 +556,24 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <button
             type="button"
             onClick={() => setAssetOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
           >
             <div>
-              <p className="text-xs text-slate-500">دارایی وام</p>
-              <p className="text-sm text-slate-100 mt-1">
+              <p className="text-xs text-zinc-500">دارایی وام</p>
+              <p className="text-sm text-zinc-100 mt-1">
                 {selectedAsset
                   ? `${selectedAsset.name} · ${selectedAsset.unit}`
                   : 'انتخاب کنید'}
               </p>
             </div>
-            <ChevronLeft size={16} className="text-slate-500" />
+            <ChevronLeft size={16} className="text-zinc-500" />
           </button>
         )}
 
         {isEdit && form.denomination === 'asset' && selectedAsset && (
-          <div className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right">
-            <p className="text-xs text-slate-500">دارایی وام</p>
-            <p className="text-sm text-slate-100 mt-1">
+          <div className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-right">
+            <p className="text-xs text-zinc-500">دارایی وام</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {selectedAsset.name} · {selectedAsset.unit}
             </p>
           </div>
@@ -584,25 +584,25 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             type="button"
             disabled={isEdit}
             onClick={() => setCategoryOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition disabled:opacity-60"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition disabled:opacity-60"
           >
             <div>
-              <p className="text-xs text-slate-500">دسته هزینه</p>
-              <p className="text-sm text-slate-100 mt-1">
+              <p className="text-xs text-zinc-500">دسته هزینه</p>
+              <p className="text-sm text-zinc-100 mt-1">
                 {form.categoryId
                   ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
                     'انتخاب کنید'
                   : 'انتخاب کنید'}
               </p>
             </div>
-            <ChevronLeft size={16} className="text-slate-500" />
+            <ChevronLeft size={16} className="text-zinc-500" />
           </button>
         )}
 
         {form.type === 'loan' && (
           <>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">
+              <label className="block text-xs text-zinc-400 mb-1">
                 {form.denomination === 'asset'
                   ? `مقدار کل وام${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
                   : 'مبلغ کل وام'}
@@ -612,7 +612,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, totalAmount: value }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
                 dir="ltr"
                 disabled={isEdit}
               />
@@ -620,8 +620,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
             {!isEdit && (
               <>
-                <label className="flex items-center justify-between bg-[#1A1B26] border border-white/10 rounded-xl p-3 cursor-pointer">
-                  <span className="text-sm text-slate-200">
+                <label className="flex items-center justify-between bg-surface-raised border border-white/10 rounded-xl p-3 cursor-pointer">
+                  <span className="text-sm text-zinc-200">
                     {form.denomination === 'asset'
                       ? 'ثبت دریافت دارایی خودکار'
                       : 'ثبت تراکنش درآمد خودکار'}
@@ -636,7 +636,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                         autoIncomeWalletId: e.target.checked ? prev.autoIncomeWalletId : null,
                       }))
                     }
-                    className="accent-purple-600 w-4 h-4"
+                    className="accent-accent-600 w-4 h-4"
                   />
                 </label>
 
@@ -644,22 +644,22 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                   <button
                     type="button"
                     onClick={() => setAutoWalletOpen(true)}
-                    className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+                    className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
                   >
                     <div>
-                      <p className="text-xs text-slate-500">کیف پول دریافت</p>
-                      <p className="text-sm text-slate-100 mt-1">
+                      <p className="text-xs text-zinc-500">کیف پول دریافت</p>
+                      <p className="text-sm text-zinc-100 mt-1">
                         {autoIncomeWallet
                           ? `${autoIncomeWallet.name} · ${autoIncomeWallet.currency}`
                           : 'انتخاب کنید'}
                       </p>
                     </div>
-                    <ChevronLeft size={16} className="text-slate-500" />
+                    <ChevronLeft size={16} className="text-zinc-500" />
                   </button>
                 )}
 
                 {form.autoIncomeOnCreate && form.denomination === 'asset' && (
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-xs text-zinc-500 leading-relaxed">
                     کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.
                   </p>
                 )}
@@ -669,7 +669,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         )}
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">
+          <label className="block text-xs text-zinc-400 mb-1">
             {form.denomination === 'asset'
               ? `مقدار هر قسط${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
               : 'مبلغ هر قسط'}
@@ -677,7 +677,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <FormattedNumberInput
             value={form.installmentAmount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
             dir="ltr"
             required
             disabled={isEdit}
@@ -688,12 +688,12 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           type="button"
           disabled={isEdit}
           onClick={() => setLoanStartDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition disabled:opacity-60"
+          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition disabled:opacity-60"
         >
-          <Calendar size={16} className="text-purple-400" />
+          <Calendar size={16} className="text-accent-400" />
           <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ شروع وام</p>
-            <p className="text-sm text-slate-100 mt-1">
+            <p className="text-xs text-zinc-500">تاریخ شروع وام</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {parseJalaali(form.loanStartDate)
                 ? formatJalaaliHuman(parseJalaali(form.loanStartDate)!)
                 : form.loanStartDate}
@@ -705,12 +705,12 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           type="button"
           disabled={isEdit}
           onClick={() => setFirstDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition disabled:opacity-60"
+          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition disabled:opacity-60"
         >
-          <Calendar size={16} className="text-purple-400" />
+          <Calendar size={16} className="text-accent-400" />
           <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ اولین قسط</p>
-            <p className="text-sm text-slate-100 mt-1">
+            <p className="text-xs text-zinc-500">تاریخ اولین قسط</p>
+            <p className="text-sm text-zinc-100 mt-1">
               {parseJalaali(form.firstDueDate)
                 ? formatJalaaliHuman(parseJalaali(form.firstDueDate)!)
                 : form.firstDueDate}
@@ -720,24 +720,24 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">تعداد اقساط</label>
+            <label className="block text-xs text-zinc-400 mb-1">تعداد اقساط</label>
             <FormattedNumberInput
               value={form.repeatCount}
               onValueChange={(value) => setForm((prev) => ({ ...prev, repeatCount: value }))}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
               dir="ltr"
               required
               disabled={isEdit}
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">فاصله تکرار</label>
+            <label className="block text-xs text-zinc-400 mb-1">فاصله تکرار</label>
             <FormattedNumberInput
               value={form.intervalNumber}
               onValueChange={(value) =>
                 setForm((prev) => ({ ...prev, intervalNumber: value }))
               }
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
               dir="ltr"
               required
               disabled={isEdit}
@@ -746,8 +746,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">واحد فاصله</label>
-          <div className="grid grid-cols-4 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <label className="block text-xs text-zinc-400 mb-1">واحد فاصله</label>
+          <div className="grid grid-cols-4 gap-1 bg-surface-raised p-1 rounded-xl">
             {INTERVAL_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -756,8 +756,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                 onClick={() => setForm((prev) => ({ ...prev, intervalPeriod: option.id }))}
                 className={`py-2 text-xs rounded-lg transition ${
                   form.intervalPeriod === option.id
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-zinc-50 text-zinc-900'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 } disabled:opacity-60`}
               >
                 {option.label}
@@ -767,8 +767,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
-          <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+          <label className="block text-xs text-zinc-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
+          <p className="text-xs text-zinc-500 mb-2 leading-relaxed">
             علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیرید.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -786,10 +786,10 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                         : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
                     }))
                   }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                     active
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
                   {days} روز قبل
@@ -800,11 +800,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         </div>
 
         {previewDates.length > 0 && (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-xl p-3">
-            <p className="text-xs text-slate-500 mb-2">پیش‌نمایش سررسیدها</p>
+          <div className="bg-surface-raised border border-white/5 rounded-xl p-3">
+            <p className="text-xs text-zinc-500 mb-2">پیش‌نمایش سررسیدها</p>
             <div className="space-y-1">
               {previewDates.map((date) => (
-                <p key={date} className="text-sm text-slate-200">
+                <p key={date} className="text-sm text-zinc-200">
                   {parseJalaali(date) ? formatJalaaliHuman(parseJalaali(date)!) : date}
                 </p>
               ))}
@@ -813,24 +813,24 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         )}
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">توضیحات</label>
+          <label className="block text-xs text-zinc-400 mb-1">توضیحات</label>
           <textarea
             value={form.description}
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none min-h-[80px]"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none min-h-[80px]"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold transition-all disabled:opacity-50"
+          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-xl font-semibold transition-all disabled:opacity-50"
         >
           {isSubmitting ? 'در حال ثبت...' : isEdit ? 'ثبت تغییرات' : 'ایجاد وام'}
         </button>
 
         {isEdit && (
-          <p className="text-[11px] text-slate-500 text-center">
+          <p className="text-xs text-zinc-500 text-center">
             بعد از ثبت وام فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است.
           </p>
         )}

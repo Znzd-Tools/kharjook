@@ -100,12 +100,12 @@ export function AssetsTab() {
   return (
     <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
       <div className="flex justify-between items-center gap-3">
-        <h2 className="text-xl font-bold text-white shrink-0">لیست دارایی‌ها</h2>
+        <h2 className="text-xl font-semibold text-white shrink-0">لیست دارایی‌ها</h2>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => router.push('/manage/goals')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-purple-300 hover:border-purple-500/30 active:scale-[0.98] transition"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-accent-300 hover:border-accent-500/30 active:scale-[0.98] transition"
             aria-label="هدف‌ها"
             title="هدف‌ها"
           >
@@ -114,7 +114,7 @@ export function AssetsTab() {
           <button
             type="button"
             onClick={() => router.push('/prices')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 active:scale-[0.98] transition"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-cyan-300 hover:border-cyan-500/30 active:scale-[0.98] transition"
             aria-label="قیمت‌ها و نرخ‌ها"
             title="قیمت‌ها و نرخ‌ها"
           >
@@ -123,7 +123,7 @@ export function AssetsTab() {
           <button
             type="button"
             onClick={() => router.push('/manage/assets')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 active:scale-[0.98] transition"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:border-accent-500/30 active:scale-[0.98] transition"
             aria-label="مدیریت دارایی‌ها"
             title="مدیریت"
           >
@@ -158,16 +158,16 @@ export function AssetsTab() {
             <FilterChip
               active={viewMode === 'groups'}
               onClick={() => setViewMode('groups')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
+              activeClassName="bg-accent-500/20 border-accent-500/40 text-white"
+              className="rounded-xl text-xs font-semibold"
             >
               گروه‌ها
             </FilterChip>
             <FilterChip
               active={viewMode === 'all'}
               onClick={() => setViewMode('all')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
+              activeClassName="bg-accent-500/20 border-accent-500/40 text-white"
+              className="rounded-xl text-xs font-semibold"
             >
               همه
             </FilterChip>
@@ -175,16 +175,16 @@ export function AssetsTab() {
             <FilterChip
               active={zeroValueFilter === 'hide'}
               onClick={() => setZeroValueFilter('hide')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
+              activeClassName="bg-accent-500/20 border-accent-500/40 text-white"
+              className="rounded-xl text-xs font-semibold"
             >
               بدون صفر
             </FilterChip>
             <FilterChip
               active={zeroValueFilter === 'show'}
               onClick={() => setZeroValueFilter('show')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
+              activeClassName="bg-accent-500/20 border-accent-500/40 text-white"
+              className="rounded-xl text-xs font-semibold"
             >
               شامل صفر
             </FilterChip>
@@ -268,7 +268,7 @@ function AssetGroupSection({
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: group.color }}
           ></div>
-          <h3 className="text-sm font-medium text-slate-400">{group.name}</h3>
+          <h3 className="text-sm font-medium text-zinc-400">{group.name}</h3>
         </div>
         {group.id !== 'uncategorized' && groupGoalByCategory.has(group.id) && (
           <GoalProgressDisplay
@@ -345,7 +345,7 @@ function AssetListRow({
   return (
     <div
       onClick={onOpen}
-      className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-[#222436] transition-colors active:scale-[0.98]"
+      className="bg-surface-raised border border-white/5 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-surface-hover transition-colors active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
         <EntityIcon
@@ -356,15 +356,15 @@ function AssetListRow({
           className="w-12 h-12"
         />
         <div>
-          <h3 className="font-semibold text-slate-200">{asset.name}</h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <h3 className="font-semibold text-zinc-200">{asset.name}</h3>
+          <p className="text-xs text-zinc-500 mt-1">
             {formatAssetAmount(stats.totalAmount, decimals)} {asset.unit}
           </p>
           {asset.include_in_balance === false && (
-            <p className="text-[10px] text-sky-300/80 mt-1">خارج از ارزش کل سبد</p>
+            <p className="text-[11px] text-sky-300/80 mt-1">خارج از ارزش کل سبد</p>
           )}
           {asset.include_in_profit_loss === false && (
-            <p className="text-[10px] text-amber-300/80 mt-1">خارج از سود/زیان</p>
+            <p className="text-[11px] text-amber-300/80 mt-1">خارج از سود/زیان</p>
           )}
           {assetGoals.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -386,15 +386,15 @@ function AssetListRow({
       </div>
 
       <div className="text-left">
-        <p className="font-bold text-slate-200" dir="ltr">
+        <p className="font-semibold text-zinc-200" dir="ltr">
           {formatCurrency(displayValue, currencyMode)}
         </p>
         {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
-          <p className="text-[9px] text-amber-300/70 mt-0.5">با قیمت آخرین معامله</p>
+          <p className="text-[10px] text-amber-300/70 mt-0.5">با قیمت آخرین معامله</p>
         )}
         {hasOpen && (
           <p
-            className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+            className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
               isOpenProfit ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'
             }`}
             dir="ltr"
@@ -409,7 +409,7 @@ function AssetListRow({
           </p>
         )}
         {(showYear || showAllTime) && (
-          <p className="text-[10px] mt-1 text-slate-500 leading-4" dir="rtl">
+          <p className="text-[11px] mt-1 text-zinc-500 leading-4" dir="rtl">
             {showYear && (
               <>
                 امسال{pnl.year.partial ? '*' : ''}{' '}

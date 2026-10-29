@@ -489,77 +489,77 @@ export function ExpensePlanView() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white"
+          className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white"
           aria-label="بازگشت"
         >
           <ArrowRight size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-white">برنامه هزینه</h1>
-          <p className="text-[11px] text-slate-500">پیش‌بینی هزینه‌های ماهانه</p>
+          <h1 className="text-lg font-semibold text-white">برنامه هزینه</h1>
+          <p className="text-xs text-zinc-500">پیش‌بینی هزینه‌های ماهانه</p>
         </div>
-        <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+        <div className="w-10 h-10 rounded-2xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
           <Calculator size={18} />
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-[#1A1B26] border border-white/5 rounded-2xl px-3 py-2">
+      <div className="flex items-center justify-between bg-surface-raised border border-white/5 rounded-2xl px-3 py-2">
         <button
           type="button"
           onClick={() => setTargetPeriod((p) => shiftPeriod(p, -1))}
-          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-slate-300 hover:text-white"
+          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-300 hover:text-white"
           aria-label="ماه قبل"
         >
           <ChevronRight size={18} />
         </button>
         <div className="text-center">
-          <p className="text-sm font-bold text-white">{formatPeriodLabel(targetPeriod)}</p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-sm font-semibold text-white">{formatPeriodLabel(targetPeriod)}</p>
+          <p className="text-[11px] text-zinc-500">
             {isCurrentMonth ? 'ماه جاری' : 'ماه هدف'}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setTargetPeriod((p) => shiftPeriod(p, 1))}
-          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-slate-300 hover:text-white"
+          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-300 hover:text-white"
           aria-label="ماه بعد"
         >
           <ChevronLeft size={18} />
         </button>
       </div>
 
-      <section className="bg-linear-to-br from-purple-600/20 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 text-center space-y-3">
+      <section className="bg-surface-raised border border-white/5 rounded-2xl p-5 text-center space-y-3">
         <div className="space-y-1">
-          <p className="text-xs text-purple-200/80">جمع برآورد هزینه</p>
-          <p className="text-3xl font-bold text-white" dir="ltr">
+          <p className="text-xs text-accent-200/80">جمع برآورد هزینه</p>
+          <p className="text-3xl font-semibold text-white" dir="ltr">
             {displayAmount(totalToman)}
           </p>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-xs text-zinc-400">
             {items.length} آیتم
             {suggestions.length > 0 ? ` · ${suggestions.length} پیشنهاد` : ''}
           </p>
         </div>
         {capsTotalToman > 0 ? (
-          <div className="pt-3 border-t border-purple-500/20 space-y-1">
-            <p className="text-xs text-purple-200/70">جمع سقف دسته‌های هزینه</p>
-            <p className="text-xl font-semibold text-purple-100" dir="ltr">
+          <div className="pt-3 border-t border-accent-500/20 space-y-1">
+            <p className="text-xs text-accent-200/70">جمع سقف دسته‌های هزینه</p>
+            <p className="text-xl font-semibold text-accent-100" dir="ltr">
               {displayAmount(capsTotalToman)}
             </p>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[11px] text-zinc-500">
               برآورد بر اساس سقف‌های تنظیم‌شده در دسته‌بندی‌ها
             </p>
           </div>
         ) : null}
         {actualExpenseToman != null ? (
-          <div className="pt-3 border-t border-purple-500/20 grid grid-cols-2 gap-3 text-right">
+          <div className="pt-3 border-t border-accent-500/20 grid grid-cols-2 gap-3 text-right">
             <div>
-              <p className="text-xs text-slate-400">هزینه واقعی</p>
+              <p className="text-xs text-zinc-400">هزینه واقعی</p>
               <p className="text-lg font-semibold text-white" dir="ltr">
                 {displayAmount(actualExpenseToman)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">اختلاف (برنامه − واقعی)</p>
+              <p className="text-xs text-zinc-400">اختلاف (برنامه − واقعی)</p>
               <p
                 className={`text-lg font-semibold ${(varianceToman ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
                 dir="ltr"
@@ -572,18 +572,18 @@ export function ExpensePlanView() {
       </section>
 
       {isLoading ? (
-        <div className="flex justify-center py-16 text-slate-400">
+        <div className="flex justify-center py-16 text-zinc-400">
           <Loader2 className="animate-spin" size={28} />
         </div>
       ) : (
         <>
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white">آیتم‌های برنامه</h2>
+              <h2 className="text-sm font-semibold text-white">آیتم‌های برنامه</h2>
               <button
                 type="button"
                 onClick={openNewManual}
-                className="text-xs text-purple-400 hover:text-purple-300 inline-flex items-center gap-1"
+                className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-1"
               >
                 <Plus size={14} />
                 افزودن
@@ -591,7 +591,7 @@ export function ExpensePlanView() {
             </div>
 
             {items.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-500">
                 هنوز آیتمی اضافه نشده. دستی اضافه کنید یا از پیشنهادها انتخاب کنید.
               </div>
             ) : (
@@ -609,7 +609,7 @@ export function ExpensePlanView() {
                   return (
                     <div
                       key={item.id}
-                      className={`rounded-2xl border border-white/5 bg-[#1A1B26] p-4 space-y-2 ${isPending ? 'opacity-60' : ''}`}
+                      className={`rounded-2xl border border-white/5 bg-surface-raised p-4 space-y-2 ${isPending ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <button
@@ -625,22 +625,22 @@ export function ExpensePlanView() {
                               {item.title}
                             </p>
                             {sourceLabel ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 shrink-0">
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 shrink-0">
                                 {sourceLabel}
                               </span>
                             ) : null}
                           </div>
                           {item.note ? (
-                            <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
                               {item.note}
                             </p>
                           ) : null}
                           {category ? (
-                            <p className="text-[10px] text-slate-500 mt-1">{category.name}</p>
+                            <p className="text-[11px] text-zinc-500 mt-1">{category.name}</p>
                           ) : null}
                         </button>
                         <div className="text-left shrink-0 space-y-2">
-                          <p className="text-sm font-bold text-rose-300" dir="ltr">
+                          <p className="text-sm font-semibold text-rose-300" dir="ltr">
                             {displayAmount(Number(item.amount_toman))}
                           </p>
                           <button
@@ -665,9 +665,9 @@ export function ExpensePlanView() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-amber-400" />
-                <h2 className="text-sm font-bold text-white">پیشنهادها</h2>
+                <h2 className="text-sm font-semibold text-white">پیشنهادها</h2>
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-zinc-500">
                 اقساط باقی‌مانده، چک‌های در انتظار و هزینه‌های دوره‌ای این ماه
               </p>
               <div className="space-y-2">
@@ -681,18 +681,18 @@ export function ExpensePlanView() {
                         <p className="text-sm font-semibold text-white truncate">
                           {suggestion.title}
                         </p>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 shrink-0">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 shrink-0">
                           {SOURCE_LABELS[suggestion.sourceType]}
                         </span>
                       </div>
                       {suggestion.subtitle ? (
-                        <p className="text-[11px] text-slate-500 mt-1" dir="ltr">
+                        <p className="text-xs text-zinc-500 mt-1" dir="ltr">
                           {suggestion.subtitle}
                         </p>
                       ) : null}
                     </div>
                     <div className="shrink-0 text-left space-y-2">
-                      <p className="text-sm font-bold text-amber-200" dir="ltr">
+                      <p className="text-sm font-semibold text-amber-200" dir="ltr">
                         {displayAmount(suggestion.amountToman)}
                       </p>
                       <button
@@ -716,10 +716,10 @@ export function ExpensePlanView() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
           <form
             onSubmit={(e) => void handleManualSubmit(e)}
-            className="w-full sm:max-w-md bg-[#1A1B26] border border-white/10 rounded-2xl p-5 space-y-4"
+            className="w-full sm:max-w-md bg-surface-raised border border-white/10 rounded-2xl p-5 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-semibold text-white">
                 {manualForm.editingId ? 'ویرایش آیتم' : 'آیتم جدید'}
               </h3>
               <button
@@ -728,50 +728,50 @@ export function ExpensePlanView() {
                   setManualFormOpen(false);
                   setManualForm(emptyManualForm());
                 }}
-                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400"
+                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-zinc-400"
               >
                 <X size={16} />
               </button>
             </div>
 
             <label className="block space-y-1.5">
-              <span className="text-xs text-slate-400">عنوان</span>
+              <span className="text-xs text-zinc-400">عنوان</span>
               <input
                 value={manualForm.title}
                 onChange={(e) => setManualForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500/50"
+                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50"
                 placeholder="مثلاً خرید هفتگی، شهریه کلاس …"
                 autoFocus
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs text-slate-400">مبلغ (تومان)</span>
+              <span className="text-xs text-zinc-400">مبلغ (تومان)</span>
               <FormattedNumberInput
                 value={manualForm.amountToman}
                 onValueChange={(value) => setManualForm((f) => ({ ...f, amountToman: value }))}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500/50"
+                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50"
                 placeholder="۰"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs text-slate-400">یادداشت (اختیاری)</span>
+              <span className="text-xs text-zinc-400">یادداشت (اختیاری)</span>
               <textarea
                 value={manualForm.note}
                 onChange={(e) => setManualForm((f) => ({ ...f, note: e.target.value }))}
                 rows={2}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500/50 resize-none"
+                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50 resize-none"
                 placeholder="توضیح کوتاه …"
               />
             </label>
 
             <div className="space-y-1.5">
-              <span className="text-xs text-slate-400">دسته (اختیاری)</span>
+              <span className="text-xs text-zinc-400">دسته (اختیاری)</span>
               <button
                 type="button"
                 onClick={() => setCategoryPickerOpen(true)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-right text-slate-200"
+                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-right text-zinc-200"
               >
                 {manualForm.categoryId
                   ? (categoryById.get(manualForm.categoryId)?.name ?? 'دسته')
@@ -782,7 +782,7 @@ export function ExpensePlanView() {
             <button
               type="submit"
               disabled={!canSubmitManual || isSubmitting}
-              className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold py-3"
+              className="w-full rounded-xl bg-zinc-50 hover:bg-white disabled:opacity-50 text-zinc-900 font-semibold py-3"
             >
               {manualForm.editingId ? 'ذخیره' : 'افزودن به برنامه'}
             </button>

@@ -39,11 +39,11 @@ export function WalletsTab() {
   return (
     <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
       <div className="flex justify-between items-center gap-3">
-        <h2 className="text-xl font-bold text-white">کیف پول‌ها</h2>
+        <h2 className="text-xl font-semibold text-white">کیف پول‌ها</h2>
         <button
           type="button"
           onClick={() => router.push('/manage/wallets')}
-          className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 transition-colors"
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:border-accent-500/30 transition-colors"
           aria-label="مدیریت کیف پول‌ها"
           title="مدیریت"
         >
@@ -51,13 +51,13 @@ export function WalletsTab() {
         </button>
       </div>
 
-      <div className="bg-linear-to-br from-purple-500/15 to-transparent border border-purple-500/20 p-5 rounded-3xl">
-        <p className="text-slate-400 text-sm mb-2">جمع کل نقد (تبدیل به {currencyMode === 'USD' ? 'دلار' : 'تومان'})</p>
-        <p className="text-3xl font-bold text-white tracking-tight" dir="ltr">
+      <div className="bg-surface-raised border border-white/5 p-5 rounded-2xl">
+        <p className="text-zinc-400 text-sm mb-2">جمع کل نقد (تبدیل به {currencyMode === 'USD' ? 'دلار' : 'تومان'})</p>
+        <p className="text-3xl font-semibold text-white tracking-tight" dir="ltr">
           {formatCurrency(displayTotal, currencyMode)}
         </p>
         {hasMissingRate && (
-          <p className="text-[11px] text-amber-400/80 mt-3">
+          <p className="text-xs text-amber-400/80 mt-3">
             برای برخی ارزها نرخ تبدیل تعریف نشده. از{' '}
             <button
               type="button"
@@ -93,21 +93,21 @@ export function WalletsTab() {
                 key={wallet.id}
                 type="button"
                 onClick={() => router.push(`/wallets/${wallet.id}`)}
-                className="w-full bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex items-center justify-between hover:bg-[#222436] active:scale-[0.99] transition-all text-right"
+                className="w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center justify-between hover:bg-surface-hover active:scale-[0.99] transition-all text-right"
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <EntityIcon
                     iconUrl={wallet.icon_url}
                     fallback={<WalletIcon size={22} />}
                     bgColor="rgba(168, 85, 247, 0.10)"
-                    color="#c084fc"
+                    color="#a5a9fc"
                     className="w-12 h-12 shrink-0"
                   />
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-200 truncate">
+                    <p className="font-semibold text-zinc-200 truncate">
                       {wallet.name}
                     </p>
-                    <p className="text-xs text-slate-500 mt-1 " dir="ltr">
+                    <p className="text-xs text-zinc-500 mt-1 " dir="ltr">
                       {meta.symbol}{' '}
                       {formatCurrencyAmount(stats.balance, wallet.currency)}{' '}
                       {wallet.currency}
@@ -116,16 +116,16 @@ export function WalletsTab() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-left">
-                    <p className="text-slate-200 font-bold text-sm" dir="ltr">
+                    <p className="text-zinc-200 font-semibold text-sm" dir="ltr">
                       {formatCurrency(balanceDisplay, currencyMode)}
                     </p>
                     {(stats.incomeTotal > 0 || stats.expenseTotal > 0) && (
-                      <p className="text-[10px] text-slate-500 mt-0.5" dir="ltr">
+                      <p className="text-[11px] text-zinc-500 mt-0.5" dir="ltr">
                         +{formatCurrencyAmount(stats.incomeTotal, wallet.currency)} / -{formatCurrencyAmount(stats.expenseTotal, wallet.currency)}
                       </p>
                     )}
                   </div>
-                  <ChevronLeft size={18} className="text-slate-600" />
+                  <ChevronLeft size={18} className="text-zinc-600" />
                 </div>
               </button>
             );

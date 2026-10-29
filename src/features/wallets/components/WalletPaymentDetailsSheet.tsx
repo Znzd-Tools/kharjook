@@ -14,10 +14,10 @@ import {
 } from '@/features/wallets/utils/wallet-payment-details';
 
 const inputClassName =
-  'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 font-mono';
+  'w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500 font-mono';
 
 const textInputClassName =
-  'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500';
+  'w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500';
 
 export interface WalletPaymentDetailsSheetProps {
   open: boolean;
@@ -98,12 +98,12 @@ export function WalletPaymentDetailsSheet({
       title="اطلاعات حساب"
     >
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 pb-2">
-        <p className="text-xs text-slate-500 leading-relaxed">
+        <p className="text-xs text-zinc-500 leading-relaxed">
           همه فیلدها اختیاری‌اند. برای کارت و حساب فقط رقم وارد کنید.
         </p>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">نام صاحب حساب</label>
+          <label className="block text-xs text-zinc-400 mb-1">نام صاحب حساب</label>
           <input
             type="text"
             autoComplete="name"
@@ -115,7 +115,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره کارت</label>
+          <label className="block text-xs text-zinc-400 mb-1">شماره کارت</label>
           <input
             type="text"
             inputMode="numeric"
@@ -130,7 +130,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره حساب</label>
+          <label className="block text-xs text-zinc-400 mb-1">شماره حساب</label>
           <input
             type="text"
             inputMode="numeric"
@@ -144,7 +144,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">شبا (IBAN)</label>
+          <label className="block text-xs text-zinc-400 mb-1">شبا (IBAN)</label>
           <input
             type="text"
             autoComplete="off"
@@ -160,7 +160,7 @@ export function WalletPaymentDetailsSheet({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm transition-colors"
+          className="w-full bg-zinc-50 hover:bg-white disabled:opacity-50 text-zinc-900 py-3 rounded-xl font-semibold text-sm transition-colors"
         >
           {isSubmitting ? 'در حال ذخیره...' : 'ذخیره'}
         </button>

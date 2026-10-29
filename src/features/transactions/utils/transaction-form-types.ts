@@ -200,19 +200,17 @@ export interface TypeStyle {
   accentText: string;    // text accent
   accentBtnBg: string;   // submit button background
   accentBtnShadow: string;
-  accentGradient: string;// preview card background gradient
 }
 
 export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
   BUY: {
     label: 'خرید',
     icon: 'B',
-    accentBg: 'bg-purple-600',
-    accentBorder: 'border-purple-500/30',
-    accentText: 'text-purple-400',
-    accentBtnBg: 'bg-purple-600 hover:bg-purple-500',
-    accentBtnShadow: 'shadow-[0_4px_20px_rgba(147,51,234,0.3)]',
-    accentGradient: 'from-purple-500/15 to-transparent',
+    accentBg: 'bg-accent-600',
+    accentBorder: 'border-accent-500/30',
+    accentText: 'text-accent-400',
+    accentBtnBg: 'bg-accent-600 hover:bg-accent-500',
+    accentBtnShadow: '',
   },
   SELL: {
     label: 'فروش',
@@ -221,8 +219,7 @@ export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
     accentBorder: 'border-amber-500/30',
     accentText: 'text-amber-400',
     accentBtnBg: 'bg-amber-600 hover:bg-amber-500',
-    accentBtnShadow: 'shadow-[0_4px_20px_rgba(217,119,6,0.3)]',
-    accentGradient: 'from-amber-500/15 to-transparent',
+    accentBtnShadow: '',
   },
   TRANSFER: {
     label: 'انتقال',
@@ -231,8 +228,7 @@ export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
     accentBorder: 'border-sky-500/30',
     accentText: 'text-sky-400',
     accentBtnBg: 'bg-sky-600 hover:bg-sky-500',
-    accentBtnShadow: 'shadow-[0_4px_20px_rgba(2,132,199,0.3)]',
-    accentGradient: 'from-sky-500/15 to-transparent',
+    accentBtnShadow: '',
   },
   INCOME: {
     label: 'درآمد',
@@ -241,8 +237,7 @@ export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
     accentBorder: 'border-emerald-500/30',
     accentText: 'text-emerald-400',
     accentBtnBg: 'bg-emerald-600 hover:bg-emerald-500',
-    accentBtnShadow: 'shadow-[0_4px_20px_rgba(5,150,105,0.3)]',
-    accentGradient: 'from-emerald-500/15 to-transparent',
+    accentBtnShadow: '',
   },
   EXPENSE: {
     label: 'هزینه',
@@ -251,8 +246,7 @@ export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
     accentBorder: 'border-rose-500/30',
     accentText: 'text-rose-400',
     accentBtnBg: 'bg-rose-600 hover:bg-rose-500',
-    accentBtnShadow: 'shadow-[0_4px_20px_rgba(225,29,72,0.3)]',
-    accentGradient: 'from-rose-500/15 to-transparent',
+    accentBtnShadow: '',
   },
 };
 
@@ -272,8 +266,7 @@ export const CONVERT_TAB_STYLE: TypeStyle = {
   accentBorder: 'border-violet-500/30',
   accentText: 'text-violet-400',
   accentBtnBg: 'bg-violet-600 hover:bg-violet-500',
-  accentBtnShadow: 'shadow-[0_4px_20px_rgba(124,58,237,0.3)]',
-  accentGradient: 'from-violet-500/15 to-transparent',
+  accentBtnShadow: '',
 };
 
 export function styleForUiMode(mode: UiTransactionMode): TypeStyle {

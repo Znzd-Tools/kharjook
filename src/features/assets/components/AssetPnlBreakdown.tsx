@@ -40,25 +40,25 @@ function Row({
           ? v !== null && v < 0
             ? 'border-rose-400/25 bg-rose-500/8'
             : 'border-emerald-400/25 bg-emerald-500/8'
-          : 'border-white/5 bg-[#1A1B26]'
+          : 'border-white/5 bg-surface-raised'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-xs font-semibold ${emphasis ? 'text-slate-200' : 'text-slate-400'}`}>
+          <p className={`text-xs font-semibold ${emphasis ? 'text-zinc-200' : 'text-zinc-400'}`}>
             {title}
           </p>
-          <p className="mt-0.5 text-[10px] text-slate-500">{hint}</p>
+          <p className="mt-0.5 text-[11px] text-zinc-500">{hint}</p>
         </div>
         {v === null ? (
           <p className="text-sm text-amber-400/80">—</p>
         ) : (
           <div className="text-left shrink-0" dir="ltr">
-            <p className={`font-black ${emphasis ? 'text-xl' : 'text-sm'} ${tone(v)}`}>
+            <p className={`font-semibold ${emphasis ? 'text-xl' : 'text-sm'} ${tone(v)}`}>
               {signed(v, mode)}
             </p>
             {percent !== null && (
-              <p className={`text-[11px] font-semibold ${tone(v)} opacity-80`}>
+              <p className={`text-xs font-semibold ${tone(v)} opacity-80`}>
                 {percent >= 0 ? '+' : ''}
                 {percent.toFixed(2)}%
               </p>
@@ -72,8 +72,8 @@ function Row({
             const sv = pick(s.value, mode);
             return (
               <div key={s.label} className="min-w-0">
-                <p className="text-[10px] text-slate-500">{s.label}</p>
-                <p className={`truncate text-xs font-bold ${tone(sv)} opacity-80`} dir="ltr">
+                <p className="text-[11px] text-zinc-500">{s.label}</p>
+                <p className={`truncate text-xs font-semibold ${tone(sv)} opacity-80`} dir="ltr">
                   {signed(sv, mode)}
                 </p>
               </div>
@@ -81,7 +81,7 @@ function Row({
           })}
         </div>
       )}
-      {note ? <p className="mt-2 text-[10px] text-amber-400/80">{note}</p> : null}
+      {note ? <p className="mt-2 text-[11px] text-amber-400/80">{note}</p> : null}
     </div>
   );
 }

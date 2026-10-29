@@ -41,15 +41,15 @@ export function GoalsDriftWidget() {
   if (driftRows.length === 0) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-purple-500/15 rounded-2xl p-4 space-y-3">
+    <section className="bg-surface-raised border border-accent-500/15 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300">
+          <div className="w-8 h-8 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300">
             <Target size={16} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">انحراف از اهداف</h3>
-            <p className="text-[11px] text-slate-500">
+            <h3 className="text-sm font-semibold text-white">انحراف از اهداف</h3>
+            <p className="text-xs text-zinc-500">
               {toPersianDigits(driftRows.length)} مورد نیازمند تنظیم
             </p>
           </div>
@@ -57,7 +57,7 @@ export function GoalsDriftWidget() {
         <button
           type="button"
           onClick={() => router.push('/manage/goals')}
-          className="text-[11px] text-purple-400 hover:text-purple-300 inline-flex items-center gap-0.5"
+          className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-0.5"
         >
           اهداف
           <ChevronLeft size={14} />
@@ -71,17 +71,17 @@ export function GoalsDriftWidget() {
             className="rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5 space-y-1"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-slate-200 font-medium truncate">
+              <p className="text-xs text-zinc-200 font-medium truncate">
                 {row.name}
-                <span className="text-slate-500 font-normal"> · {row.kindLabel}</span>
+                <span className="text-zinc-500 font-normal"> · {row.kindLabel}</span>
               </p>
-              <span className="text-[10px] text-amber-300 shrink-0">{row.deltaLabel}</span>
+              <span className="text-[11px] text-amber-300 shrink-0">{row.deltaLabel}</span>
             </div>
-            <p className="text-[10px] text-slate-500" dir="ltr">
+            <p className="text-[11px] text-zinc-500" dir="ltr">
               {formatAxis(row)}
             </p>
             {row.actionSuggestion && (
-              <p className="text-[10px] text-purple-300/90 leading-relaxed">💡 {row.actionSuggestion}</p>
+              <p className="text-[11px] text-accent-300/90 leading-relaxed">💡 {row.actionSuggestion}</p>
             )}
           </div>
         ))}

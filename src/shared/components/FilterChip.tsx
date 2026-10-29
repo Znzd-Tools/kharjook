@@ -6,7 +6,7 @@ export function FilterChip({
   active,
   onClick,
   children,
-  activeClassName = 'bg-purple-600/20 border-purple-500/40 text-purple-300',
+  activeClassName = 'bg-zinc-50 border-zinc-50 text-zinc-900',
   className = '',
   role,
   'aria-selected': ariaSelected,
@@ -28,7 +28,7 @@ export function FilterChip({
       className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition active:scale-[0.98] ${className} ${
         active
           ? activeClassName
-          : 'bg-surface-raised border-white/10 text-slate-400 hover:border-white/20'
+          : 'bg-transparent border-white/8 text-zinc-400 hover:text-zinc-200 hover:border-white/15'
       }`}
     >
       {children}

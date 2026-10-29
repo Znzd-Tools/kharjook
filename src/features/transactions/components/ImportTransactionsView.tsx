@@ -130,29 +130,29 @@ export function ImportTransactionsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">ورود CSV تراکنش</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">ورود CSV تراکنش</h2>
       </div>
 
       <div className="p-6 space-y-5">
-        <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
-          <p className="text-sm text-slate-300 leading-relaxed">
+        <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
+          <p className="text-sm text-zinc-300 leading-relaxed">
             فایل CSV با ستون‌های{' '}
-            <span className="text-purple-300 font-mono text-xs" dir="ltr">
+            <span className="text-accent-300 font-mono text-xs" dir="ltr">
               date,type,amount,wallet,category,note
             </span>{' '}
             — فقط درآمد/هزینه کیف پول. حداکثر {MAX_TRANSACTION_CSV_ROWS.toLocaleString('fa-IR')}{' '}
             ردیف.
           </p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-zinc-500">
             مبلغ به تومان است. نام کیف و دسته باید با اپ یکی باشد. همه ردیف‌ها یک{' '}
             <span dir="ltr">operation_id</span> مشترک می‌گیرند.
           </p>
@@ -160,7 +160,7 @@ export function ImportTransactionsView() {
             <button
               type="button"
               onClick={downloadTemplate}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 hover:bg-white/10"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-zinc-300 hover:bg-white/10"
             >
               <Download size={14} />
               دانلود نمونه
@@ -168,7 +168,7 @@ export function ImportTransactionsView() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600/20 border border-purple-500/30 text-xs text-purple-200 hover:bg-purple-600/30"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-accent-600/20 border border-accent-500/30 text-xs text-accent-200 hover:bg-accent-600/30"
             >
               <Upload size={14} />
               انتخاب فایل
@@ -186,7 +186,7 @@ export function ImportTransactionsView() {
             }}
           />
           {fileName && (
-            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <p className="text-xs text-zinc-400 flex items-center gap-1.5">
               <FileUp size={12} />
               {fileName}
             </p>
@@ -195,14 +195,14 @@ export function ImportTransactionsView() {
 
         {allErrors.length > 0 && (
           <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 space-y-2">
-            <p className="text-sm font-bold text-rose-200">خطاها</p>
+            <p className="text-sm font-semibold text-rose-200">خطاها</p>
             {allErrors.slice(0, 8).map((err) => (
-              <p key={`${err.lineNumber}-${err.message}`} className="text-[11px] text-rose-100/90">
+              <p key={`${err.lineNumber}-${err.message}`} className="text-xs text-rose-100/90">
                 ردیف {err.lineNumber.toLocaleString('fa-IR')}: {err.message}
               </p>
             ))}
             {allErrors.length > 8 && (
-              <p className="text-[10px] text-rose-300/80">
+              <p className="text-[11px] text-rose-300/80">
                 و {allErrors.length - 8} خطای دیگر…
               </p>
             )}
@@ -210,10 +210,10 @@ export function ImportTransactionsView() {
         )}
 
         {resolution.resolved.length > 0 && (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="bg-surface-raised border border-white/5 rounded-2xl overflow-hidden">
             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-              <p className="text-sm font-bold text-white">پیش‌نمایش</p>
-              <span className="text-[11px] text-slate-500">
+              <p className="text-sm font-semibold text-white">پیش‌نمایش</p>
+              <span className="text-xs text-zinc-500">
                 {resolution.resolved.length.toLocaleString('fa-IR')} ردیف
               </span>
             </div>
@@ -221,16 +221,16 @@ export function ImportTransactionsView() {
               {resolution.resolved.slice(0, 20).map((row) => (
                 <div key={row.lineNumber} className="px-4 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-200 truncate">
+                    <p className="text-xs text-zinc-200 truncate">
                       {row.type === 'INCOME' ? 'درآمد' : 'هزینه'} · {row.categoryName}
                     </p>
-                    <p className="text-[10px] text-slate-500 truncate">
+                    <p className="text-[11px] text-zinc-500 truncate">
                       {row.date} · {row.walletName}
                       {row.note ? ` · ${row.note}` : ''}
                     </p>
                   </div>
                   <span
-                    className={`text-xs font-bold shrink-0 ${
+                    className={`text-xs font-semibold shrink-0 ${
                       row.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'
                     }`}
                     dir="ltr"
@@ -241,7 +241,7 @@ export function ImportTransactionsView() {
               ))}
             </div>
             {resolution.resolved.length > 20 && (
-              <p className="px-4 py-2 text-[10px] text-slate-500 border-t border-white/5">
+              <p className="px-4 py-2 text-[11px] text-zinc-500 border-t border-white/5">
                 … و {(resolution.resolved.length - 20).toLocaleString('fa-IR')} ردیف دیگر
               </p>
             )}
@@ -256,7 +256,7 @@ export function ImportTransactionsView() {
             allErrors.length > 0
           }
           onClick={() => void handleImport()}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold transition-all disabled:opacity-50"
+          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-xl font-semibold transition-all disabled:opacity-50"
         >
           {isImporting
             ? 'در حال ثبت…'

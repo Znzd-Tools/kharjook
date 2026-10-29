@@ -160,7 +160,7 @@ function PriceSourceAdvancedSectionInner({
 
   if (sources.length === 0) {
     return (
-      <p className="text-xs text-slate-500 leading-5">
+      <p className="text-xs text-zinc-500 leading-5">
         هیچ دارایی با منبع قیمت خودکار نداری. پس از اتصال منبع به یک دارایی،
         تنظیمات پیشرفته اینجا نمایش داده می‌شود.
       </p>
@@ -185,7 +185,7 @@ function PriceSourceAdvancedSectionInner({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500 leading-5">
+      <p className="text-xs text-zinc-500 leading-5">
         فقط برای منابعی که به دارایی‌هایت متصل‌اند. معمولاً نیازی به تغییر
         نیست.
       </p>
@@ -199,25 +199,25 @@ function PriceSourceAdvancedSectionInner({
         return (
           <div
             key={source.slug}
-            className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3"
+            className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-3"
           >
-            <p className="text-slate-200 text-sm font-medium">{source.label}</p>
+            <p className="text-zinc-200 text-sm font-medium">{source.label}</p>
 
             <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">ضریب تبدیل</p>
+              <p className="text-xs text-zinc-500">ضریب تبدیل</p>
               <FormattedNumberInput
                 value={row.conversion_rate}
                 onValueChange={(canonical) =>
                   setConversionRate(source.slug, canonical)
                 }
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 text-left"
                 dir="ltr"
                 placeholder="1"
               />
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">نرخ دلار</p>
+              <p className="text-xs text-zinc-500">نرخ دلار</p>
               <div className="grid grid-cols-3 gap-2">
                 {USD_FACTOR_OPTIONS.map((option) => {
                   const active = row.usd_factor === option.value;
@@ -229,7 +229,7 @@ function PriceSourceAdvancedSectionInner({
                       className={`rounded-xl py-2 text-xs font-medium transition-colors ${
                         active
                           ? 'bg-cyan-600 text-white'
-                          : 'bg-[#222436] text-slate-400 border border-white/5 hover:text-slate-200'
+                          : 'bg-surface-hover text-zinc-400 border border-white/5 hover:text-zinc-200'
                       }`}
                     >
                       {option.label}
@@ -247,7 +247,7 @@ function PriceSourceAdvancedSectionInner({
           type="button"
           onClick={() => void handleSave()}
           disabled={isSaving}
-          className="w-full bg-[#222436] hover:bg-[#2a2c40] border border-white/10 text-slate-200 p-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          className="w-full bg-surface-hover hover:bg-surface-active border border-white/10 text-zinc-200 p-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
         >
           {isSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات پیشرفته'}
         </button>

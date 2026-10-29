@@ -19,11 +19,11 @@ function dueHint(daysUntil: number | null): string {
 }
 
 function dueTone(daysUntil: number | null): string {
-  if (daysUntil == null) return 'text-slate-400';
+  if (daysUntil == null) return 'text-zinc-400';
   if (daysUntil < 0) return 'text-rose-400';
   if (daysUntil === 0) return 'text-amber-300';
   if (daysUntil <= 7) return 'text-amber-200/90';
-  return 'text-slate-400';
+  return 'text-zinc-400';
 }
 
 export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: Subscription[] }) {
@@ -63,15 +63,15 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
   const overdueCount = rows.filter((row) => row.daysUntil != null && row.daysUntil < 0).length;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-300">
             <Repeat size={16} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">اشتراک‌های نزدیک</h3>
-            <p className="text-[11px] text-slate-500">
+            <h3 className="text-sm font-semibold text-white">اشتراک‌های نزدیک</h3>
+            <p className="text-xs text-zinc-500">
               {toPersianDigits(activeCount)} مورد
               {overdueCount > 0 ? ` · ${toPersianDigits(overdueCount)} معوق` : ''}
             </p>
@@ -80,7 +80,7 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
         <button
           type="button"
           onClick={() => router.push('/deadlines/subscriptions')}
-          className="text-[11px] text-purple-400 hover:text-purple-300 inline-flex items-center gap-0.5"
+          className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-0.5"
         >
           همه
           <ChevronLeft size={14} />
@@ -96,10 +96,10 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
             className="w-full flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5 text-right hover:bg-white/[0.06] active:scale-[0.98] transition"
           >
             <div className="min-w-0">
-              <p className="text-xs text-slate-200 font-medium truncate">{row.platform}</p>
-              <p className="text-[10px] text-slate-500 truncate">{row.dueLabel}</p>
+              <p className="text-xs text-zinc-200 font-medium truncate">{row.platform}</p>
+              <p className="text-[11px] text-zinc-500 truncate">{row.dueLabel}</p>
               {row.dueHint && (
-                <p className={`text-[10px] mt-0.5 ${row.dueTone}`}>{row.dueHint}</p>
+                <p className={`text-[11px] mt-0.5 ${row.dueTone}`}>{row.dueHint}</p>
               )}
             </div>
             <SubscriptionAmountDisplay
@@ -108,8 +108,8 @@ export function PendingSubscriptionsWidget({ subscriptions }: { subscriptions: S
               currencyRates={currencyRates}
               currencyMode={currencyMode}
               usdRate={usdRate}
-              primaryClassName="text-xs font-bold text-slate-300"
-              secondaryClassName="text-[10px] text-slate-500"
+              primaryClassName="text-xs font-semibold text-zinc-300"
+              secondaryClassName="text-[11px] text-zinc-500"
               align="end"
             />
           </button>

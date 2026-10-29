@@ -457,11 +457,11 @@ export function AddTransactionView({
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">
+        <h2 className="text-lg font-semibold text-white flex-1">
           {isEdit
             ? isConvertEdit
               ? 'ویرایش تبدیل'
@@ -500,10 +500,10 @@ export function AddTransactionView({
                 aria-selected={active}
                 onClick={() => switchUiMode(t)}
                 disabled={isEdit && t !== uiMode}
-                className={`min-h-11 px-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
+                className={`min-h-11 px-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
                   active
-                    ? `${s.accentBg} text-white shadow-md`
-                    : 'text-slate-400 hover:text-slate-200 disabled:opacity-30'
+                    ? `${s.accentBg} text-white`
+                    : 'text-zinc-400 hover:text-zinc-200 disabled:opacity-30'
                 }`}
               >
                 {s.label}
@@ -512,7 +512,7 @@ export function AddTransactionView({
           })}
         </div>
         {isEdit && (
-          <p className="text-[11px] text-slate-500 -mt-2">
+          <p className="text-xs text-zinc-500 -mt-2">
             {isConvertEdit
               ? 'تبدیل پس از ثبت به‌صورت فروش + خرید ویرایش می‌شود.'
               : 'نوع تراکنش پس از ثبت قابل تغییر نیست.'}
@@ -563,7 +563,7 @@ export function AddTransactionView({
           <button
             type="button"
             onClick={addRow}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-slate-300 min-h-11 p-3 rounded-xl text-sm font-bold transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-zinc-300 min-h-11 p-3 rounded-xl text-sm font-semibold transition-all"
           >
             <Plus size={16} />
             افزودن تراکنش دیگر
@@ -585,7 +585,7 @@ export function AddTransactionView({
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full ${sharedStyle.accentBtnBg} text-white min-h-11 p-4 rounded-xl font-bold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none`}
+          className={`w-full ${sharedStyle.accentBtnBg} text-white min-h-11 p-4 rounded-xl font-semibold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none`}
         >
           {isSubmitting
             ? 'در حال ارسال...'

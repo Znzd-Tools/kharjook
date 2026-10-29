@@ -163,31 +163,31 @@ export function ManagePersonsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">اشخاص</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">اشخاص</h2>
       </div>
 
       <form
         onSubmit={onSubmit}
-        className="p-6 space-y-4 border-b border-white/5 bg-[#1A1B26]"
+        className="p-6 space-y-4 border-b border-white/5 bg-surface-raised"
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-purple-400">
+          <h3 className="text-sm font-semibold text-accent-400">
             {editingId ? 'ویرایش شخص' : 'ثبت شخص جدید'}
           </h3>
           {editingId && (
             <button
               type="button"
               onClick={reset}
-              className="text-slate-500 hover:text-white flex items-center gap-1 text-xs"
+              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
             >
               <X size={14} /> انصراف
             </button>
@@ -199,14 +199,14 @@ export function ManagePersonsView() {
           placeholder="نام شخص"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none"
+          className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-zinc-600 focus:border-accent-500 outline-none"
           required
         />
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-xl font-bold transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-3 rounded-xl font-semibold transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
         >
           <Plus size={16} />
           {isSubmitting ? 'در حال ثبت...' : editingId ? 'ثبت تغییرات' : 'ذخیره شخص'}
@@ -214,7 +214,7 @@ export function ManagePersonsView() {
       </form>
 
       <div className="p-6 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-400 mb-4">لیست اشخاص</h3>
+        <h3 className="text-sm font-semibold text-zinc-400 mb-4">لیست اشخاص</h3>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={persons.map((p) => p.id)} strategy={verticalListSortingStrategy}>
             {persons.map((person) => {
@@ -226,7 +226,7 @@ export function ManagePersonsView() {
               ? 'text-amber-300'
               : balance < 0
                 ? 'text-cyan-300'
-                : 'text-slate-400';
+                : 'text-zinc-400';
           return (
             <SortablePersonRow
               key={person.id}
@@ -279,7 +279,7 @@ function SortablePersonRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-[#1A1B26] p-4 rounded-xl border flex items-center justify-between ${isEditing ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''}`}
+      className={`bg-surface-raised p-4 rounded-xl border flex items-center justify-between ${isEditing ? 'border-accent-500/50 bg-accent-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -287,7 +287,7 @@ function SortablePersonRow({
           {...attributes}
           {...listeners}
           style={{ touchAction: 'none' }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing"
+          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
           aria-label="جابجایی"
         >
           <GripVertical size={16} />
@@ -300,7 +300,7 @@ function SortablePersonRow({
           onClick={onOpen}
           className="min-w-0 flex-1 text-right"
         >
-          <p className="text-slate-200 font-medium text-sm truncate">{person.name}</p>
+          <p className="text-zinc-200 font-medium text-sm truncate">{person.name}</p>
           <p className={`text-xs mt-1 ${tone}`} dir="ltr">
             {status} · {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
           </p>

@@ -84,18 +84,18 @@ export function MoreHubSheet({ open, onClose }: MoreHubSheetProps) {
     <BottomSheet open={open} onClose={onClose}>
       <div className="px-5 pb-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">بیشتر</h2>
+          <h2 className="text-lg font-semibold text-white">بیشتر</h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white"
+            className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white"
             aria-label="بستن"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-2">
+        <div className="rounded-2xl bg-surface-raised border border-white/5 divide-y divide-white/5 overflow-hidden">
           {LINKS.map((item) => {
             const Icon = item.icon;
             return (
@@ -106,14 +106,14 @@ export function MoreHubSheet({ open, onClose }: MoreHubSheetProps) {
                   onClose();
                   router.push(item.href);
                 }}
-                className="w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center gap-4 text-right hover:bg-surface-hover active:scale-[0.98] transition"
+                className="w-full px-4 py-3.5 flex items-center gap-3.5 text-right hover:bg-surface-hover transition-colors"
               >
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
-                  <Icon size={20} />
+                <div className="w-9 h-9 rounded-xl bg-white/5 text-zinc-300 flex items-center justify-center shrink-0">
+                  <Icon size={18} strokeWidth={1.75} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-slate-200">{item.title}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{item.subtitle}</p>
+                  <p className="text-sm font-medium text-zinc-100">{item.title}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{item.subtitle}</p>
                 </div>
               </button>
             );

@@ -29,47 +29,47 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="absolute bottom-0 w-full bg-[#1A1B26]/90 backdrop-blur-md border-t border-white/5 px-4 py-2 flex justify-between items-end pb-safe z-40">
-      <div className="flex justify-around flex-1 items-center pb-2">
+    <nav className="absolute bottom-0 w-full bg-surface-shell/85 backdrop-blur-md border-t border-white/5 px-3 pt-2 flex justify-between items-center pb-safe z-40">
+      <div className="flex justify-around flex-1 items-center">
         <NavItem
-          icon={<Home size={22} />}
+          icon={<Home size={21} strokeWidth={1.75} />}
           label="داشبورد"
           isActive={active === 'home'}
           onClick={() => navTo('/')}
         />
         <NavItem
-          icon={<Activity size={22} />}
+          icon={<Activity size={21} strokeWidth={1.75} />}
           label="دارایی‌ها"
           isActive={active === 'assets'}
           onClick={() => navTo('/assets')}
         />
       </div>
 
-      <div className="flex flex-col items-center justify-center -mt-6 z-10 px-2 pb-1">
+      <div className="flex flex-col items-center justify-center px-2">
         <Link
           href="/transactions/new"
           onClick={() => haptic('selection')}
           aria-label="ثبت تراکنش جدید"
           aria-disabled={isLoadingData}
           tabIndex={isLoadingData ? -1 : undefined}
-          className={`w-14 h-14 bg-purple-600 hover:bg-purple-500 rounded-full flex justify-center items-center text-white shadow-[0_4px_15px_rgba(147,51,234,0.5)] border-[5px] border-[#161722] transition-transform active:scale-95 ${
+          className={`w-12 h-12 bg-zinc-50 hover:bg-white text-zinc-900 rounded-2xl flex justify-center items-center transition-transform active:scale-95 ${
             isLoadingData ? 'opacity-50 pointer-events-none' : ''
           }`}
         >
-          <Plus size={26} />
+          <Plus size={22} strokeWidth={2.25} />
         </Link>
       </div>
 
-      <div className="flex justify-around flex-1 items-center pb-2">
+      <div className="flex justify-around flex-1 items-center">
         <NavItem
-          icon={<Wallet size={22} />}
+          icon={<Wallet size={21} strokeWidth={1.75} />}
           label="کیف پول‌ها"
           isActive={active === 'wallets'}
           onClick={() => navTo('/wallets')}
           disabled={isLoadingData}
         />
         <NavItem
-          icon={<CalendarDays size={22} />}
+          icon={<CalendarDays size={21} strokeWidth={1.75} />}
           label="سررسید"
           isActive={active === 'deadlines'}
           onClick={() => navTo('/deadlines')}

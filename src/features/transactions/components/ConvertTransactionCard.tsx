@@ -29,17 +29,17 @@ export function ConvertTransactionCard({
   const buyPrice = Number(group.buy.price_toman ?? 0);
 
   return (
-    <div className="bg-[#1A1B26] p-4 rounded-2xl border border-violet-500/20 flex flex-col gap-3 relative overflow-hidden">
+    <div className="bg-surface-raised p-4 rounded-2xl border border-violet-500/20 flex flex-col gap-3 relative overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-violet-300">
             <ArrowLeftRight size={14} />
-            <span className="text-slate-200 font-medium text-sm">
+            <span className="text-zinc-200 font-medium text-sm">
               تبدیل: {sourceName} → {targetName}
             </span>
           </div>
-          <p className="text-slate-500 text-xs mt-1">
+          <p className="text-zinc-500 text-xs mt-1">
             {latinizeDigits(group.sell.date_string)}
           </p>
         </div>
@@ -67,29 +67,29 @@ export function ConvertTransactionCard({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-[11px]">
+      <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg bg-amber-500/5 border border-amber-500/10 px-2.5 py-2">
           <p className="text-amber-300/80 mb-1">فروش</p>
-          <p className="text-slate-200 font-semibold" dir="ltr">
+          <p className="text-zinc-200 font-semibold" dir="ltr">
             {sourceAsset
               ? `${formatAssetAmount(sellQty, assetDecimals(sourceAsset))} ${sourceAsset.unit}`
               : sellQty}
           </p>
           {sellPrice > 0 && (
-            <p className="text-slate-500 mt-1" dir="ltr">
+            <p className="text-zinc-500 mt-1" dir="ltr">
               @ {formatCurrency(sellPrice, 'TOMAN')}
             </p>
           )}
         </div>
-        <div className="rounded-lg bg-purple-500/5 border border-purple-500/10 px-2.5 py-2">
-          <p className="text-purple-300/80 mb-1">خرید</p>
-          <p className="text-slate-200 font-semibold" dir="ltr">
+        <div className="rounded-lg bg-accent-500/5 border border-accent-500/10 px-2.5 py-2">
+          <p className="text-accent-300/80 mb-1">خرید</p>
+          <p className="text-zinc-200 font-semibold" dir="ltr">
             {targetAsset
               ? `${formatAssetAmount(buyQty, assetDecimals(targetAsset))} ${targetAsset.unit}`
               : buyQty}
           </p>
           {buyPrice > 0 && (
-            <p className="text-slate-500 mt-1" dir="ltr">
+            <p className="text-zinc-500 mt-1" dir="ltr">
               @ {formatCurrency(buyPrice, 'TOMAN')}
             </p>
           )}
@@ -101,19 +101,19 @@ export function ConvertTransactionCard({
           {sourceAsset && (
             <EntityIcon
               iconUrl={sourceAsset.icon_url}
-              fallback={<span className="text-[10px]">A</span>}
+              fallback={<span className="text-[11px]">A</span>}
               bgColor="rgba(217, 119, 6, 0.12)"
               color="#fbbf24"
               className="w-7 h-7"
             />
           )}
-          <ArrowLeftRight size={12} className="text-slate-600" />
+          <ArrowLeftRight size={12} className="text-zinc-600" />
           {targetAsset && (
             <EntityIcon
               iconUrl={targetAsset.icon_url}
-              fallback={<span className="text-[10px]">A</span>}
+              fallback={<span className="text-[11px]">A</span>}
               bgColor="rgba(168, 85, 247, 0.12)"
-              color="#c084fc"
+              color="#a5a9fc"
               className="w-7 h-7"
             />
           )}

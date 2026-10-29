@@ -251,7 +251,7 @@ export function PriceSourceCatalogSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-400">منابع قیمت</p>
+        <p className="text-xs font-medium text-zinc-400">منابع قیمت</p>
         {!showForm && (
           <button
             type="button"
@@ -264,7 +264,7 @@ export function PriceSourceCatalogSection() {
         )}
       </div>
 
-      <p className="text-xs text-slate-500 leading-5">
+      <p className="text-xs text-zinc-500 leading-5">
         ارائه‌دهنده (آبان‌تتر / زرپی) ثابت است؛ نام، کلید دریافت و شناسه را می‌توانی
         سفارشی کنی.
       </p>
@@ -273,11 +273,11 @@ export function PriceSourceCatalogSection() {
         {visibleSources.map((source) => (
           <div
             key={source.slug}
-            className="flex items-start gap-2 bg-[#222436] border border-white/5 rounded-xl p-3"
+            className="flex items-start gap-2 bg-surface-hover border border-white/5 rounded-xl p-3"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{source.label}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5" dir="ltr">
+              <p className="text-[11px] text-zinc-500 mt-0.5" dir="ltr">
                 {source.slug} · {source.provider} · {source.fetch_key}
               </p>
             </div>
@@ -285,7 +285,7 @@ export function PriceSourceCatalogSection() {
               <button
                 type="button"
                 onClick={() => startEdit(source)}
-                className="text-[11px] text-slate-400 hover:text-white px-2 py-1"
+                className="text-xs text-zinc-400 hover:text-white px-2 py-1"
               >
                 ویرایش
               </button>
@@ -306,14 +306,14 @@ export function PriceSourceCatalogSection() {
       </div>
 
       {showForm && (
-        <div className="bg-[#222436] border border-white/10 rounded-2xl p-4 space-y-3">
-          <p className="text-sm text-slate-200">
+        <div className="bg-surface-hover border border-white/10 rounded-2xl p-4 space-y-3">
+          <p className="text-sm text-zinc-200">
             {adding ? 'منبع جدید' : 'ویرایش منبع'}
           </p>
 
           {adding && (
             <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">ارائه‌دهنده</p>
+              <p className="text-xs text-zinc-500">ارائه‌دهنده</p>
               <div className="grid grid-cols-2 gap-2">
                 {PROVIDER_OPTIONS.map((option) => (
                   <button
@@ -329,7 +329,7 @@ export function PriceSourceCatalogSection() {
                     className={`rounded-xl py-2 text-xs font-medium ${
                       form.provider === option.value
                         ? 'bg-cyan-600 text-white'
-                        : 'bg-[#1A1B26] text-slate-400 border border-white/5'
+                        : 'bg-surface-raised text-zinc-400 border border-white/5'
                     }`}
                   >
                     {option.label}
@@ -340,30 +340,30 @@ export function PriceSourceCatalogSection() {
           )}
 
           <div className="space-y-1.5">
-            <p className="text-[11px] text-slate-500">نام نمایشی</p>
+            <p className="text-xs text-zinc-500">نام نمایشی</p>
             <input
               value={form.label}
               onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
             />
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-[11px] text-slate-500">کلید دریافت (fetch key)</p>
+            <p className="text-xs text-zinc-500">کلید دریافت (fetch key)</p>
             <input
               value={form.fetchKey}
               onChange={(e) =>
                 handleFetchKeyChange(e.target.value, form.provider)
               }
               disabled={fetchKeyLocked}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
+              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
               dir="ltr"
             />
           </div>
 
           {adding && (
             <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">شناسه (slug)</p>
+              <p className="text-xs text-zinc-500">شناسه (slug)</p>
               <input
                 value={form.slug}
                 onChange={(e) =>
@@ -372,7 +372,7 @@ export function PriceSourceCatalogSection() {
                     slug: e.target.value.trim().toLowerCase(),
                   }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
                 dir="ltr"
               />
             </div>
@@ -391,7 +391,7 @@ export function PriceSourceCatalogSection() {
               type="button"
               onClick={cancelForm}
               disabled={isSaving}
-              className="px-4 bg-[#1A1B26] border border-white/10 text-slate-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
+              className="px-4 bg-surface-raised border border-white/10 text-zinc-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
             >
               انصراف
             </button>

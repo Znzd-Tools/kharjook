@@ -289,18 +289,18 @@ export function ChecksHubView() {
   return (
     <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">چک‌ها</h2>
+        <h2 className="text-xl font-semibold text-white">چک‌ها</h2>
         <button
           type="button"
           onClick={() => router.push('/deadlines/checks/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           چک جدید
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
         {(
           [
             ['pending', 'در انتظار'],
@@ -312,8 +312,8 @@ export function ChecksHubView() {
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-              filter === key ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+              filter === key ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             {label}
@@ -322,7 +322,7 @@ export function ChecksHubView() {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
       ) : filteredChecks.length === 0 ? (
         <EmptyState
           icon={<ReceiptText size={24} />}
@@ -349,19 +349,19 @@ export function ChecksHubView() {
             return (
               <div
                 key={check.id}
-                className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl space-y-3"
+                className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-100 truncate">{check.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <h3 className="font-semibold text-zinc-100 truncate">{check.title}</h3>
+                    <p className="text-xs text-zinc-500 mt-1">
                       {[check.bank_name, check.check_number ? `#${check.check_number}` : null, category?.name]
                         .filter(Boolean)
                         .join(' · ') || '—'}
                     </p>
                   </div>
                   <span
-                    className={`text-[11px] px-2 py-1 rounded-lg shrink-0 ${
+                    className={`text-xs px-2 py-1 rounded-lg shrink-0 ${
                       check.status === 'pending'
                         ? isOverdue
                           ? 'bg-rose-500/15 text-rose-300'
@@ -372,7 +372,7 @@ export function ChecksHubView() {
                           ? 'bg-emerald-500/15 text-emerald-300'
                           : check.status === 'bounced'
                             ? 'bg-rose-500/15 text-rose-300'
-                            : 'bg-slate-500/15 text-slate-400'
+                            : 'bg-zinc-500/15 text-zinc-400'
                     }`}
                   >
                     {STATUS_LABEL[check.status]}
@@ -381,14 +381,14 @@ export function ChecksHubView() {
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">مبلغ</p>
-                    <p className="text-slate-200 mt-1" dir="ltr">
+                    <p className="text-zinc-500">مبلغ</p>
+                    <p className="text-zinc-200 mt-1" dir="ltr">
                       {formatCurrency(displayAmount(check), currencyMode)}
                     </p>
                   </div>
                   <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">سررسید</p>
-                    <p className="text-slate-200 mt-1">
+                    <p className="text-zinc-500">سررسید</p>
+                    <p className="text-zinc-200 mt-1">
                       {due ? toPersianDigits(formatJalaaliHuman(due)) : check.due_date_string}
                     </p>
                   </div>
@@ -400,7 +400,7 @@ export function ChecksHubView() {
                       type="button"
                       onClick={() => openSettle(check)}
                       disabled={isSubmitting}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition disabled:opacity-50"
                     >
                       <CreditCard size={13} />
                       تسویه
@@ -418,14 +418,14 @@ export function ChecksHubView() {
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => void handleMarkCancelled(check)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-300 transition disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-300 transition disabled:opacity-50"
                     >
                       <Ban size={13} />
                       عودت
                     </button>
                     <Link
                       href={`/deadlines/checks/${check.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
+                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
                     >
                       ویرایش
                     </Link>
@@ -462,12 +462,12 @@ export function ChecksHubView() {
 
       {settlementTarget && (
         <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-[#13141C] border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
+          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
             <button
               type="button"
               onClick={handleSettle}
               disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-1">
@@ -484,14 +484,14 @@ export function ChecksHubView() {
               type="button"
               onClick={() => setIsSettlementPickerOpen(true)}
               disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
             >
               {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
             </button>
             <button
               type="button"
               onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
             >
               انصراف
             </button>

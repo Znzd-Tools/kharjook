@@ -238,19 +238,19 @@ export function ReportsIndexView() {
   const assetsHref = buildReportHref('assets', assetsSummary.period);
 
   return (
-    <div className="bg-[#161722] min-h-full">
-      <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="bg-surface-shell min-h-full">
+      <header className="sticky top-0 z-10 bg-surface-shell/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-[#1A1B26] border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          className="w-9 h-9 rounded-xl bg-surface-raised border border-white/5 flex items-center justify-center text-zinc-300 hover:bg-white/5"
         >
           <ChevronRight size={18} />
         </button>
         <div className="flex-1">
-          <h1 className="text-base font-bold text-white flex items-center gap-2">
-            <BarChart3 size={18} className="text-purple-400" />
+          <h1 className="text-base font-semibold text-white flex items-center gap-2">
+            <BarChart3 size={18} className="text-accent-400" />
             گزارش‌ها
           </h1>
         </div>
@@ -263,10 +263,10 @@ export function ReportsIndexView() {
               key={kind}
               type="button"
               onClick={() => setScope(kind)}
-              className={`flex-1 rounded-xl py-2 text-xs font-bold border transition ${
+              className={`flex-1 rounded-xl py-2 text-xs font-semibold border transition ${
                 scope === kind
-                  ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                  ? 'bg-accent-500/20 border-accent-500/40 text-white'
+                  : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
               }`}
             >
               {formatCurrentPeriodLabel(kind)}
@@ -276,21 +276,21 @@ export function ReportsIndexView() {
 
         <Link
           href={cashflowHref}
-          className="block bg-[#1A1B26] border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
+          className="block bg-surface-raised border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 text-emerald-300">
               <WalletIcon size={16} />
-              <span className="text-sm font-bold text-white">درآمد و هزینه</span>
+              <span className="text-sm font-semibold text-white">درآمد و هزینه</span>
             </div>
             <ChevronLeft
               size={18}
-              className="text-slate-600 group-hover:text-emerald-400 shrink-0"
+              className="text-zinc-600 group-hover:text-emerald-400 shrink-0"
             />
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
+          <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
           <p
-            className={`mt-3 text-2xl font-black ${
+            className={`mt-3 text-2xl font-semibold ${
               cashflow.net >= 0 ? 'text-emerald-400' : 'text-rose-400'
             }`}
             dir="ltr"
@@ -298,7 +298,7 @@ export function ReportsIndexView() {
             {cashflow.net >= 0 ? '+' : ''}
             {formatCurrency(cashflow.net, currencyMode)}
           </p>
-          <p className="text-[11px] text-slate-500 mt-2" dir="ltr">
+          <p className="text-xs text-zinc-500 mt-2" dir="ltr">
             درآمد {formatCurrency(cashflow.income, currencyMode)} · هزینه{' '}
             {formatCurrency(cashflow.expense, currencyMode)}
           </p>
@@ -306,26 +306,26 @@ export function ReportsIndexView() {
 
         <Link
           href={assetsHref}
-          className="block bg-[#1A1B26] border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
+          className="block bg-surface-raised border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 text-amber-300">
               <Coins size={16} />
-              <span className="text-sm font-bold text-white">سود/زیان دارایی‌ها</span>
+              <span className="text-sm font-semibold text-white">سود/زیان دارایی‌ها</span>
             </div>
             <ChevronLeft
               size={18}
-              className="text-slate-600 group-hover:text-amber-400 shrink-0"
+              className="text-zinc-600 group-hover:text-amber-400 shrink-0"
             />
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
+          <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
           <AssetsTotalLine
             totalToman={assetsSummary.totalToman}
             totalUsd={assetsSummary.totalUsd}
             currencyMode={currencyMode}
           />
           {assetsSummary.unrealizedMissingCount > 0 && (
-            <p className="text-[10px] text-amber-400/80 mt-2">
+            <p className="text-[11px] text-amber-400/80 mt-2">
               {assetsSummary.unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون
               قیمت پایان دوره — جمع ناقص است.
             </p>
@@ -350,16 +350,16 @@ export function ReportsIndexView() {
         )}
 
         {convertCount > 0 && (
-          <div className="bg-[#1A1B26] border border-violet-500/15 rounded-2xl p-4">
+          <div className="bg-surface-raised border border-violet-500/15 rounded-2xl p-4">
             <div className="flex items-center gap-2 text-violet-300">
               <Coins size={16} />
-              <span className="text-sm font-bold text-white">تبدیل دارایی</span>
+              <span className="text-sm font-semibold text-white">تبدیل دارایی</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">{scopeLabel}</p>
-            <p className="mt-2 text-2xl font-black text-violet-300">
+            <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
+            <p className="mt-2 text-2xl font-semibold text-violet-300">
               {convertCount.toLocaleString('fa-IR')}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">عملیات تبدیل ثبت‌شده</p>
+            <p className="text-xs text-zinc-500 mt-1">عملیات تبدیل ثبت‌شده</p>
           </div>
         )}
       </main>
@@ -394,7 +394,7 @@ function AssetsTotalLine({
         <TrendingDown size={18} className="text-rose-400" />
       )}
       <p
-        className={`text-2xl font-black ${positive ? 'text-emerald-400' : 'text-rose-400'}`}
+        className={`text-2xl font-semibold ${positive ? 'text-emerald-400' : 'text-rose-400'}`}
         dir="ltr"
       >
         {total > 0 ? '+' : ''}

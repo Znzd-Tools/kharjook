@@ -625,9 +625,9 @@ export function HomeTab() {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">داشبورد</h2>
+        <h2 className="text-xl font-semibold text-white">داشبورد</h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-zinc-500">
             {isLoadingData ? 'در حال به‌روزرسانی...' : 'به‌روز'}
           </span>
           <button
@@ -637,7 +637,7 @@ export function HomeTab() {
               void refreshAll().finally(() => setIsRefreshing(false));
             }}
             disabled={isLoadingData || isRefreshing}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 inline-flex items-center justify-center disabled:opacity-50"
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 inline-flex items-center justify-center disabled:opacity-50"
             aria-label="بروزرسانی قیمت‌ها و داده‌ها"
             title="بروزرسانی قیمت‌ها"
           >
@@ -658,7 +658,7 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/prices')}
-          className="w-full rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-right text-[11px] leading-5 text-amber-200"
+          className="w-full rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-right text-xs leading-5 text-amber-200"
         >
           {stats.walletsMissingRate.length > 0 && (
             <span className="block">
@@ -698,28 +698,28 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/reports')}
-          className="bg-[#1A1B26] border border-white/5 hover:border-purple-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+          className="bg-surface-raised border border-white/5 hover:border-accent-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-400 group-hover:bg-accent-500/20 transition-colors">
               <BarChart3 size={18} />
             </div>
-            <span className="text-sm font-medium text-slate-200">گزارش‌ها</span>
+            <span className="text-sm font-medium text-zinc-200">گزارش‌ها</span>
           </div>
-          <ChevronLeft size={18} className="text-slate-600" />
+          <ChevronLeft size={18} className="text-zinc-600" />
         </button>
         <button
           type="button"
           onClick={() => router.push('/prices')}
-          className="bg-[#1A1B26] border border-white/5 hover:border-cyan-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+          className="bg-surface-raised border border-white/5 hover:border-cyan-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
               <TrendingUp size={18} />
             </div>
-            <span className="text-sm font-medium text-slate-200">قیمت‌ها و نرخ‌ها</span>
+            <span className="text-sm font-medium text-zinc-200">قیمت‌ها و نرخ‌ها</span>
           </div>
-          <ChevronLeft size={18} className="text-slate-600" />
+          <ChevronLeft size={18} className="text-zinc-600" />
         </button>
       </div>
 
@@ -761,37 +761,36 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/deadlines')}
-          className="group relative overflow-hidden rounded-[1.75rem] border border-amber-300/10 bg-[#1A1B26] p-4 text-right transition hover:border-amber-300/20 hover:bg-[#222436]"
+          className="group relative overflow-hidden rounded-2xl border border-amber-300/10 bg-surface-raised p-4 text-right transition hover:border-amber-300/20 hover:bg-surface-hover"
         >
-          <div className="absolute -left-12 -top-12 h-28 w-28 rounded-full bg-amber-400/10 blur-2xl transition group-hover:bg-amber-400/15" />
           <div className="relative flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-slate-300">
+            <div className="flex items-center gap-2 text-zinc-300">
               <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
                 <CalendarClock size={16} />
               </span>
               <div>
                 <span className="text-sm font-semibold">سررسید</span>
-                <p className="text-[11px] text-slate-500">پرداخت‌های نزدیک همین ماه</p>
+                <p className="text-xs text-zinc-500">پرداخت‌های نزدیک همین ماه</p>
               </div>
             </div>
             {currentMonthDeadlineSummary.rows.length > 0 && (
-              <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-[10px] text-amber-200">
+              <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-200">
                 {formatDisplayNumber(currentMonthDeadlineSummary.rows.length)} مورد
               </span>
             )}
           </div>
           {currentMonthDeadlineSummary.rows.length === 0 ? (
-            <p className="relative mt-3 text-xs text-slate-500">
+            <p className="relative mt-3 text-xs text-zinc-500">
               سررسید پرداخت‌نشده‌ای وجود ندارد
             </p>
           ) : (
             <div className="relative mt-3 space-y-2">
               <div className="rounded-2xl border border-white/5 bg-white/4 px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-slate-200 font-semibold">
+                  <p className="text-xs text-zinc-200 font-semibold">
                     {currentMonthDeadlineSummary.label}
                   </p>
-                  <span className="text-[11px] text-amber-300 shrink-0" dir="ltr">
+                  <span className="text-xs text-amber-300 shrink-0" dir="ltr">
                     {formatCurrency(currentMonthDeadlineSummary.total, currencyMode)}
                   </span>
                 </div>
@@ -802,10 +801,10 @@ export function HomeTab() {
                       className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-2.5 py-1.5"
                     >
                       <div className="min-w-0">
-                        <p className="text-[11px] text-slate-200 truncate">{row.title}</p>
-                        <p className="text-[10px] text-slate-500">{row.dueLabel}</p>
+                        <p className="text-xs text-zinc-200 truncate">{row.title}</p>
+                        <p className="text-[11px] text-zinc-500">{row.dueLabel}</p>
                       </div>
-                      <span className="text-[11px] text-slate-300 shrink-0" dir="ltr">
+                      <span className="text-xs text-zinc-300 shrink-0" dir="ltr">
                         {row.amountLabel}
                       </span>
                     </div>
@@ -864,30 +863,24 @@ function PortfolioHeroCard({
   cashShare: number;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-4xl border border-purple-400/20 bg-[#1A1B26] p-5 shadow-2xl shadow-purple-950/20">
-      <div className="absolute -top-20 -left-16 h-48 w-48 rounded-full bg-purple-500/20 blur-3xl" />
-      <div className="absolute -bottom-24 right-8 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-surface-raised p-5">
       <div className="relative flex flex-col gap-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-purple-200">
-              <Sparkles size={13} />
-              نمای کلی سبد
-            </div>
-            <p className="text-sm text-slate-400">ارزش کل پورتفو</p>
-            <p className="mt-1 text-3xl font-black tracking-tight text-white sm:text-4xl" dir="ltr">
+            <p className="text-xs font-medium text-zinc-500">ارزش کل پورتفو</p>
+            <p className="mt-2 text-[2rem] leading-none font-semibold tracking-tight text-zinc-50" dir="ltr">
               {totalLabel}
             </p>
           </div>
-          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0F1015]/80 ring-1 ring-white/10">
+          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full">
             <div
               className="absolute inset-2 rounded-full"
               style={{
-                background: `conic-gradient(#8b5cf6 0 ${assetShare}%, #06b6d4 ${assetShare}% ${Math.min(100, assetShare + cashShare)}%, rgba(255,255,255,0.08) 0)`,
+                background: `conic-gradient(#7470f1 0 ${assetShare}%, #06b6d4 ${assetShare}% ${Math.min(100, assetShare + cashShare)}%, rgba(255,255,255,0.06) 0)`,
               }}
             />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[#151622] text-center">
-              <span className="text-lg font-bold text-white" dir="ltr">
+            <div className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-surface-raised text-center">
+              <span className="text-base font-semibold text-zinc-100" dir="ltr">
                 {assetShare.toFixed(0)}%
               </span>
             </div>
@@ -898,7 +891,7 @@ function PortfolioHeroCard({
             label="دارایی‌ها"
             value={assetsLabel}
             percent={assetShare}
-            color="#8b5cf6"
+            color="#7470f1"
           />
           <PortfolioSplitPill label="نقدی" value={cashLabel} percent={cashShare} color="#06b6d4" />
         </div>
@@ -921,8 +914,8 @@ function PortfolioSplitPill({
   return (
     <div className="rounded-2xl border border-white/5 bg-white/4 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-400">{label}</span>
-        <span className="text-[11px] text-slate-500" dir="ltr">
+        <span className="text-xs text-zinc-400">{label}</span>
+        <span className="text-xs text-zinc-500" dir="ltr">
           {percent.toFixed(1)}%
         </span>
       </div>
@@ -953,22 +946,21 @@ function MetricCard({
   icon?: ReactNode;
 }) {
   const toneClass = {
-    neutral: 'text-slate-200',
+    neutral: 'text-zinc-200',
     success: 'text-emerald-300',
     danger: 'text-rose-300',
   }[tone];
   const iconClass = {
-    neutral: 'bg-slate-400/10 text-slate-300',
+    neutral: 'bg-zinc-400/10 text-zinc-300',
     success: 'bg-emerald-400/10 text-emerald-300',
     danger: 'bg-rose-400/10 text-rose-300',
   }[tone];
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#1A1B26] p-4 transition hover:border-white/10 hover:bg-[#202234]">
-      <div className="absolute -left-8 -top-8 h-16 w-16 rounded-full bg-white/5 blur-xl opacity-0 transition group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-surface-raised p-4 transition hover:border-white/10 hover:bg-surface-hover">
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="mb-1 text-xs text-slate-400">{title}</p>
-          <p className={`truncate text-sm font-bold ${toneClass}`} dir="ltr">
+          <p className="mb-1 text-xs text-zinc-400">{title}</p>
+          <p className={`truncate text-sm font-semibold ${toneClass}`} dir="ltr">
             {value}
           </p>
         </div>
@@ -978,7 +970,7 @@ function MetricCard({
           </span>
         )}
       </div>
-      {subtitle && <p className="text-[11px] text-slate-500 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -999,21 +991,19 @@ function SummaryInsightCard({
   const toneClass =
     tone === 'cyan'
       ? 'bg-cyan-400/10 text-cyan-300'
-      : 'bg-purple-400/10 text-purple-300';
-  const glowClass = tone === 'cyan' ? 'bg-cyan-400/10' : 'bg-purple-400/10';
+      : 'bg-accent-400/10 text-accent-300';
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
-      <div className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${glowClass}`} />
+    <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-surface-raised p-4">
       <div className="relative flex items-start gap-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="mb-1 text-xs text-slate-400">{title}</p>
-          <p className="truncate text-xl font-black text-white" dir="ltr">
+          <p className="mb-1 text-xs text-zinc-400">{title}</p>
+          <p className="truncate text-xl font-semibold text-white" dir="ltr">
             {value}
           </p>
-          <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
+          <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
         </div>
       </div>
     </div>
@@ -1043,16 +1033,14 @@ function HomeGoalsSection({
       : `${value.toLocaleString('en-US', { maximumFractionDigits: 4 })}${row.unit ? ` ${row.unit}` : ''}`;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4">
-      <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-emerald-500/5 blur-3xl" />
-      <div className="absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-rose-500/5 blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl border border-accent-400/15 bg-surface-raised p-4">
       <div className="relative mb-4 flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-purple-300">
+          <div className="flex items-center gap-2 text-accent-300">
             <TargetIcon size={16} />
-            <p className="text-sm font-bold text-white">هدف‌های سبد</p>
+            <p className="text-sm font-semibold text-white">هدف‌های سبد</p>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-zinc-500">
             {rows.length > 0
               ? `${formatDisplayNumber(metCount)} از ${formatDisplayNumber(rows.length)} رسیده`
               : 'هدفی تعریف نشده'}
@@ -1061,7 +1049,7 @@ function HomeGoalsSection({
         <button
           type="button"
           onClick={onManage}
-          className="flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 shrink-0"
+          className="flex items-center gap-1 text-xs text-accent-400 hover:text-accent-300 shrink-0"
         >
           مدیریت
           <ChevronLeft size={14} />
@@ -1069,7 +1057,7 @@ function HomeGoalsSection({
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 py-10 text-xs text-slate-500">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 py-10 text-xs text-zinc-500">
           <AlertCircle size={12} />
           <span className="mt-2">از بخش مدیریت، هدف برای دارایی یا گروه تعریف کن.</span>
         </div>
@@ -1079,18 +1067,18 @@ function HomeGoalsSection({
             <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-3 py-2">
               <div className="mb-1 flex items-center gap-1.5 text-emerald-300">
                 <CheckCircle2 size={13} />
-                <span className="text-[10px]">رسیده به هدف</span>
+                <span className="text-[11px]">رسیده به هدف</span>
               </div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-semibold text-white">
                 {formatDisplayNumber(metCount)}
               </p>
             </div>
             <div className="rounded-xl border border-rose-500/15 bg-rose-500/5 px-3 py-2">
               <div className="mb-1 flex items-center gap-1.5 text-rose-300">
                 <CircleDashed size={13} />
-                <span className="text-[10px]">در انتظار</span>
+                <span className="text-[11px]">در انتظار</span>
               </div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-semibold text-white">
                 {formatDisplayNumber(pendingCount)}
               </p>
             </div>
@@ -1136,7 +1124,7 @@ function HomeGoalsSection({
                     />
                   </div>
                   <span
-                    className="w-full truncate text-center text-[9px] text-slate-500 sm:text-[10px]"
+                    className="w-full truncate text-center text-[10px] text-zinc-500 sm:text-[11px]"
                     title={row.name}
                   >
                     {row.name}
@@ -1146,7 +1134,7 @@ function HomeGoalsSection({
             })}
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-slate-500">
+          <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-zinc-500">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-sm bg-emerald-500/85" />
               رسیده
@@ -1162,11 +1150,11 @@ function HomeGoalsSection({
           </div>
 
           {buySuggestions.length > 0 && (
-            <div className="relative mt-4 space-y-2 rounded-xl border border-purple-400/10 bg-purple-500/5 px-3 py-2.5">
-              <p className="text-[10px] font-semibold text-purple-300">پیشنهاد خرید</p>
+            <div className="relative mt-4 space-y-2 rounded-xl border border-accent-400/10 bg-accent-500/5 px-3 py-2.5">
+              <p className="text-[11px] font-semibold text-accent-300">پیشنهاد خرید</p>
               <ul className="space-y-1.5">
                 {buySuggestions.map((row) => (
-                  <li key={row.id} className="text-[10px] leading-relaxed text-slate-300">
+                  <li key={row.id} className="text-[11px] leading-relaxed text-zinc-300">
                     {row.buySuggestion}
                   </li>
                 ))}

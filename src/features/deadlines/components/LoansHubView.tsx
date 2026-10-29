@@ -509,23 +509,23 @@ export function LoansHubView() {
   return (
     <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">اقساط و وام‌ها</h2>
+        <h2 className="text-xl font-semibold text-white">اقساط و وام‌ها</h2>
         <button
           type="button"
           onClick={() => router.push('/deadlines/loans/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           وام جدید
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
         <button
           type="button"
           onClick={() => setTab('loans')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'loans' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+            tab === 'loans' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           وام‌ها
@@ -533,8 +533,8 @@ export function LoansHubView() {
         <button
           type="button"
           onClick={() => setTab('installments')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'installments' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+            tab === 'installments' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           اقساط
@@ -542,8 +542,8 @@ export function LoansHubView() {
         <button
           type="button"
           onClick={() => setTab('calendar')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'calendar' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+            tab === 'calendar' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           تقویم بدهی
@@ -551,15 +551,15 @@ export function LoansHubView() {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
       ) : tab === 'loans' ? (
         loansRows.length === 0 ? (
           <div className="text-center py-10 space-y-3">
-            <p className="text-slate-500 text-sm">هنوز وامی ثبت نشده.</p>
+            <p className="text-zinc-500 text-sm">هنوز وامی ثبت نشده.</p>
             <button
               type="button"
               onClick={() => router.push('/deadlines/loans/new')}
-              className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 text-sm font-medium"
+              className="inline-flex items-center gap-1 text-accent-400 hover:text-accent-300 text-sm font-medium"
             >
               <Plus size={16} />
               ایجاد اولین وام
@@ -567,15 +567,15 @@ export function LoansHubView() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3">
+            <div className="bg-surface-raised border border-white/5 rounded-2xl p-3">
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setLoanFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                     loanFilter === 'all'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
                   همه
@@ -583,10 +583,10 @@ export function LoansHubView() {
                 <button
                   type="button"
                   onClick={() => setLoanFilter('remaining')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                     loanFilter === 'remaining'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
                   باقی‌مانده
@@ -594,10 +594,10 @@ export function LoansHubView() {
                 <button
                   type="button"
                   onClick={() => setLoanFilter('finished')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                     loanFilter === 'finished'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
                   تمام‌شده
@@ -605,7 +605,7 @@ export function LoansHubView() {
               </div>
             </div>
             {filteredLoanRows.length === 0 ? (
-              <div className="text-center text-slate-500 text-sm py-6">
+              <div className="text-center text-zinc-500 text-sm py-6">
                 موردی با این فیلتر وجود ندارد.
               </div>
             ) : filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
@@ -621,12 +621,12 @@ export function LoansHubView() {
               return (
                 <div
                   key={loan.id}
-                  className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl space-y-3"
+                  className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold text-slate-100">{loan.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <h3 className="font-semibold text-zinc-100">{loan.title}</h3>
+                      <p className="text-xs text-zinc-500 mt-1">
                         {loan.type === 'expense' ? 'خرید اعتباری' : 'وام نقدی'}
                         {loanAsset
                           ? ` · ${loanAsset.name}`
@@ -635,19 +635,19 @@ export function LoansHubView() {
                             : ''}
                       </p>
                     </div>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-zinc-400">
                       {paidCount}/{totalCount} تسویه
                     </span>
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500">پیشرفت تسویه</span>
-                      <span className="text-slate-300">{toPersianDigits(progressPercent)}٪</span>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-500">پیشرفت تسویه</span>
+                      <span className="text-zinc-300">{toPersianDigits(progressPercent)}٪</span>
                     </div>
                     <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        className="absolute inset-y-0 right-0 rounded-full bg-purple-500 transition-[width] duration-300"
+                        className="absolute inset-y-0 right-0 rounded-full bg-accent-500 transition-[width] duration-300"
                         style={{ width: `${progressPercent > 0 ? Math.max(progressPercent, 4) : 0}%` }}
                       />
                     </div>
@@ -655,16 +655,16 @@ export function LoansHubView() {
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-slate-500">
+                      <p className="text-zinc-500">
                         {isAssetLoan(loan) ? 'مقدار هر قسط' : 'مبلغ هر قسط'}
                       </p>
-                      <p className="text-slate-200 mt-1" dir="ltr">
+                      <p className="text-zinc-200 mt-1" dir="ltr">
                         {formatLoanQty(loan.installment_amount, loan)}
                       </p>
                     </div>
                     <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-slate-500">جمع کل</p>
-                      <p className="text-slate-200 mt-1" dir="ltr">
+                      <p className="text-zinc-500">جمع کل</p>
+                      <p className="text-zinc-200 mt-1" dir="ltr">
                         {formatLoanQty(totalDisplay, loan)}
                       </p>
                     </div>
@@ -673,7 +673,7 @@ export function LoansHubView() {
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/deadlines/loans/${loan.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
+                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
                     >
                       ویرایش
                     </Link>
@@ -696,15 +696,15 @@ export function LoansHubView() {
         )
       ) : tab === 'installments' ? installmentRows.length === 0 ? (
         <div className="text-center py-10 space-y-2">
-          <p className="text-slate-500 text-sm">قسطی برای نمایش نیست.</p>
-          <p className="text-slate-600 text-xs">بعد از ثبت وام، برنامه اقساط اینجا نمایش داده می‌شود.</p>
+          <p className="text-zinc-500 text-sm">قسطی برای نمایش نیست.</p>
+          <p className="text-zinc-600 text-xs">بعد از ثبت وام، برنامه اقساط اینجا نمایش داده می‌شود.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-4">
+          <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">جمع باقی‌مانده</span>
-              <span className="text-sm font-semibold text-slate-100" dir="ltr">
+              <span className="text-xs text-zinc-400">جمع باقی‌مانده</span>
+              <span className="text-sm font-semibold text-zinc-100" dir="ltr">
                 {formatCurrency(remainingTotalDisplay, currencyMode)}
               </span>
             </div>
@@ -712,10 +712,10 @@ export function LoansHubView() {
               <button
                 type="button"
                 onClick={() => setInstallmentFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                   installmentFilter === 'all'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                 }`}
               >
                 همه
@@ -723,10 +723,10 @@ export function LoansHubView() {
               <button
                 type="button"
                 onClick={() => setInstallmentFilter('paid')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                   installmentFilter === 'paid'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                 }`}
               >
                 تسویه شده
@@ -734,10 +734,10 @@ export function LoansHubView() {
               <button
                 type="button"
                 onClick={() => setInstallmentFilter('remaining')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                   installmentFilter === 'remaining'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
+                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                 }`}
               >
                 باقی‌مانده
@@ -746,14 +746,14 @@ export function LoansHubView() {
           </div>
 
           {groupedInstallments.length === 0 ? (
-            <div className="text-center text-slate-500 text-sm py-6">
+            <div className="text-center text-zinc-500 text-sm py-6">
               موردی با این فیلتر وجود ندارد.
             </div>
           ) : groupedInstallments.map((group) => (
             <div key={group.key} className="space-y-2">
               <div className="px-1 flex items-center justify-between gap-3">
-                <h3 className="text-xs font-bold text-slate-400">{group.label}</h3>
-                <span className="text-xs font-semibold text-slate-300" dir="ltr">
+                <h3 className="text-xs font-semibold text-zinc-400">{group.label}</h3>
+                <span className="text-xs font-semibold text-zinc-300" dir="ltr">
                   {formatCurrency(group.total, currencyMode)}
                 </span>
               </div>
@@ -767,22 +767,22 @@ export function LoansHubView() {
                 return (
                   <div
                     key={installment.id}
-                    className="bg-[#1A1B26] border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
+                    className="bg-surface-raised border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm font-semibold text-slate-100 truncate">{loan.title}</p>
-                        <span className="text-[11px] font-semibold text-slate-400 shrink-0" dir="ltr">
+                        <p className="text-sm font-semibold text-zinc-100 truncate">{loan.title}</p>
+                        <span className="text-xs font-semibold text-zinc-400 shrink-0" dir="ltr">
                           {toPersianDigits(`${installment.sequence_no}/${total}`)}
                         </span>
                         {isLast && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
+                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
                             آخرین قسط
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">{dueLabel}</p>
-                      <p className="text-xs text-slate-300 mt-1" dir="ltr">
+                      <p className="text-xs text-zinc-500 mt-1">{dueLabel}</p>
+                      <p className="text-xs text-zinc-300 mt-1" dir="ltr">
                         {isAssetLoan(loan)
                           ? formatLoanQty(
                               installment.is_paid
@@ -793,12 +793,12 @@ export function LoansHubView() {
                           : formatCurrency(amountDisplay, currencyMode)}
                       </p>
                       {installmentHasPartialPay(installment) && (
-                        <p className="text-[10px] text-amber-300 mt-1">پرداخت جزئی</p>
+                        <p className="text-[11px] text-amber-300 mt-1">پرداخت جزئی</p>
                       )}
                     </div>
 
                     {installment.is_paid ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 shrink-0">
+                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 shrink-0">
                         <CheckCircle2 size={14} />
                         تسویه‌شده
                       </span>
@@ -806,7 +806,7 @@ export function LoansHubView() {
                       <button
                         type="button"
                         onClick={() => openSettle(installment)}
-                        className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shrink-0"
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition shrink-0"
                       >
                         <CreditCard size={14} />
                         تسویه
@@ -820,12 +820,12 @@ export function LoansHubView() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3 space-y-3">
+          <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 space-y-3">
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => moveCalendarMonth(1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
+                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
                 aria-label="ماه بعد"
               >
                 <ChevronLeft size={16} />
@@ -834,14 +834,14 @@ export function LoansHubView() {
                 <p className="text-sm font-semibold text-white">
                   {JALALI_MONTHS[calendarMonth.jm - 1]} {toPersianDigits(calendarMonth.jy)}
                 </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs text-zinc-500 mt-0.5">
                   جمع بدهی ماه: {formatCurrency(monthRemainingTotal, currencyMode)}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => moveCalendarMonth(-1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
+                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
                 aria-label="ماه قبل"
               >
                 <ChevronRight size={16} />
@@ -849,7 +849,7 @@ export function LoansHubView() {
             </div>
             <div className="grid grid-cols-7 gap-1 text-center">
               {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="text-[11px] text-slate-500 py-1">
+                <div key={label} className="text-xs text-zinc-500 py-1">
                   {label}
                 </div>
               ))}
@@ -867,20 +867,20 @@ export function LoansHubView() {
                     onClick={() => setSelectedCalendarDate(cell.date)}
                     className={`h-12 rounded-lg border transition relative ${
                       isSelected
-                        ? 'bg-purple-600/30 border-purple-500/60'
+                        ? 'bg-accent-600/30 border-accent-500/60'
                         : cell.rows.length > 0
                           ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/15'
                           : 'bg-white/3 border-white/5 hover:bg-white/6'
                     }`}
                   >
                     <span
-                      className={`text-xs ${isSelected ? 'text-purple-100 font-bold' : 'text-slate-300'}`}
+                      className={`text-xs ${isSelected ? 'text-accent-100 font-semibold' : 'text-zinc-300'}`}
                     >
                       {toPersianDigits(cell.day)}
                     </span>
                     {cell.rows.length > 0 && (
                       <span
-                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] px-1.5 rounded-full ${
+                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] px-1.5 rounded-full ${
                           isOverdue ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'
                         }`}
                       >
@@ -896,15 +896,15 @@ export function LoansHubView() {
             </div>
           </div>
 
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3 space-y-3">
+          <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-100">{selectedDayLabel}</h3>
-              <span className="text-xs text-slate-400" dir="ltr">
+              <h3 className="text-sm font-semibold text-zinc-100">{selectedDayLabel}</h3>
+              <span className="text-xs text-zinc-400" dir="ltr">
                 {formatCurrency(selectedRemainingTotal, currencyMode)}
               </span>
             </div>
             {selectedDayRows.length === 0 ? (
-              <p className="text-xs text-slate-500 py-3 text-center">برای این روز قسطی ثبت نشده.</p>
+              <p className="text-xs text-zinc-500 py-3 text-center">برای این روز قسطی ثبت نشده.</p>
             ) : (
               <div className="space-y-2">
                 {selectedDayRows.map((row) => {
@@ -918,29 +918,29 @@ export function LoansHubView() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm text-slate-100 truncate">{row.loan.title}</p>
+                        <p className="text-sm text-zinc-100 truncate">{row.loan.title}</p>
                         {isLast && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
+                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
                             آخرین قسط
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-1" dir="ltr">
+                      <p className="text-xs text-zinc-400 mt-1" dir="ltr">
                         {toPersianDigits(`${row.installment.sequence_no}/${total}`)}
                       </p>
-                      <p className="text-xs text-slate-200 mt-1" dir="ltr">
+                      <p className="text-xs text-zinc-200 mt-1" dir="ltr">
                         {isAssetLoan(row.loan)
                           ? formatLoanQty(installmentRemainingAmount(row.installment), row.loan)
                           : formatCurrency(displayAmount(row), currencyMode)}
                       </p>
                       {installmentHasPartialPay(row.installment) && (
-                        <p className="text-[10px] text-amber-300 mt-1">پرداخت جزئی</p>
+                        <p className="text-[11px] text-amber-300 mt-1">پرداخت جزئی</p>
                       )}
                     </div>
                     <button
                       type="button"
                       onClick={() => openSettle(row.installment)}
-                      className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shrink-0"
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition shrink-0"
                     >
                       <CreditCard size={14} />
                       تسویه
@@ -984,9 +984,9 @@ export function LoansHubView() {
           : !!settlementWalletId && !!settlementPayAmount.trim();
         return (
         <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-[#13141C] border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
+          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
             <div>
-              <label className="text-[11px] text-slate-500 block mb-1">
+              <label className="text-xs text-zinc-500 block mb-1">
                 {assetSettle ? `مقدار پرداخت (${unitLabel})` : `مبلغ پرداخت (${unitLabel})`}
               </label>
               <input
@@ -996,9 +996,9 @@ export function LoansHubView() {
                 onChange={(e) => setSettlementPayAmount(e.target.value)}
                 disabled={isSubmitting}
                 dir="ltr"
-                className="w-full bg-[#222436] border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-purple-500 disabled:opacity-50"
+                className="w-full bg-surface-hover border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-accent-500 disabled:opacity-50"
               />
-              <p className="text-[10px] text-slate-500 mt-1" dir="ltr">
+              <p className="text-[11px] text-zinc-500 mt-1" dir="ltr">
                 باقی‌مانده: {canonicalInstallmentAmount(remaining)} {unitLabel}
                 {settleAsset ? ` · ${settleAsset.name}` : ''}
               </p>
@@ -1008,7 +1008,7 @@ export function LoansHubView() {
               type="button"
               onClick={handleSettle}
               disabled={isSubmitting || !canSubmit}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-1">
@@ -1026,7 +1026,7 @@ export function LoansHubView() {
                 type="button"
                 onClick={() => setIsSettlementPickerOpen(true)}
                 disabled={isSubmitting}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
               >
                 {selectedSettlementWallet ? selectedSettlementWallet.name : 'کیف پول'}
               </button>
@@ -1034,7 +1034,7 @@ export function LoansHubView() {
             <button
               type="button"
               onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
             >
               انصراف
             </button>

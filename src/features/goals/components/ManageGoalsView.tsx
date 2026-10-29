@@ -437,26 +437,26 @@ export function ManageGoalsView() {
   if (!user) return null;
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
           aria-label="بازگشت"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">هدف‌ها</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">هدف‌ها</h2>
       </div>
 
       <div className="p-6 space-y-6">
         <form
           onSubmit={handleSubmit}
-          className="bg-[#1A1B26] border border-white/5 rounded-3xl p-5 space-y-4"
+          className="bg-surface-raised border border-white/5 rounded-2xl p-5 space-y-4"
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-purple-300">
+            <div className="flex items-center gap-2 text-accent-300">
               <TargetIcon size={18} />
               <span className="font-semibold">
                 {form.editingId ? 'ویرایش هدف' : 'هدف جدید'}
@@ -466,7 +466,7 @@ export function ManageGoalsView() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-xs text-slate-400 hover:text-white inline-flex items-center gap-1"
+                className="text-xs text-zinc-400 hover:text-white inline-flex items-center gap-1"
               >
                 <X size={14} />
                 لغو
@@ -474,14 +474,14 @@ export function ManageGoalsView() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#0F1015] p-1">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-surface-inset p-1">
             <button
               type="button"
               onClick={() => switchScope('asset')}
               className={`rounded-xl py-2 text-sm transition ${
                 form.scope === 'asset'
-                  ? 'bg-purple-500 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-accent-500 text-white'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               دارایی
@@ -491,8 +491,8 @@ export function ManageGoalsView() {
               onClick={() => switchScope('asset_group')}
               className={`rounded-xl py-2 text-sm transition ${
                 form.scope === 'asset_group'
-                  ? 'bg-purple-500 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-accent-500 text-white'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               گروه دارایی
@@ -537,7 +537,7 @@ export function ManageGoalsView() {
           )}
 
           <label className="block space-y-2">
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-zinc-400">
               {effectiveTargetKind === 'quantity' ? 'هدف مقداری' : 'هدف درصدی'}
             </span>
             <div className="relative">
@@ -545,33 +545,33 @@ export function ManageGoalsView() {
                 value={form.targetValue}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))}
                 placeholder={effectiveTargetKind === 'quantity' ? 'مثلا 2.5' : 'مثلا 25'}
-                className="w-full bg-[#0F1015] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:border-purple-500 outline-none"
+                className="w-full bg-surface-inset border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:border-accent-500 outline-none"
               />
               {effectiveTargetKind === 'allocation_percent' && (
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
                   %
                 </span>
               )}
             </div>
             {percentInvalid && (
-              <span className="text-[11px] text-rose-300">درصد باید بین ۰ و ۱۰۰ باشد.</span>
+              <span className="text-xs text-rose-300">درصد باید بین ۰ و ۱۰۰ باشد.</span>
             )}
           </label>
 
           {budgetValidation.issues.length > 0 && (
             <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 space-y-1">
               {budgetValidation.issues.map((issue) => (
-                <p key={issue} className="text-[11px] text-rose-200">
+                <p key={issue} className="text-xs text-rose-200">
                   {issue}
                 </p>
               ))}
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-[#0F1015] p-3 space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-surface-inset p-3 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-300">خلاصه بودجه درصدی</p>
-              <p className="text-[10px] text-slate-500">محاسبه زنده با پیش‌نمایش فرم فعلی</p>
+              <p className="text-xs text-zinc-300">خلاصه بودجه درصدی</p>
+              <p className="text-[11px] text-zinc-500">محاسبه زنده با پیش‌نمایش فرم فعلی</p>
             </div>
 
             <BudgetProgressRow
@@ -589,11 +589,11 @@ export function ManageGoalsView() {
 
             {budgetValidation.categoryRows.length > 0 && (
               <div className="space-y-2 pt-1">
-                <p className="text-[11px] text-slate-400">نسبت فرزندها به والد هر گروه</p>
+                <p className="text-xs text-zinc-400">نسبت فرزندها به والد هر گروه</p>
                 {budgetValidation.categoryRows.slice(0, 6).map((row) => (
                   <div key={row.categoryId} className="space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-300 truncate">{row.categoryName}</span>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-300 truncate">{row.categoryName}</span>
                       {row.parentTarget == null ? (
                         <span className="text-amber-300">والد ندارد</span>
                       ) : (
@@ -602,7 +602,7 @@ export function ManageGoalsView() {
                           className={
                             row.childrenSum > row.parentTarget
                               ? 'text-rose-300'
-                              : 'text-slate-400'
+                              : 'text-zinc-400'
                           }
                         >
                           {row.childrenSum.toFixed(1)} / {row.parentTarget.toFixed(1)}%
@@ -615,7 +615,7 @@ export function ManageGoalsView() {
                           className={`h-full rounded-full ${
                             row.childrenSum > row.parentTarget
                               ? 'bg-rose-400'
-                              : 'bg-linear-to-r from-purple-500 to-cyan-400'
+                              : 'bg-accent-400'
                           }`}
                           style={{
                             width: `${Math.min(
@@ -637,7 +637,7 @@ export function ManageGoalsView() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:hover:bg-purple-600 text-white rounded-xl py-3 font-semibold transition"
+            className="w-full bg-zinc-50 hover:bg-white disabled:opacity-50 disabled:hover:bg-zinc-50 text-zinc-900 rounded-xl py-3 font-semibold transition"
           >
             {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره تغییرات' : 'افزودن هدف'}
           </button>
@@ -645,12 +645,12 @@ export function ManageGoalsView() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-300">هدف‌های فعال</h3>
-            <span className="text-xs text-slate-500">{goals.length.toLocaleString('fa-IR')}</span>
+            <h3 className="text-sm font-semibold text-zinc-300">هدف‌های فعال</h3>
+            <span className="text-xs text-zinc-500">{goals.length.toLocaleString('fa-IR')}</span>
           </div>
 
           {sortedGoals.length === 0 ? (
-            <div className="text-center text-slate-500 text-sm py-8 bg-[#1A1B26] border border-white/5 rounded-2xl">
+            <div className="text-center text-zinc-500 text-sm py-8 bg-surface-raised border border-white/5 rounded-2xl">
               هنوز هدفی ثبت نشده است.
             </div>
           ) : (
@@ -715,16 +715,16 @@ function BudgetProgressRow({
   const width = Math.min(100, total > 0 ? (used / total) * 100 : 0);
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-slate-400">{label}</span>
-        <span dir="ltr" className={tone === 'danger' ? 'text-rose-300' : 'text-slate-300'}>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-zinc-400">{label}</span>
+        <span dir="ltr" className={tone === 'danger' ? 'text-rose-300' : 'text-zinc-300'}>
           {used.toFixed(1)}% used / {remaining.toFixed(1)}% free
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
         <div
           className={`h-full rounded-full ${
-            tone === 'danger' ? 'bg-rose-400' : 'bg-linear-to-r from-purple-500 to-cyan-400'
+            tone === 'danger' ? 'bg-rose-400' : 'bg-accent-400'
           }`}
           style={{ width: `${width}%` }}
         />
@@ -750,16 +750,16 @@ function PickerButton({
     <button
       type="button"
       onClick={onClick}
-      className="w-full bg-[#0F1015] border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-right hover:border-purple-500/40 transition"
+      className="w-full bg-surface-inset border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-right hover:border-accent-500/40 transition"
     >
-      <span className="text-slate-500">{icon}</span>
+      <span className="text-zinc-500">{icon}</span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[11px] text-slate-500">{label}</span>
-        <span className={`block text-sm truncate ${empty ? 'text-slate-500' : 'text-white'}`}>
+        <span className="block text-xs text-zinc-500">{label}</span>
+        <span className={`block text-sm truncate ${empty ? 'text-zinc-500' : 'text-white'}`}>
           {value}
         </span>
       </span>
-      <ChevronDown size={16} className="text-slate-600" />
+      <ChevronDown size={16} className="text-zinc-600" />
     </button>
   );
 }
@@ -781,8 +781,8 @@ function TargetKindButton({
       onClick={onClick}
       className={`rounded-xl border p-3 text-sm flex items-center justify-center gap-2 transition ${
         selected
-          ? 'bg-purple-500/10 border-purple-500/40 text-purple-200'
-          : 'bg-[#0F1015] border-white/10 text-slate-400 hover:text-white'
+          ? 'bg-accent-500/10 border-accent-500/40 text-accent-200'
+          : 'bg-surface-inset border-white/10 text-zinc-400 hover:text-white'
       }`}
     >
       {icon}
@@ -815,19 +815,19 @@ function GoalRow({
 
   return (
     <div
-      className={`bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3 ${
+      className={`bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3 ${
         pending ? 'opacity-60' : ''
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-300 flex items-center justify-center shrink-0">
+            <span className="w-8 h-8 rounded-xl bg-accent-500/10 text-accent-300 flex items-center justify-center shrink-0">
               {goal.scope === 'asset' ? <Activity size={15} /> : <Folder size={15} />}
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white truncate">{name}</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-zinc-500">
                 {goal.target_kind === 'quantity' ? 'هدف مقداری' : 'هدف درصدی'}
               </p>
             </div>
@@ -837,7 +837,7 @@ function GoalRow({
           <button
             type="button"
             onClick={onEdit}
-            className="w-8 h-8 rounded-lg bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center"
+            className="w-8 h-8 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 flex items-center justify-center"
             aria-label="ویرایش هدف"
           >
             <Edit3 size={14} />

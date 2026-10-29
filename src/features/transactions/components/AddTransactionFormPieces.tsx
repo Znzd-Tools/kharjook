@@ -82,19 +82,19 @@ export function DirectionCard({
               ? 'rgba(56, 189, 248, 0.12)'
               : 'rgba(168, 85, 247, 0.12)'
         }
-        color={kind === 'asset' ? '#fbbf24' : kind === 'person' ? '#7dd3fc' : '#c084fc'}
+        color={kind === 'asset' ? '#fbbf24' : kind === 'person' ? '#7dd3fc' : '#a5a9fc'}
         className="w-10 h-10 shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+        <p className="text-[11px] text-zinc-500 uppercase tracking-widest">
           {label}
           {optional ? ' · اختیاری' : ''}
         </p>
-        <p className={`text-sm font-semibold truncate ${filled ? 'text-slate-100' : 'text-slate-500'}`}>
+        <p className={`text-sm font-semibold truncate ${filled ? 'text-zinc-100' : 'text-zinc-500'}`}>
           {name}
         </p>
         {filled && (
-          <p className={`text-[11px] mt-0.5  ${insufficient ? 'text-rose-400' : 'text-slate-500'}`} dir="ltr">
+          <p className={`text-xs mt-0.5  ${insufficient ? 'text-rose-400' : 'text-zinc-500'}`} dir="ltr">
             {balance != null
               ? `${wallet ? formatCurrencyAmount(balance, wallet.currency) : asset ? formatAssetAmount(balance, assetDecimals(asset)) : balance.toLocaleString('en-US', { maximumFractionDigits: 6 })} ${unit.trim()}`
               : kind === 'person'
@@ -103,7 +103,7 @@ export function DirectionCard({
           </p>
         )}
       </div>
-      <ChevronLeft size={16} className="text-slate-500 shrink-0" />
+      <ChevronLeft size={16} className="text-zinc-500 shrink-0" />
     </button>
   );
 }
@@ -121,10 +121,10 @@ export function DateChip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 px-3 py-2 text-xs font-bold rounded-lg transition ${
+      className={`min-h-11 px-3 py-2 text-xs font-semibold rounded-lg transition ${
         active
           ? 'bg-white/10 text-white'
-          : 'bg-white/5 text-slate-400 hover:bg-white/10'
+          : 'bg-white/5 text-zinc-400 hover:bg-white/10'
       }`}
     >
       {label}
@@ -179,7 +179,7 @@ export function PrimaryAmountField({
     <div>
       <label
         htmlFor={inputId}
-        className={`block text-xs mb-1 ${showError ? 'text-rose-400' : 'text-slate-400'}`}
+        className={`block text-xs mb-1 ${showError ? 'text-rose-400' : 'text-zinc-400'}`}
       >
         {label}
       </label>
@@ -191,7 +191,7 @@ export function PrimaryAmountField({
         className={`w-full bg-surface-raised border rounded-xl p-3 text-sm  focus:outline-none text-left ${
           showError
             ? 'border-rose-500/50 text-rose-200 focus:border-rose-500'
-            : 'border-white/10 text-white focus:border-purple-500'
+            : 'border-white/10 text-white focus:border-accent-500'
         }`}
         dir="ltr"
         required
@@ -255,14 +255,14 @@ export function DerivedAmountLine({
 
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+      <label className="flex items-center gap-1.5 text-xs text-zinc-500 mb-1">
         <Calculator size={12} />
         {label}
-        <span className="text-[10px] text-slate-600">— محاسبه‌شده</span>
+        <span className="text-[11px] text-zinc-600">— محاسبه‌شده</span>
       </label>
       <div
         key={value || 'empty'}
-        className="w-full bg-white/2 border border-dashed border-white/10 rounded-xl p-3 text-sm  text-left text-slate-300 animate-[fade-zoom-in_300ms_ease-out]"
+        className="w-full bg-white/2 border border-dashed border-white/10 rounded-xl p-3 text-sm  text-left text-zinc-300 animate-[fade-zoom-in_300ms_ease-out]"
         dir="ltr"
       >
         {display}
@@ -291,14 +291,14 @@ export function CrossCurrencyTargetField({
   const inputId = useId();
   return (
     <div>
-      <label htmlFor={inputId} className="block text-xs text-slate-400 mb-1">
+      <label htmlFor={inputId} className="block text-xs text-zinc-400 mb-1">
         {`مقدار دریافتی${unit ? ` (${unit})` : ''}`}
       </label>
       <FormattedNumberInput
         id={inputId}
         value={value}
         onValueChange={onChange}
-        className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+        className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
         dir="ltr"
         required
       />
@@ -329,12 +329,12 @@ export function PriceFields({
     <div className="space-y-3">
       {showTomanPrice && (
         <div>
-          <label htmlFor={priceId} className="block text-xs text-slate-400 mb-1">{priceLabel || 'قیمت واحد (تومان)'}</label>
+          <label htmlFor={priceId} className="block text-xs text-zinc-400 mb-1">{priceLabel || 'قیمت واحد (تومان)'}</label>
           <FormattedNumberInput
             id={priceId}
             value={priceToman}
             onValueChange={onPriceToman}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -342,12 +342,12 @@ export function PriceFields({
       )}
       {showUsdRate && (
         <div>
-          <label htmlFor={usdId} className="block text-xs text-slate-400 mb-1">نرخ دلار در لحظه (تومان)</label>
+          <label htmlFor={usdId} className="block text-xs text-zinc-400 mb-1">نرخ دلار در لحظه (تومان)</label>
           <FormattedNumberInput
             id={usdId}
             value={usdRate}
             onValueChange={onUsdRate}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-purple-500 outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -373,7 +373,7 @@ export function CategoryField({
 
   return (
     <div>
-      <label id={labelId} className="block text-xs text-slate-400 mb-1">
+      <label id={labelId} className="block text-xs text-zinc-400 mb-1">
         {kind === 'income' ? 'دسته درآمد' : 'دسته هزینه'}
       </label>
       <button
@@ -397,11 +397,11 @@ export function CategoryField({
           </>
         ) : (
           <>
-            <Folder size={14} className="text-slate-500" />
-            <span className="flex-1 min-w-0 text-sm text-slate-500">— انتخاب کنید —</span>
+            <Folder size={14} className="text-zinc-500" />
+            <span className="flex-1 min-w-0 text-sm text-zinc-500">— انتخاب کنید —</span>
           </>
         )}
-        <ChevronLeft size={16} className="text-slate-500 shrink-0" />
+        <ChevronLeft size={16} className="text-zinc-500 shrink-0" />
       </button>
     </div>
   );
@@ -435,13 +435,13 @@ export function CollapsedRow({
   const summary = summarizeForm(form, wallets, assets, categories, persons);
   return (
     <div
-      className={`rounded-2xl border ${style.accentBorder} bg-linear-to-b ${style.accentGradient} p-3 flex items-center gap-3`}
+      className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-3 flex items-center gap-3`}
     >
-      <span className={`text-[11px] font-bold shrink-0 ${style.accentText}`}>#{rowIndex + 1}</span>
+      <span className={`text-xs font-semibold shrink-0 ${style.accentText}`}>#{rowIndex + 1}</span>
       <button
         type="button"
         onClick={onToggle}
-        className="flex-1 min-w-0 text-right text-sm text-slate-200 truncate"
+        className="flex-1 min-w-0 text-right text-sm text-zinc-200 truncate"
       >
         {summary}
       </button>
@@ -449,7 +449,7 @@ export function CollapsedRow({
         <button
           type="button"
           onClick={onRemove}
-          className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
+          className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-zinc-400 transition-colors"
           aria-label="حذف"
         >
           <Trash2 size={16} />
@@ -539,7 +539,7 @@ export function PreviewPanel({
   if (validCount === 0) {
     return (
       <div className="rounded-2xl border border-white/5 bg-white/2 p-4 text-center">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-zinc-500">
           پیش‌نمایش پس از تکمیل فرم در اینجا ظاهر می‌شود.
         </p>
       </div>
@@ -547,13 +547,13 @@ export function PreviewPanel({
   }
 
   return (
-    <div className={`rounded-2xl border ${style.accentBorder} bg-linear-to-b ${style.accentGradient} p-4 space-y-2`}>
+    <div className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-4 space-y-2`}>
       <div className="flex items-center justify-between">
-        <p className={`text-[11px] font-bold uppercase tracking-widest ${style.accentText}`}>
+        <p className={`text-xs font-semibold uppercase tracking-widest ${style.accentText}`}>
           پیش‌نمایش
         </p>
         {rows.length > 1 && (
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-zinc-500">
             {validCount} از {rows.length} آماده
           </p>
         )}
@@ -561,8 +561,8 @@ export function PreviewPanel({
       <div className="space-y-1.5">
         {rows.map((r, i) =>
           valid[i] ? (
-            <p key={i} className="text-sm text-slate-100 leading-relaxed">
-              {rows.length > 1 && <span className="text-slate-500">#{i + 1} · </span>}
+            <p key={i} className="text-sm text-zinc-100 leading-relaxed">
+              {rows.length > 1 && <span className="text-zinc-500">#{i + 1} · </span>}
               {summarizeForm(r, wallets, assets, categories, persons)}
             </p>
           ) : null
@@ -617,12 +617,12 @@ function BulkTotalsStrip({
         const net = inflow - outflow;
         const sym = CURRENCY_META[cur as keyof typeof CURRENCY_META]?.symbol ?? '';
         return (
-          <div key={cur} className="flex justify-between text-[11px] text-slate-400 " dir="ltr">
+          <div key={cur} className="flex justify-between text-xs text-zinc-400 " dir="ltr">
             <span>{cur}</span>
             <span>
               {inflow > 0 && <span className="text-emerald-400">+{formatCurrencyAmount(inflow, cur)} </span>}
               {outflow > 0 && <span className="text-rose-400">-{formatCurrencyAmount(outflow, cur)} </span>}
-              <span className={net >= 0 ? 'text-slate-300' : 'text-slate-300'}>
+              <span className={net >= 0 ? 'text-zinc-300' : 'text-zinc-300'}>
                 = {net >= 0 ? '+' : ''}{formatCurrencyAmount(net, cur)} {sym}
               </span>
             </span>
@@ -648,13 +648,13 @@ export function NotFound({ message, onBack }: { message: string; onBack: () => v
           type="button"
           onClick={onBack}
           aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">تراکنش</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">تراکنش</h2>
       </div>
-      <div className="px-4 py-6 text-center text-slate-500 text-sm">{message}</div>
+      <div className="px-4 py-6 text-center text-zinc-500 text-sm">{message}</div>
     </div>
   );
 }

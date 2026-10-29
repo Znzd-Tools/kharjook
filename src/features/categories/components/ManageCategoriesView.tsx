@@ -495,11 +495,11 @@ export function ManageCategoriesView() {
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">
+        <h2 className="text-lg font-semibold text-white flex-1">
           مدیریت دسته‌بندی‌ها
         </h2>
       </div>
@@ -511,10 +511,10 @@ export function ManageCategoriesView() {
               key={t.id}
               type="button"
               onClick={() => switchTab(t.id)}
-              className={`min-h-11 py-2.5 text-xs font-bold rounded-lg transition-all ${
+              className={`min-h-11 py-2.5 text-xs font-semibold rounded-lg transition-all ${
                 activeKind === t.id
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-zinc-50 text-zinc-900'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               {t.label}
@@ -528,14 +528,14 @@ export function ManageCategoriesView() {
         className="px-4 py-4 border-b border-white/5 bg-surface-raised mt-3 mx-4 rounded-2xl"
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm text-slate-400">
+          <h3 className="text-sm text-zinc-400">
             {form.editingId ? 'ویرایش دسته' : 'دسته جدید'}
           </h3>
           {form.editingId && (
             <button
               type="button"
               onClick={resetForm}
-              className="text-slate-500 hover:text-white flex items-center gap-1 text-xs"
+              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
             >
               <X size={14} /> انصراف
             </button>
@@ -544,7 +544,7 @@ export function ManageCategoriesView() {
 
         <div className="space-y-3">
           <div>
-            <label htmlFor="category-name" className="block text-xs text-slate-400 mb-1">
+            <label htmlFor="category-name" className="block text-xs text-zinc-400 mb-1">
               نام دسته
             </label>
             <input
@@ -553,7 +553,7 @@ export function ManageCategoriesView() {
               placeholder={namePlaceholder}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
+              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500"
               required
               maxLength={64}
             />
@@ -579,7 +579,7 @@ export function ManageCategoriesView() {
 
           {activeKind !== 'asset' && (
             <div>
-              <label className="block text-xs text-slate-400 mb-1">
+              <label className="block text-xs text-zinc-400 mb-1">
                 زیرمجموعه‌ی (اختیاری)
               </label>
               <button
@@ -599,15 +599,15 @@ export function ManageCategoriesView() {
                   </>
                 ) : (
                   <>
-                    <Folder size={14} className="text-slate-500 shrink-0" />
-                    <span className="flex-1 min-w-0 text-sm text-slate-500">
+                    <Folder size={14} className="text-zinc-500 shrink-0" />
+                    <span className="flex-1 min-w-0 text-sm text-zinc-500">
                       بدون والد (دسته اصلی)
                     </span>
                   </>
                 )}
                 <ChevronLeft
                   size={16}
-                  className="text-slate-500 shrink-0"
+                  className="text-zinc-500 shrink-0"
                 />
               </button>
             </div>
@@ -615,18 +615,18 @@ export function ManageCategoriesView() {
 
           {activeKind === 'expense' && (
             <div>
-              <label htmlFor="category-monthly-cap" className="block text-xs text-slate-400 mb-1">
+              <label htmlFor="category-monthly-cap" className="block text-xs text-zinc-400 mb-1">
                 سقف هزینه ماهانه (تومان، اختیاری)
               </label>
               <FormattedNumberInput
                 id="category-monthly-cap"
                 value={form.monthlyCapToman}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, monthlyCapToman: value }))}
-                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500 text-left"
                 dir="ltr"
                 placeholder="مثلا ۵,۰۰۰,۰۰۰"
               />
-              <p className="text-[10px] text-slate-500 mt-1.5">
+              <p className="text-[11px] text-zinc-500 mt-1.5">
                 هزینه زیرمجموعه‌ها هم در محاسبه لحاظ می‌شود.
               </p>
             </div>
@@ -637,7 +637,7 @@ export function ManageCategoriesView() {
             disabled={isSubmitting}
             className={`w-full text-white min-h-11 p-3 rounded-xl text-sm font-medium transition-colors ${
               form.editingId
-                ? 'bg-purple-600 hover:bg-purple-500'
+                ? 'bg-accent-600 hover:bg-accent-500'
                 : 'bg-white/10 hover:bg-white/20'
             } disabled:opacity-50`}
           >
@@ -648,7 +648,7 @@ export function ManageCategoriesView() {
 
       <div className="px-4 pt-4 space-y-2">
         {roots.length === 0 && (
-          <p className="text-center text-slate-500 text-sm py-6">
+          <p className="text-center text-zinc-500 text-sm py-6">
             هیچ دسته‌بندی ثبت نشده.
           </p>
         )}
@@ -722,7 +722,7 @@ function CategoryNode({
       <div
         ref={setNodeRef}
         style={{ transform: CSS.Transform.toString(transform), transition }}
-        className={`bg-surface-raised ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+        className={`bg-surface-raised ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
       >
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -730,7 +730,7 @@ function CategoryNode({
             {...attributes}
             {...listeners}
             style={{ touchAction: 'none' }}
-            className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing"
+            className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
             aria-label="جابجایی"
           >
             <GripVertical size={compact ? 13 : 15} />
@@ -740,12 +740,12 @@ function CategoryNode({
             style={{ backgroundColor: category.color }}
           />
           <span
-            className={`text-slate-200 ${compact ? 'text-xs' : 'text-sm'} truncate`}
+            className={`text-zinc-200 ${compact ? 'text-xs' : 'text-sm'} truncate`}
           >
             {category.name}
           </span>
           {capLimitToman != null && capLimitToman > 0 && (
-            <span className="text-[10px] text-amber-400/80 shrink-0">
+            <span className="text-[11px] text-amber-400/80 shrink-0">
               سقف {Number(capLimitToman).toLocaleString('en-US')}
             </span>
           )}

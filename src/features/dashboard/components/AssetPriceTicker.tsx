@@ -23,19 +23,19 @@ export function AssetPriceTicker({ items }: AssetPriceTickerProps) {
   const durationSec = Math.max(24, items.length * 5);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-[#1A1B26]">
+    <div className="relative overflow-hidden rounded-2xl border border-cyan-500/15 bg-surface-raised">
       <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2">
         <TrendingUp size={14} className="text-cyan-400 shrink-0" />
-        <p className="text-[11px] font-medium text-slate-400">قیمت لحظه‌ای</p>
+        <p className="text-xs font-medium text-zinc-400">قیمت لحظه‌ای</p>
       </div>
 
       <div className="relative overflow-hidden py-2.5">
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-[#1A1B26] to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-surface-raised to-transparent"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-[#1A1B26] to-transparent"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-surface-raised to-transparent"
           aria-hidden
         />
 
@@ -49,10 +49,10 @@ export function AssetPriceTicker({ items }: AssetPriceTickerProps) {
                 key={`${item.id}-${index}`}
                 type="button"
                 onClick={() => router.push(item.href)}
-                className="price-ticker-item shrink-0 rounded-xl border border-white/8 bg-[#0F1015]/80 px-3 py-2 text-right transition-colors hover:border-cyan-500/30 hover:bg-[#222436] active:scale-[0.98]"
+                className="price-ticker-item shrink-0 rounded-xl border border-white/8 bg-surface-inset/80 px-3 py-2 text-right transition-colors hover:border-cyan-500/30 hover:bg-surface-hover active:scale-[0.98]"
               >
-                <p className="text-[11px] text-slate-400 whitespace-nowrap">{item.label}</p>
-                <p className="mt-0.5 text-sm font-bold text-white whitespace-nowrap" dir="ltr">
+                <p className="text-xs text-zinc-400 whitespace-nowrap">{item.label}</p>
+                <p className="mt-0.5 text-sm font-semibold text-white whitespace-nowrap" dir="ltr">
                   {item.price}
                 </p>
               </button>

@@ -42,7 +42,7 @@ export function RouteTransitionBar() {
         active ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className="h-full w-1/2 bg-linear-to-r from-cyan-400 via-purple-400 to-fuchsia-400 animate-[route-progress_1.1s_ease-in-out_infinite]" />
+      <div className="h-full w-1/2 bg-accent-400 animate-[route-progress_1.1s_ease-in-out_infinite]" />
     </div>
   );
 }

@@ -153,20 +153,20 @@ function Toaster({
 
 const KIND_STYLES: Record<ToastKind, { bg: string; border: string; accent: string; icon: ReactNode }> = {
   success: {
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
+    bg: 'bg-surface-overlay/95',
+    border: 'border-white/8',
     accent: 'text-emerald-400',
     icon: <CheckCircle2 size={18} />,
   },
   error: {
-    bg: 'bg-rose-500/10',
-    border: 'border-rose-500/30',
+    bg: 'bg-surface-overlay/95',
+    border: 'border-rose-500/25',
     accent: 'text-rose-400',
     icon: <AlertCircle size={18} />,
   },
   info: {
-    bg: 'bg-sky-500/10',
-    border: 'border-sky-500/30',
+    bg: 'bg-surface-overlay/95',
+    border: 'border-white/8',
     accent: 'text-sky-400',
     icon: <Info size={18} />,
   },
@@ -186,10 +186,10 @@ function ToastCard({
   return (
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
-      className={`pointer-events-auto w-full max-w-sm ${style.bg} ${style.border} border backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 flex items-start gap-3 ${enterExitAnimation}`}
+      className={`pointer-events-auto w-full max-w-sm ${style.bg} ${style.border} border backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl shadow-black/50 flex items-start gap-3 ${enterExitAnimation}`}
     >
       <span className={`shrink-0 ${style.accent} mt-0.5`}>{style.icon}</span>
-      <div className="flex-1 min-w-0 text-sm text-slate-100 leading-relaxed">{toast.message}</div>
+      <div className="flex-1 min-w-0 text-sm text-zinc-100 leading-relaxed">{toast.message}</div>
       {toast.action && (
         <button
           type="button"
@@ -197,7 +197,7 @@ function ToastCard({
             toast.action?.onClick();
             onDismiss(toast.id);
           }}
-          className={`shrink-0 text-xs font-bold ${style.accent} hover:underline px-2`}
+          className={`shrink-0 text-xs font-semibold ${style.accent} hover:underline px-2`}
         >
           {toast.action.label}
         </button>
@@ -205,7 +205,7 @@ function ToastCard({
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 text-slate-400 hover:text-slate-200 p-0.5"
+        className="shrink-0 text-zinc-400 hover:text-zinc-200 p-0.5"
         aria-label="بستن"
       >
         <X size={14} />

@@ -251,21 +251,21 @@ export function ManageRecurringTransactionsView() {
   if (!user) return null;
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">تراکنش‌های دوره‌ای</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">تراکنش‌های دوره‌ای</h2>
         {!formOpen && (
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300"
+            className="inline-flex items-center gap-1 text-sm text-accent-400 hover:text-accent-300"
           >
             <Plus size={16} />
             جدید
@@ -274,7 +274,7 @@ export function ManageRecurringTransactionsView() {
       </div>
 
       <div className="px-6 pt-4">
-        <p className="text-xs text-slate-500 leading-relaxed">
+        <p className="text-xs text-zinc-500 leading-relaxed">
           حقوق، اجاره و … — هر روز ساعت ۹ صبح (تهران) اگر سررسید رسیده باشد، تراکنش خودکار ثبت
           می‌شود.
         </p>
@@ -283,8 +283,8 @@ export function ManageRecurringTransactionsView() {
       {formOpen && (
         <form onSubmit={handleSubmit} className="p-6 space-y-4 border-b border-white/5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm text-slate-400">{form.editingId ? 'ویرایش' : 'الگوی جدید'}</h3>
-            <button type="button" onClick={resetForm} className="text-slate-500 hover:text-white">
+            <h3 className="text-sm text-zinc-400">{form.editingId ? 'ویرایش' : 'الگوی جدید'}</h3>
+            <button type="button" onClick={resetForm} className="text-zinc-500 hover:text-white">
               <X size={16} />
             </button>
           </div>
@@ -293,11 +293,11 @@ export function ManageRecurringTransactionsView() {
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             placeholder="عنوان (مثلا: اجاره)"
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-purple-500"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-accent-500"
             required
           />
 
-          <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl">
             {(['EXPENSE', 'INCOME'] as const).map((type) => (
               <button
                 key={type}
@@ -309,8 +309,8 @@ export function ManageRecurringTransactionsView() {
                     categoryId: null,
                   }))
                 }
-                className={`py-2 text-xs font-bold rounded-lg ${
-                  form.type === type ? 'bg-purple-600 text-white' : 'text-slate-400'
+                className={`py-2 text-xs font-semibold rounded-lg ${
+                  form.type === type ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400'
                 }`}
               >
                 {type === 'EXPENSE' ? 'هزینه' : 'درآمد'}
@@ -321,7 +321,7 @@ export function ManageRecurringTransactionsView() {
           <FormattedNumberInput
             value={form.amountToman}
             onValueChange={(value) => setForm((prev) => ({ ...prev, amountToman: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
             dir="ltr"
             placeholder="مبلغ (تومان)"
             required
@@ -330,43 +330,43 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setWalletOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
           >
             <div>
-              <p className="text-xs text-slate-500">کیف پول</p>
+              <p className="text-xs text-zinc-500">کیف پول</p>
               <p className="text-sm text-white mt-1">{selectedWallet?.name ?? 'انتخاب کنید'}</p>
             </div>
-            <ChevronLeft size={16} className="text-slate-500" />
+            <ChevronLeft size={16} className="text-zinc-500" />
           </button>
 
           <button
             type="button"
             onClick={() => setCategoryOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
           >
             <div>
-              <p className="text-xs text-slate-500">دسته</p>
+              <p className="text-xs text-zinc-500">دسته</p>
               <p className="text-sm text-white mt-1">
                 {form.categoryId
                   ? categories.find((c) => c.id === form.categoryId)?.name ?? 'انتخاب'
                   : 'انتخاب کنید'}
               </p>
             </div>
-            <ChevronLeft size={16} className="text-slate-500" />
+            <ChevronLeft size={16} className="text-zinc-500" />
           </button>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">هر</label>
+              <label className="block text-xs text-zinc-400 mb-1">هر</label>
               <FormattedNumberInput
                 value={form.intervalNumber}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
+                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">واحد</label>
+              <label className="block text-xs text-zinc-400 mb-1">واحد</label>
               <select
                 value={form.intervalPeriod}
                 onChange={(e) =>
@@ -375,7 +375,7 @@ export function ManageRecurringTransactionsView() {
                     intervalPeriod: e.target.value as LoanIntervalPeriod,
                   }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none"
+                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white outline-none"
               >
                 {INTERVAL_OPTIONS.map((opt) => (
                   <option key={opt.id} value={opt.id}>
@@ -389,11 +389,11 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setNextDueOpen(true)}
-            className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right"
+            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right"
           >
-            <Calendar size={16} className="text-purple-400" />
+            <Calendar size={16} className="text-accent-400" />
             <div className="flex-1">
-              <p className="text-xs text-slate-500">سررسید بعدی</p>
+              <p className="text-xs text-zinc-500">سررسید بعدی</p>
               <p className="text-sm text-white mt-1">
                 {parseJalaali(form.nextDueDate)
                   ? formatJalaaliHuman(parseJalaali(form.nextDueDate)!)
@@ -405,11 +405,11 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setEndDateOpen(true)}
-            className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right"
+            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right"
           >
-            <Calendar size={16} className="text-slate-500" />
+            <Calendar size={16} className="text-zinc-500" />
             <div className="flex-1">
-              <p className="text-xs text-slate-500">پایان (اختیاری)</p>
+              <p className="text-xs text-zinc-500">پایان (اختیاری)</p>
               <p className="text-sm text-white mt-1">
                 {form.endDate.trim()
                   ? parseJalaali(form.endDate)
@@ -425,23 +425,23 @@ export function ManageRecurringTransactionsView() {
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={2}
             placeholder="یادداشت (اختیاری)"
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none resize-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white outline-none resize-none"
           />
 
-          <label className="flex items-center justify-between bg-[#1A1B26] border border-white/10 rounded-xl p-3">
-            <span className="text-sm text-slate-200">فعال</span>
+          <label className="flex items-center justify-between bg-surface-raised border border-white/10 rounded-xl p-3">
+            <span className="text-sm text-zinc-200">فعال</span>
             <input
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm((prev) => ({ ...prev, isActive: e.target.checked }))}
-              className="accent-purple-600 w-4 h-4"
+              className="accent-accent-600 w-4 h-4"
             />
           </label>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 font-medium disabled:opacity-50"
           >
             {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره' : 'ثبت الگو'}
           </button>
@@ -450,9 +450,9 @@ export function ManageRecurringTransactionsView() {
 
       <div className="p-6 space-y-3">
         {isLoading ? (
-          <p className="text-center text-slate-500 text-sm py-8 animate-pulse">در حال دریافت...</p>
+          <p className="text-center text-zinc-500 text-sm py-8 animate-pulse">در حال دریافت...</p>
         ) : rows.length === 0 ? (
-          <p className="text-center text-slate-500 text-sm py-8">تراکنش دوره‌ای ثبت نشده.</p>
+          <p className="text-center text-zinc-500 text-sm py-8">تراکنش دوره‌ای ثبت نشده.</p>
         ) : (
           rows.map((row) => {
             const wallet = wallets.find((w) => w.id === row.wallet_id);
@@ -461,15 +461,15 @@ export function ManageRecurringTransactionsView() {
             return (
               <div
                 key={row.id}
-                className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-2"
+                className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <Repeat size={14} className="text-purple-400 shrink-0" />
-                      <h3 className="font-semibold text-slate-100 truncate">{row.title}</h3>
+                      <Repeat size={14} className="text-accent-400 shrink-0" />
+                      <h3 className="font-semibold text-zinc-100 truncate">{row.title}</h3>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-zinc-500 mt-1">
                       {row.type === 'EXPENSE' ? 'هزینه' : 'درآمد'} · {intervalLabel(row)}
                       {category ? ` · ${category.name}` : ''}
                       {wallet ? ` · ${wallet.name}` : ''}
@@ -479,19 +479,19 @@ export function ManageRecurringTransactionsView() {
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => void toggleActive(row)}
-                    className={`text-[10px] px-2 py-1 rounded-lg shrink-0 ${
+                    className={`text-[11px] px-2 py-1 rounded-lg shrink-0 ${
                       row.is_active
                         ? 'bg-emerald-500/15 text-emerald-300'
-                        : 'bg-slate-500/15 text-slate-400'
+                        : 'bg-zinc-500/15 text-zinc-400'
                     }`}
                   >
                     {row.is_active ? 'فعال' : 'متوقف'}
                   </button>
                 </div>
-                <p className="text-sm text-slate-200" dir="ltr">
+                <p className="text-sm text-zinc-200" dir="ltr">
                   {formatTelegramMoney(Number(row.amount_toman), 'TOMAN')}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-zinc-400">
                   سررسید بعدی:{' '}
                   {due ? formatJalaaliHuman(due) : row.next_due_date_string}
                 </p>
@@ -499,7 +499,7 @@ export function ManageRecurringTransactionsView() {
                   <button
                     type="button"
                     onClick={() => openEdit(row)}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 text-slate-300"
+                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 text-zinc-300"
                   >
                     <span className="inline-flex items-center gap-1">
                       <Edit3 size={13} />

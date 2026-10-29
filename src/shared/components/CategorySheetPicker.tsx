@@ -193,13 +193,13 @@ export function CategorySheetPicker({
         <div className="relative">
           <Search
             size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
           />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو..."
-            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-zinc-500 focus:border-accent-500 outline-none"
             autoFocus
             data-autofocus
           />
@@ -213,17 +213,17 @@ export function CategorySheetPicker({
             onClick={() => commit(null)}
             className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
               value === null
-                ? 'bg-purple-500/10 border-purple-500/40'
+                ? 'bg-accent-500/10 border-accent-500/40'
                 : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
             }`}
           >
             <Ban
               size={14}
-              className={value === null ? 'text-purple-300' : 'text-slate-500'}
+              className={value === null ? 'text-accent-300' : 'text-zinc-500'}
             />
             <span
               className={`flex-1 min-w-0 text-sm truncate ${
-                value === null ? 'text-white font-semibold' : 'text-slate-200'
+                value === null ? 'text-white font-semibold' : 'text-zinc-200'
               }`}
             >
               {noneLabel}
@@ -233,7 +233,7 @@ export function CategorySheetPicker({
 
         {isSearching && items.length === 0 ? (
           !allowNone && (
-            <p className="text-xs text-slate-500 py-8 text-center">
+            <p className="text-xs text-zinc-500 py-8 text-center">
               دسته‌ای یافت نشد.
             </p>
           )
@@ -249,7 +249,7 @@ export function CategorySheetPicker({
                     onClick={() => commit(it.id)}
                     className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                       selected
-                        ? 'bg-purple-500/10 border-purple-500/40'
+                        ? 'bg-accent-500/10 border-accent-500/40'
                         : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
                     }`}
                     style={{ paddingInlineStart: `${12 + it.depth * 18}px` }}
@@ -260,11 +260,11 @@ export function CategorySheetPicker({
                     />
                     <Folder
                       size={14}
-                      className={selected ? 'text-purple-300' : 'text-slate-500'}
+                      className={selected ? 'text-accent-300' : 'text-zinc-500'}
                     />
                     <span
                       className={`flex-1 min-w-0 text-sm truncate ${
-                        selected ? 'text-white font-semibold' : 'text-slate-200'
+                        selected ? 'text-white font-semibold' : 'text-zinc-200'
                       }`}
                     >
                       {it.name}
@@ -329,7 +329,7 @@ function CategoryTree({
                   aria-expanded={expanded}
                   aria-label={expanded ? `بستن زیرشاخه‌های ${node.name}` : `باز کردن زیرشاخه‌های ${node.name}`}
                   onClick={() => onToggleExpanded(node.id)}
-                  className="shrink-0 self-center p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-200 transition"
+                  className="shrink-0 self-center p-2 rounded-lg text-zinc-400 hover:bg-white/10 hover:text-zinc-200 transition"
                 >
                   {expanded ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
                 </button>
@@ -342,7 +342,7 @@ function CategoryTree({
                 aria-pressed={selected}
                 className={`min-w-0 flex-1 flex items-center gap-2 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                   selected
-                    ? 'bg-purple-500/10 border-purple-500/40'
+                    ? 'bg-accent-500/10 border-accent-500/40'
                     : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
                 }`}
               >
@@ -352,11 +352,11 @@ function CategoryTree({
               />
               <Folder
                 size={14}
-                className={selected ? 'text-purple-300' : 'text-slate-500'}
+                className={selected ? 'text-accent-300' : 'text-zinc-500'}
               />
               <span
                 className={`flex-1 min-w-0 text-sm truncate ${
-                  selected ? 'text-white font-semibold' : 'text-slate-200'
+                  selected ? 'text-white font-semibold' : 'text-zinc-200'
                 }`}
               >
                 {node.name}

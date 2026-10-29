@@ -152,8 +152,8 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
   if (!wallet || !stats) {
     return (
-      <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
-        <div className="text-center text-slate-500 text-sm">
+      <div className="bg-surface-inset min-h-full flex items-center justify-center p-6">
+        <div className="text-center text-zinc-500 text-sm">
           کیف پول پیدا نشد.
         </div>
       </div>
@@ -220,21 +220,21 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">{wallet.name}</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">{wallet.name}</h2>
       </div>
 
       <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-linear-to-b from-purple-500/10 to-transparent rounded-3xl border border-purple-500/20 relative overflow-hidden">
-          <div className="absolute top-3 left-3 right-3 flex justify-between items-center text-[11px] text-slate-500" dir="ltr">
+        <div className="text-center py-6 bg-surface-raised rounded-2xl border border-white/5 relative overflow-hidden">
+          <div className="absolute top-3 left-3 right-3 flex justify-between items-center text-xs text-zinc-500" dir="ltr">
             <span>{meta.symbol} {wallet.currency}</span>
             <WalletIcon size={14} />
           </div>
@@ -243,16 +243,16 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
               iconUrl={wallet.icon_url}
               fallback={<WalletIcon size={22} />}
               bgColor="rgba(168, 85, 247, 0.12)"
-              color="#c084fc"
+              color="#a5a9fc"
               className="w-14 h-14"
             />
           </div>
-          <p className="text-slate-400 text-sm mb-2">موجودی فعلی</p>
-          <p className="text-3xl font-bold text-white" dir="ltr">
+          <p className="text-zinc-400 text-sm mb-2">موجودی فعلی</p>
+          <p className="text-3xl font-semibold text-white" dir="ltr">
             {meta.symbol}{' '}
             {formatCurrencyAmount(stats.balance, wallet.currency)}
           </p>
-          <p className="text-xs text-slate-500 mt-2" dir="ltr">
+          <p className="text-xs text-zinc-500 mt-2" dir="ltr">
             ≈ {formatCurrency(balanceDisplay, currencyMode)}
           </p>
         </div>
@@ -278,16 +278,16 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
         <WalletSavingsPotsSection wallet={wallet} walletBalance={stats.balance} />
 
-        <div className="bg-[#1A1B26] rounded-2xl border border-white/5 p-4 space-y-3">
+        <div className="bg-surface-raised rounded-2xl border border-white/5 p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <CreditCard size={16} className="text-purple-300 shrink-0" />
+              <CreditCard size={16} className="text-accent-300 shrink-0" />
               <h3 className="text-sm font-semibold text-white">اطلاعات حساب</h3>
             </div>
             <button
               type="button"
               onClick={() => setPaymentSheetOpen(true)}
-              className="shrink-0 text-xs font-medium text-purple-300 hover:text-purple-200 transition-colors"
+              className="shrink-0 text-xs font-medium text-accent-300 hover:text-accent-200 transition-colors"
             >
               {hasPaymentDetails ? 'ویرایش' : 'افزودن'}
             </button>
@@ -325,7 +325,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
               )}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-zinc-500 leading-relaxed">
               نام صاحب حساب، شماره کارت، حساب یا شبا را اضافه کنید تا با یک لمس کپی شود.
             </p>
           )}
@@ -355,7 +355,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
               />
             )}
             {stats.transactions.length > 0 && visibleWalletTxs.length === 0 && walletHistoryItems.length === 0 && (
-              <div className="text-center text-slate-500 text-sm py-6">
+              <div className="text-center text-zinc-500 text-sm py-6">
                 {txSearchQuery.trim()
                   ? 'تراکنشی با این جستجو پیدا نشد.'
                   : 'تراکنشی با این نوع وجود ندارد.'}
@@ -404,7 +404,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
         <button
           type="button"
           onClick={() => router.push(`/transactions/new?walletId=${wallet.id}&type=TRANSFER`)}
-          className="flex-1 bg-white/10 hover:bg-white/15 text-white p-4 rounded-2xl font-bold border border-white/10 transition-all flex justify-center items-center gap-2"
+          className="flex-1 bg-white/10 hover:bg-white/15 text-white p-4 rounded-2xl font-semibold border border-white/10 transition-all flex justify-center items-center gap-2"
         >
           <ArrowLeftRight size={18} />
           انتقال
@@ -412,7 +412,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
         <button
           type="button"
           onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
-          className="flex-1 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2"
+          className="flex-1 bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2"
         >
           <Plus size={20} />
           تراکنش جدید
@@ -454,7 +454,7 @@ function TxRow({
   const Icon = tx.type === 'TRANSFER' ? ArrowLeftRight : isIn ? ArrowDownRight : ArrowUpRight;
 
   return (
-    <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
+    <div className="bg-surface-raised p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 min-w-0">
@@ -462,26 +462,26 @@ function TxRow({
             <Icon size={16} />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-200 text-sm font-medium">
+            <p className="text-zinc-200 text-sm font-medium">
               {TYPE_LABELS[tx.type]}
             </p>
-            <p className="text-slate-500 text-xs mt-0.5 truncate">
+            <p className="text-zinc-500 text-xs mt-0.5 truncate">
               {counterparty}
             </p>
           </div>
         </div>
         <div className="text-left shrink-0">
-          <p className={`text-sm font-bold  ${tone}`} dir="ltr">
+          <p className={`text-sm font-semibold  ${tone}`} dir="ltr">
             {isIn ? '+' : '-'}
             {meta.symbol} {formatCurrencyAmount(Math.abs(displayAmount), wallet.currency)}
           </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-xs text-zinc-500 mt-0.5">
             {latinizeDigits(tx.date_string)}
           </p>
         </div>
       </div>
       <div className="flex justify-between items-center pt-2 border-t border-white/5">
-        <span className="text-[10px] text-slate-600 truncate" dir="ltr">
+        <span className="text-[11px] text-zinc-600 truncate" dir="ltr">
           {tx.note || ''}
         </span>
         <div className="flex items-center gap-1 shrink-0">

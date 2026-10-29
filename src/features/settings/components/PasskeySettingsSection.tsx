@@ -89,22 +89,22 @@ export function PasskeySettingsSection() {
   if (!supported) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+          <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-400">
             <Fingerprint size={18} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">ورود بیومتریک</h3>
-            <p className="text-[11px] text-slate-500">Face ID، Touch ID یا اثر انگشت</p>
+            <h3 className="text-sm font-semibold text-white">ورود بیومتریک</h3>
+            <p className="text-xs text-zinc-500">Face ID، Touch ID یا اثر انگشت</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => void handleRegister()}
           disabled={isSubmitting}
-          className="text-xs text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 disabled:opacity-50"
+          className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-1 disabled:opacity-50"
         >
           <Plus size={14} />
           افزودن
@@ -112,11 +112,11 @@ export function PasskeySettingsSection() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-4 text-slate-400">
+        <div className="flex justify-center py-4 text-zinc-400">
           <Loader2 className="animate-spin" size={20} />
         </div>
       ) : passkeys.length === 0 ? (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-zinc-500">
           هنوز کلید بیومتریک ثبت نشده. بعد از افزودن می‌توانی بدون رمز وارد شوی.
         </p>
       ) : (
@@ -131,7 +131,7 @@ export function PasskeySettingsSection() {
                   {passkey.friendly_name?.trim() || 'دستگاه ثبت‌شده'}
                 </p>
                 {passkey.last_used_at ? (
-                  <p className="text-[10px] text-slate-500" dir="ltr">
+                  <p className="text-[11px] text-zinc-500" dir="ltr">
                     آخرین استفاده: {passkey.last_used_at}
                   </p>
                 ) : null}

@@ -129,7 +129,7 @@ function PickerBody({ value, onChange, onClose, minYear, maxYear }: IOSDatePicke
         <button
           type="button"
           onClick={goToday}
-          className="px-3 py-2 text-xs font-bold rounded-xl bg-white/5 text-slate-300 hover:bg-white/10"
+          className="px-3 py-2 text-xs font-semibold rounded-xl bg-white/5 text-zinc-300 hover:bg-white/10"
         >
           امروز
         </button>
@@ -137,14 +137,14 @@ function PickerBody({ value, onChange, onClose, minYear, maxYear }: IOSDatePicke
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm rounded-xl bg-white/5 text-slate-300 hover:bg-white/10"
+          className="px-4 py-2 text-sm rounded-xl bg-white/5 text-zinc-300 hover:bg-white/10"
         >
           انصراف
         </button>
         <button
           type="button"
           onClick={confirm}
-          className="px-5 py-2 text-sm font-bold rounded-xl bg-purple-600 text-white hover:bg-purple-500"
+          className="px-5 py-2 text-sm font-semibold rounded-xl bg-zinc-50 text-zinc-900 hover:bg-white"
         >
           تایید
         </button>
@@ -224,7 +224,7 @@ function Wheel<T extends number>({
           <div
             key={String(it)}
             className={`flex items-center justify-center snap-center text-sm transition-colors ${
-              active ? 'text-white font-bold' : 'text-slate-500'
+              active ? 'text-white font-semibold' : 'text-zinc-500'
             }`}
             style={{ height: ITEM_HEIGHT }}
           >

@@ -21,14 +21,15 @@ export function NavItem({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex flex-col items-center gap-1.5 transition-colors active:scale-95 ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${isActive ? 'text-purple-400' : 'text-slate-500 hover:text-slate-400'}`}
+      aria-current={isActive ? 'page' : undefined}
+      className={`flex flex-col items-center gap-1 min-w-14 py-1 transition-colors active:scale-95 ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${isActive ? 'text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}
     >
-      <div
-        className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-purple-500/20' : 'bg-transparent'}`}
-      >
-        {icon}
-      </div>
-      <span className="text-[10px] font-medium">{label}</span>
+      {icon}
+      <span className={`text-[11px] ${isActive ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+      <span
+        aria-hidden
+        className={`h-1 w-1 rounded-full transition-opacity ${isActive ? 'bg-accent-400 opacity-100' : 'opacity-0'}`}
+      />
     </button>
   );
 }

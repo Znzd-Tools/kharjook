@@ -29,21 +29,21 @@ export function CategoryCapsWidget({ caps }: { caps: CategorySpendingCap[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
             <Target size={16} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">سقف هزینه ماه</h3>
-            <p className="text-[11px] text-slate-500">پیشرفت دسته‌های محدودشده</p>
+            <h3 className="text-sm font-semibold text-white">سقف هزینه ماه</h3>
+            <p className="text-xs text-zinc-500">پیشرفت دسته‌های محدودشده</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => router.push('/manage/categories')}
-          className="text-[11px] text-purple-400 hover:text-purple-300 inline-flex items-center gap-0.5"
+          className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-0.5"
         >
           مدیریت
           <ChevronLeft size={14} />
@@ -61,9 +61,9 @@ export function CategoryCapsWidget({ caps }: { caps: CategorySpendingCap[] }) {
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: row.categoryColor }}
                   />
-                  <span className="text-slate-200 truncate">{row.categoryName}</span>
+                  <span className="text-zinc-200 truncate">{row.categoryName}</span>
                 </div>
-                <span className="text-slate-400 shrink-0">{toPersianDigits(Math.round(row.percent))}٪</span>
+                <span className="text-zinc-400 shrink-0">{toPersianDigits(Math.round(row.percent))}٪</span>
               </div>
               <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
@@ -71,7 +71,7 @@ export function CategoryCapsWidget({ caps }: { caps: CategorySpendingCap[] }) {
                   style={{ width: `${width > 0 ? Math.max(width, 4) : 0}%` }}
                 />
               </div>
-              <p className="text-[10px] text-slate-500" dir="ltr">
+              <p className="text-[11px] text-zinc-500" dir="ltr">
                 {formatCurrency(row.spentToman, 'TOMAN')} / {formatCurrency(row.limitToman, 'TOMAN')}
               </p>
             </div>

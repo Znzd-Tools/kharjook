@@ -62,30 +62,30 @@ function DeadlinesItem({
       type="button"
       disabled={item.disabled}
       onClick={onClick}
-      className={`w-full bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors ${
+      className={`w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors ${
         item.disabled
           ? 'opacity-50 cursor-not-allowed'
-          : 'hover:bg-[#222436] hover:border-purple-500/20'
+          : 'hover:bg-surface-hover hover:border-accent-500/20'
       }`}
     >
       <div className="flex items-center gap-4">
         <div
           className={`w-10 h-10 rounded-xl flex items-center justify-center ${
             item.disabled
-              ? 'bg-slate-500/10 text-slate-500'
-              : 'bg-purple-500/10 text-purple-400'
+              ? 'bg-zinc-500/10 text-zinc-500'
+              : 'bg-accent-500/10 text-accent-400'
           }`}
         >
           {item.icon}
         </div>
         <div className="text-right">
-          <p className="font-medium text-slate-200">{item.title}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">{item.subtitle}</p>
+          <p className="font-medium text-zinc-200">{item.title}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">{item.subtitle}</p>
         </div>
       </div>
       <ChevronLeft
         size={20}
-        className={item.disabled ? 'text-slate-700' : 'text-slate-600'}
+        className={item.disabled ? 'text-zinc-700' : 'text-zinc-600'}
       />
     </button>
   );
@@ -95,7 +95,7 @@ export function DeadlinesTab() {
   const router = useRouter();
   return (
     <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
-      <h2 className="text-xl font-bold text-white mb-2">سررسید</h2>
+      <h2 className="text-xl font-semibold text-white mb-2">سررسید</h2>
 
       <div className="space-y-3">
         {DEADLINE_ITEMS.map((item) => (

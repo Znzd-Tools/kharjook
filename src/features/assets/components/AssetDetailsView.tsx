@@ -190,8 +190,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
 
   if (!asset) {
     return (
-      <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
-        <div className="text-center text-slate-500 text-sm">
+      <div className="bg-surface-inset min-h-full flex items-center justify-center p-6">
+        <div className="text-center text-zinc-500 text-sm">
           دارایی پیدا نشد.
         </div>
       </div>
@@ -255,41 +255,41 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">{asset.name}</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">{asset.name}</h2>
       </div>
 
       <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-linear-to-b from-purple-500/10 to-transparent rounded-3xl border border-purple-500/20">
+        <div className="text-center py-6 bg-surface-raised rounded-2xl border border-white/5">
           <div className="flex justify-center mb-3">
             <EntityIcon
               iconUrl={asset.icon_url}
               fallback={<Activity size={22} />}
               bgColor="rgba(168, 85, 247, 0.12)"
-              color="#c084fc"
+              color="#a5a9fc"
               className="w-14 h-14"
             />
           </div>
-          <p className="text-slate-400 text-sm mb-2">ارزش فعلی کل</p>
-          <h2 className="text-3xl font-bold text-white mb-2" dir="ltr">
+          <p className="text-zinc-400 text-sm mb-2">ارزش فعلی کل</p>
+          <h2 className="text-3xl font-semibold text-white mb-2" dir="ltr">
             {formatCurrency(displayValue, currencyMode)}
           </h2>
           {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
-            <p className="text-[11px] text-amber-300/80 mb-2">
+            <p className="text-xs text-amber-300/80 mb-2">
               قیمت روز ثبت نشده؛ با قیمت آخرین معامله
               {stats.currentPriceDate ? ` (${toPersianDigits(stats.currentPriceDate)})` : ''} حساب شد.
             </p>
           )}
           {headerHasOpen ? (
             <div
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${
                 isHeaderProfit
                   ? 'bg-emerald-400/10 text-emerald-300'
                   : 'bg-rose-400/10 text-rose-300'
@@ -309,22 +309,22 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             </div>
           ) : null}
           {headerHasOpen && (
-            <p className="text-[10px] text-slate-500 mt-1">سود/زیان باز</p>
+            <p className="text-[11px] text-zinc-500 mt-1">سود/زیان باز</p>
           )}
           {balanceExcluded && (
-            <p className="text-[11px] text-sky-300/80 mt-2">
+            <p className="text-xs text-sky-300/80 mt-2">
               این دارایی در «ارزش کل سبد» و پراکندگی داشبورد لحاظ نمی‌شود؛ ارزش
               نمایش‌داده‌شده همان ارزش بازاری این دارایی است.
             </p>
           )}
           {pnlExcluded && !balanceExcluded && (
-            <p className="text-[11px] text-amber-300/80 mt-2">
+            <p className="text-xs text-amber-300/80 mt-2">
               این دارایی از محاسبات سود/زیان مستثنا شده و در ارزش کل سبد لحاظ
               می‌شود.
             </p>
           )}
           {pnlExcluded && balanceExcluded && (
-            <p className="text-[11px] text-amber-300/80 mt-2">
+            <p className="text-xs text-amber-300/80 mt-2">
               این دارایی از محاسبات سود/زیان هم مستثنا شده است.
             </p>
           )}
@@ -333,8 +333,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         {pnl && pnl.included && <AssetPnlBreakdown pnl={pnl} mode={currencyMode} />}
 
         {assetGoals.length > 0 && (
-          <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3">
-            <div className="flex items-center gap-2 text-purple-300">
+          <div className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-3">
+            <div className="flex items-center gap-2 text-accent-300">
               <TargetIcon size={16} />
               <h3 className="text-sm font-semibold">پیشرفت هدف</h3>
             </div>
@@ -356,8 +356,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
               ))}
             </div>
             {assetGoalSuggestions.length > 0 && (
-              <div className="space-y-2 rounded-xl border border-purple-400/10 bg-purple-500/5 px-3 py-2.5">
-                <p className="text-[10px] font-semibold text-purple-300">پیشنهاد</p>
+              <div className="space-y-2 rounded-xl border border-accent-400/10 bg-accent-500/5 px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-accent-300">پیشنهاد</p>
                 <ul className="space-y-1.5">
                 {assetGoalSuggestions.map((item) => (
                   <li key={item.goalId}>
@@ -367,13 +367,13 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
                         onClick={() =>
                           openConvert({ targetAmount: item.convertTargetAmount })
                         }
-                        className="text-[10px] leading-relaxed text-emerald-300 hover:text-emerald-200 text-right w-full"
+                        className="text-[11px] leading-relaxed text-emerald-300 hover:text-emerald-200 text-right w-full"
                       >
                         {item.message}
                       </button>
                     ) : (
                       <span
-                        className={`text-[10px] leading-relaxed block ${
+                        className={`text-[11px] leading-relaxed block ${
                           item.action === 'buy' ? 'text-emerald-300' : 'text-rose-300'
                         }`}
                       >
@@ -439,12 +439,12 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           )}
           <div className="space-y-3">
             {assetTxsSorted.length === 0 && (
-              <div className="text-center text-slate-500 text-sm py-4">
+              <div className="text-center text-zinc-500 text-sm py-4">
                 تراکنشی ثبت نشده است.
               </div>
             )}
             {assetTxsSorted.length > 0 && visibleAssetTxs.length === 0 && assetHistoryItems.length === 0 && (
-              <div className="text-center text-slate-500 text-sm py-4">
+              <div className="text-center text-zinc-500 text-sm py-4">
                 {txSearchQuery.trim()
                   ? 'تراکنشی با این جستجو پیدا نشد.'
                   : 'تراکنشی با این نوع وجود ندارد.'}
@@ -482,36 +482,36 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
               return (
               <div
                 key={tx.id}
-                className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden group"
+                className="bg-surface-raised p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden group"
               >
                 <div
                   className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`}
                 ></div>
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-slate-200 font-medium text-sm">
+                    <span className="text-zinc-200 font-medium text-sm">
                       {TYPE_LABELS[tx.type] ?? tx.type}
                     </span>
                     {categoryTitle && (
-                      <p className="text-slate-400 text-[11px] mt-0.5 truncate">
+                      <p className="text-zinc-400 text-xs mt-0.5 truncate">
                         {categoryTitle}
                       </p>
                     )}
-                    <p className="text-slate-500 text-xs mt-1">
+                    <p className="text-zinc-500 text-xs mt-1">
                       {latinizeDigits(tx.date_string)}
                     </p>
                   </div>
                   <div className="text-left">
-                    <p className="text-slate-200 font-bold text-sm" dir="ltr">
+                    <p className="text-zinc-200 font-semibold text-sm" dir="ltr">
                       {formatAssetAmount(amount, decimals)} {asset.unit}
                     </p>
-                    <p className="text-slate-500 text-xs mt-1" dir="ltr">
+                    <p className="text-zinc-500 text-xs mt-1" dir="ltr">
                       {formatCurrency(tx.price_toman, 'TOMAN')}
                     </p>
                   </div>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                  <span className="text-[10px] text-slate-600" dir="ltr">
+                  <span className="text-[11px] text-zinc-600" dir="ltr">
                     دلار: {formatCurrency(tx.usd_rate, 'TOMAN')}
                   </span>
                   <div className="flex items-center gap-1">
@@ -542,7 +542,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         <button
           type="button"
           onClick={() => openConvert()}
-          className="w-full bg-violet-600 hover:bg-violet-500 text-white p-3.5 rounded-2xl font-bold shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all flex justify-center items-center gap-2"
+          className="w-full bg-violet-600 hover:bg-violet-500 text-white p-3.5 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2"
         >
           <ArrowLeftRight size={18} />
           تبدیل این دارایی
@@ -550,7 +550,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         <button
           type="button"
           onClick={() => router.push(`/transactions/new?assetId=${asset.id}`)}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-3.5 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2"
+          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-3.5 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2"
         >
           <Plus size={18} />
           ثبت عملیات جدید

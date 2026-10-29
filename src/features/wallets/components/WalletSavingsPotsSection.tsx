@@ -215,13 +215,13 @@ export function WalletSavingsPotsSection({
   };
 
   return (
-    <section className="bg-[#1A1B26] rounded-2xl border border-white/5 p-4 space-y-4">
+    <section className="bg-surface-raised rounded-2xl border border-white/5 p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <PiggyBank size={16} className="text-emerald-400 shrink-0" />
           <div>
             <h3 className="text-sm font-semibold text-white">قلک‌ها</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               تخصیص مجازی داخل این کیف — تراکنش جدا ثبت نمی‌شود
             </p>
           </div>
@@ -240,21 +240,21 @@ export function WalletSavingsPotsSection({
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-slate-500">تخصیص‌شده</p>
-          <p className="text-slate-200 mt-1" dir="ltr">
+          <p className="text-zinc-500">تخصیص‌شده</p>
+          <p className="text-zinc-200 mt-1" dir="ltr">
             {meta.symbol} {formatCurrencyAmount(allocated, wallet.currency as Currency)}
           </p>
         </div>
         <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-slate-500">آزاد</p>
-          <p className="text-slate-200 mt-1" dir="ltr">
+          <p className="text-zinc-500">آزاد</p>
+          <p className="text-zinc-200 mt-1" dir="ltr">
             {meta.symbol} {formatCurrencyAmount(freeBalance, wallet.currency as Currency)}
           </p>
         </div>
       </div>
 
       {allocated > walletBalance + 1e-6 && (
-        <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+        <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
           جمع قلک‌ها از موجودی فعلی کیف پول بیشتر است. یکی از قلک‌ها را کم کن.
         </p>
       )}
@@ -262,8 +262,8 @@ export function WalletSavingsPotsSection({
       {formOpen && (
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-400">{form.editingId ? 'ویرایش قلک' : 'قلک جدید'}</p>
-            <button type="button" onClick={resetForm} className="text-slate-500 hover:text-white">
+            <p className="text-xs text-zinc-400">{form.editingId ? 'ویرایش قلک' : 'قلک جدید'}</p>
+            <button type="button" onClick={resetForm} className="text-zinc-500 hover:text-white">
               <X size={14} />
             </button>
           </div>
@@ -271,7 +271,7 @@ export function WalletSavingsPotsSection({
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="نام (مثلا: سفر، اضطراری)"
-            className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
+            className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
             maxLength={64}
             required
           />
@@ -290,20 +290,20 @@ export function WalletSavingsPotsSection({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] text-slate-500 mb-1">تخصیص فعلی</label>
+              <label className="block text-[11px] text-zinc-500 mb-1">تخصیص فعلی</label>
               <FormattedNumberInput
                 value={form.currentAmount}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="block text-[10px] text-slate-500 mb-1">هدف (اختیاری)</label>
+              <label className="block text-[11px] text-zinc-500 mb-1">هدف (اختیاری)</label>
               <FormattedNumberInput
                 value={form.targetAmount}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
                 dir="ltr"
                 placeholder="—"
               />
@@ -320,9 +320,9 @@ export function WalletSavingsPotsSection({
       )}
 
       {isLoading ? (
-        <p className="text-center text-slate-500 text-xs py-4 animate-pulse">در حال دریافت...</p>
+        <p className="text-center text-zinc-500 text-xs py-4 animate-pulse">در حال دریافت...</p>
       ) : pots.length === 0 ? (
-        <p className="text-center text-slate-500 text-xs py-4">
+        <p className="text-center text-zinc-500 text-xs py-4">
           هنوز قلکی نساخته‌ای. برای بودجه‌بندی مجازی داخل همین کیف، یک قلک بساز.
         </p>
       ) : (
@@ -342,8 +342,8 @@ export function WalletSavingsPotsSection({
                       style={{ backgroundColor: pot.color }}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm text-slate-100 truncate">{pot.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5" dir="ltr">
+                      <p className="text-sm text-zinc-100 truncate">{pot.name}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5" dir="ltr">
                         {meta.symbol}{' '}
                         {formatCurrencyAmount(pot.current_amount, wallet.currency as Currency)}
                         {pot.target_amount != null && (
@@ -360,7 +360,7 @@ export function WalletSavingsPotsSection({
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => openEdit(pot)}
-                      className="text-[11px] px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300"
+                      className="text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300"
                     >
                       ویرایش
                     </button>
@@ -378,7 +378,7 @@ export function WalletSavingsPotsSection({
 
                 {progress != null && (
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-500">
+                    <div className="flex justify-between text-[11px] text-zinc-500">
                       <span>پیشرفت هدف</span>
                       <span>{toPersianDigits(Math.round(progress))}٪</span>
                     </div>
@@ -396,7 +396,7 @@ export function WalletSavingsPotsSection({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => void nudgeAllocation(pot, -Math.max(walletBalance * 0.05, 1))}
-                    className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 disabled:opacity-50"
+                    className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-zinc-300 disabled:opacity-50"
                   >
                     −۵٪
                   </button>

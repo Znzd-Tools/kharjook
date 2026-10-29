@@ -36,19 +36,19 @@ export function GoalProgressDisplay({
 
   const baseBarClass =
     delta.status === 'under'
-      ? 'bg-linear-to-l from-purple-500 to-cyan-400'
-      : 'bg-linear-to-l from-emerald-500 to-teal-400';
+      ? 'bg-accent-400'
+      : 'bg-emerald-400';
 
   if (variant === 'compact') {
     return (
       <div className={`min-w-0 space-y-1 ${className}`}>
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px] text-purple-300">
+          <span className="inline-flex min-w-0 items-center gap-1 truncate text-[11px] text-accent-300">
             {showIcon && <TargetIcon size={10} className="shrink-0" />}
             <span className="truncate">{label}</span>
           </span>
           <span
-            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${delta.badgeClassName}`}
+            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${delta.badgeClassName}`}
             dir="ltr"
           >
             {delta.deltaLabel}
@@ -63,15 +63,15 @@ export function GoalProgressDisplay({
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-start justify-between gap-3">
         {label ? (
-          <p className="flex items-center gap-1.5 text-xs text-slate-400">
-            {showIcon && <TargetIcon size={12} className="shrink-0 text-purple-300" />}
+          <p className="flex items-center gap-1.5 text-xs text-zinc-400">
+            {showIcon && <TargetIcon size={12} className="shrink-0 text-accent-300" />}
             <span>{label}</span>
           </p>
         ) : (
           <span />
         )}
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${delta.badgeClassName}`}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${delta.badgeClassName}`}
           dir="ltr"
         >
           {delta.deltaLabel}
@@ -81,24 +81,24 @@ export function GoalProgressDisplay({
       <GoalProgressBar bar={bar} baseBarClass={baseBarClass} size="md" />
 
       <div
-        className="grid grid-cols-3 gap-2 text-[10px] text-slate-500"
+        className="grid grid-cols-3 gap-2 text-[11px] text-zinc-500"
         dir="ltr"
       >
         <div>
-          <p className="text-slate-600 mb-0.5">فعلی</p>
-          <p className="text-slate-300 font-medium">
+          <p className="text-zinc-600 mb-0.5">فعلی</p>
+          <p className="text-zinc-300 font-medium">
             {formatGoalValue(progress?.current ?? 0, kind, valueUnit)}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-slate-600 mb-0.5">هدف</p>
-          <p className="text-slate-300 font-medium">
+          <p className="text-zinc-600 mb-0.5">هدف</p>
+          <p className="text-zinc-300 font-medium">
             {formatGoalValue(progress?.target ?? 0, kind, valueUnit)}
           </p>
         </div>
         <div className="text-left">
-          <p className="text-slate-600 mb-0.5">فاصله</p>
-          <p className="text-slate-300 font-medium">
+          <p className="text-zinc-600 mb-0.5">فاصله</p>
+          <p className="text-zinc-300 font-medium">
             {goalGapLabel(progress, kind, valueUnit)}
           </p>
         </div>
@@ -136,7 +136,7 @@ function GoalProgressBar({
       )}
       {bar.targetPct > 0 && bar.targetPct < 100 && (
         <div
-          className={`absolute top-1/2 ${markerHeight} w-0.5 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.55)]`}
+          className={`absolute top-1/2 ${markerHeight} w-0.5 -translate-y-1/2 rounded-full bg-white`}
           style={{ left: `${bar.targetPct}%` }}
           aria-hidden
         />

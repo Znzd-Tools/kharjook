@@ -136,13 +136,13 @@ export function EndpointSheetPicker({
         <div className="relative">
           <Search
             size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
           />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو..."
-            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-zinc-500 focus:border-accent-500 outline-none"
             autoFocus
           />
         </div>
@@ -164,12 +164,12 @@ export function EndpointSheetPicker({
                   iconUrl={w.icon_url}
                   fallback={<WalletIcon size={18} />}
                   iconBg="rgba(168, 85, 247, 0.12)"
-                  iconColor="#c084fc"
+                  iconColor="#a5a9fc"
                   title={w.name}
                   subtitle={`${meta.symbol} ${w.currency}`}
                   right={
                     <span
-                      className="text-xs  text-slate-300"
+                      className="text-xs  text-zinc-300"
                       dir="ltr"
                     >
                       {formatCurrencyAmount(stats.balance, w.currency)}
@@ -200,7 +200,7 @@ export function EndpointSheetPicker({
                   subtitle={a.unit}
                   right={
                     <span
-                      className="text-xs  text-slate-300"
+                      className="text-xs  text-zinc-300"
                       dir="ltr"
                     >
                       {holding > 0
@@ -228,7 +228,7 @@ export function EndpointSheetPicker({
                   ? 'text-amber-300'
                   : balance < 0
                     ? 'text-cyan-300'
-                    : 'text-slate-500';
+                    : 'text-zinc-500';
               return (
                 <PickerRow
                   key={person.id}
@@ -267,11 +267,11 @@ function Section({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2">
         {label}
       </p>
       {empty ? (
-        <p className="text-xs text-slate-500 py-4 text-center">{empty}</p>
+        <p className="text-xs text-zinc-500 py-4 text-center">{empty}</p>
       ) : (
         <div className="space-y-1.5">{children}</div>
       )}
@@ -312,8 +312,8 @@ function PickerRow({
         className="w-10 h-10 shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-100 truncate">{title}</p>
-        <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>
+        <p className="text-sm font-semibold text-zinc-100 truncate">{title}</p>
+        <p className="text-xs text-zinc-500 mt-0.5">{subtitle}</p>
       </div>
       {right && <div className="shrink-0 pl-1">{right}</div>}
     </button>

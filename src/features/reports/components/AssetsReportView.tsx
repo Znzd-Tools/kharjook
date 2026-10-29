@@ -212,17 +212,17 @@ export function AssetsReportView() {
   };
 
   return (
-    <div className="bg-[#161722] min-h-full">
-      <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="bg-surface-shell min-h-full">
+      <header className="sticky top-0 z-10 bg-surface-shell/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-[#1A1B26] border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          className="w-9 h-9 rounded-xl bg-surface-raised border border-white/5 flex items-center justify-center text-zinc-300 hover:bg-white/5"
         >
           <ChevronRight size={18} />
         </button>
-        <h1 className="flex-1 text-base font-bold text-white">
+        <h1 className="flex-1 text-base font-semibold text-white">
           گزارش سود/زیان دارایی‌ها
         </h1>
         <ReportExportButton onClick={exportCsv} disabled={sorted.length === 0} />
@@ -256,9 +256,9 @@ export function AssetsReportView() {
         />
 
         {sorted.length === 0 ? (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-8 text-center">
-            <Coins size={28} className="text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">دارایی‌ای برای نمایش نیست.</p>
+          <div className="bg-surface-raised border border-white/5 rounded-2xl p-8 text-center">
+            <Coins size={28} className="text-zinc-600 mx-auto mb-2" />
+            <p className="text-sm text-zinc-400">دارایی‌ای برای نمایش نیست.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -269,7 +269,7 @@ export function AssetsReportView() {
         )}
 
         {totals.unrealizedMissingCount > 0 && (
-          <p className="text-[10px] text-slate-500 leading-relaxed px-2">
+          <p className="text-[11px] text-zinc-500 leading-relaxed px-2">
             برای {totals.unrealizedMissingCount.toLocaleString('fa-IR')} دارایی
             قیمت پایان دوره در دسترس نیست؛ سود/زیان باز آن‌ها در جمع لحاظ
             نشده. با ثبت قیمت روزانه یا تراکنش در آن روز، تاریخچه ساخته می‌شود.
@@ -278,7 +278,7 @@ export function AssetsReportView() {
         {(totals.invalidTradeCount > 0 || totals.oversellCount > 0) && (
           <div className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2.5">
             <AlertCircle size={14} className="text-rose-300 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-rose-200 leading-relaxed">
+            <p className="text-xs text-rose-200 leading-relaxed">
               {totals.invalidTradeCount > 0 &&
                 `${totals.invalidTradeCount.toLocaleString('fa-IR')} رکورد دارایی نامعتبر از محاسبه حذف شد.`}
               {totals.invalidTradeCount > 0 && totals.oversellCount > 0 && ' '}
@@ -313,10 +313,10 @@ function AssetFilterChips({
             <button
               type="button"
               onClick={() => onChange(null)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
                 value === null
-                  ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                  ? 'bg-accent-500/20 border-accent-500/40 text-white'
+                  : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
               }`}
             >
               همه دارایی‌ها
@@ -326,10 +326,10 @@ function AssetFilterChips({
                 key={a.id}
                 type="button"
                 onClick={() => onChange(a.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+                className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
                   value === a.id
-                    ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                    : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                    ? 'bg-accent-500/20 border-accent-500/40 text-white'
+                    : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
                 }`}
               >
                 {a.name}
@@ -367,10 +367,10 @@ function ZeroValueChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
+      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
         active
           ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-100'
-          : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+          : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
       }`}
     >
       {label}
@@ -412,17 +412,17 @@ function SummaryCard({
   const positive = total >= 0;
 
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full text-right"
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-slate-400">سود/زیان کل دوره</span>
+          <span className="text-xs text-zinc-400">سود/زیان کل دوره</span>
           <ChevronDown
             size={16}
-            className={`text-slate-500 transition ${open ? 'rotate-180' : ''}`}
+            className={`text-zinc-500 transition ${open ? 'rotate-180' : ''}`}
           />
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -432,8 +432,8 @@ function SummaryCard({
             <TrendingDown size={18} className="text-rose-400 shrink-0" />
           )}
           <span
-            className={`text-2xl font-black ${
-              total === 0 ? 'text-slate-300' : positive ? 'text-emerald-400' : 'text-rose-400'
+            className={`text-2xl font-semibold ${
+              total === 0 ? 'text-zinc-300' : positive ? 'text-emerald-400' : 'text-rose-400'
             }`}
             dir="ltr"
           >
@@ -442,12 +442,12 @@ function SummaryCard({
           </span>
         </div>
         {unrealizedMissingCount > 0 && (
-          <p className="text-[10px] text-amber-400/80 mt-1">
+          <p className="text-[11px] text-amber-400/80 mt-1">
             {unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت پایان دوره
           </p>
         )}
         {!open && (
-          <p className="text-[10px] text-slate-500 mt-1">
+          <p className="text-[11px] text-zinc-500 mt-1">
             {buyCount} خرید · {sellCount} فروش — جزئیات
           </p>
         )}
@@ -474,11 +474,11 @@ function SummaryCard({
             warn={unrealizedMissingCount > 0}
             currencyMode={currencyMode}
           />
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[11px] text-zinc-500">
             {buyCount} خرید · {sellCount} فروش
           </p>
           {(invalidTradeCount > 0 || oversellCount > 0) && (
-            <div className="text-[10px] text-rose-300/90">
+            <div className="text-[11px] text-rose-300/90">
               {invalidTradeCount > 0 &&
                 `${invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
               {invalidTradeCount > 0 && oversellCount > 0 && ' · '}
@@ -507,19 +507,19 @@ function PnlLine({
 }) {
   const positive = value >= 0;
   const color =
-    value === 0 ? 'text-slate-300' : positive ? 'text-emerald-400' : 'text-rose-400';
+    value === 0 ? 'text-zinc-300' : positive ? 'text-emerald-400' : 'text-rose-400';
 
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-[11px] text-slate-400">{label}</span>
+        <span className="text-xs text-zinc-400">{label}</span>
         {warn && <AlertCircle size={11} className="text-amber-400" />}
       </div>
-      <span className={`text-base font-bold ${color}`} dir="ltr">
+      <span className={`text-base font-semibold ${color}`} dir="ltr">
         {value > 0 ? '+' : ''}
         {formatCurrency(value, currencyMode)}
       </span>
-      <p className="text-[10px] text-slate-500 mt-0.5">{tip}</p>
+      <p className="text-[11px] text-zinc-500 mt-0.5">{tip}</p>
     </div>
   );
 }
@@ -547,13 +547,13 @@ function AssetRow({
   const displayPositive = displayValue >= 0;
   const displayColor =
     displayValue === 0
-      ? 'text-slate-500'
+      ? 'text-zinc-500'
       : displayPositive
         ? 'text-emerald-400'
         : 'text-rose-400';
   const realizedColor =
     realizedPrimary === 0
-      ? 'text-slate-500'
+      ? 'text-zinc-500'
       : realizedPrimary >= 0
         ? 'text-emerald-400'
         : 'text-rose-400';
@@ -568,7 +568,7 @@ function AssetRow({
   const decimals = assetDecimals(asset);
 
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl overflow-hidden">
+    <div className="bg-surface-raised border border-white/5 rounded-2xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -580,24 +580,24 @@ function AssetRow({
           className="w-9 h-9 shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white truncate">{asset.name}</div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-sm font-semibold text-white truncate">{asset.name}</div>
+          <div className="text-[11px] text-zinc-500">
             {formatAssetAmount(stats.endHoldings, decimals)} {asset.unit}
             {!hasActivity && ' · بدون فعالیت'}
           </div>
         </div>
         <div className="text-left shrink-0 flex items-center gap-2">
           {totalPrimary !== null ? (
-            <span className={`text-sm font-bold ${displayColor}`} dir="ltr">
+            <span className={`text-sm font-semibold ${displayColor}`} dir="ltr">
               {displayValue > 0 ? '+' : ''}
               {formatCurrency(displayValue, currencyMode)}
             </span>
           ) : (
-            <span className="text-xs text-slate-500">—</span>
+            <span className="text-xs text-zinc-500">—</span>
           )}
           <ChevronDown
             size={16}
-            className={`text-slate-500 transition ${open ? 'rotate-180' : ''}`}
+            className={`text-zinc-500 transition ${open ? 'rotate-180' : ''}`}
           />
         </div>
       </button>
@@ -632,13 +632,13 @@ function AssetRow({
               />
             </div>
           ) : (
-            <div className="text-[11px] text-slate-500 bg-white/2 border border-white/5 rounded-lg px-3 py-2">
+            <div className="text-xs text-zinc-500 bg-white/2 border border-white/5 rounded-lg px-3 py-2">
               در این دوره تراکنشی ثبت نشده.
             </div>
           )}
 
           {(stats.invalidTradeCount > 0 || stats.oversellCount > 0) && (
-            <div className="text-[10px] text-rose-300/90 bg-rose-500/8 border border-rose-500/20 rounded-lg px-2 py-1.5">
+            <div className="text-[11px] text-rose-300/90 bg-rose-500/8 border border-rose-500/20 rounded-lg px-2 py-1.5">
               {stats.invalidTradeCount > 0 &&
                 `${stats.invalidTradeCount.toLocaleString('fa-IR')} رکورد نامعتبر`}
               {stats.invalidTradeCount > 0 && stats.oversellCount > 0 && ' · '}
@@ -667,7 +667,7 @@ function AssetRow({
                         ? 'text-emerald-400'
                         : unrealizedPrimary < 0
                           ? 'text-rose-400'
-                          : 'text-slate-400'
+                          : 'text-zinc-400'
                     }
                   >
                     {unrealizedPrimary > 0 ? '+' : ''}
@@ -684,9 +684,9 @@ function AssetRow({
               <MiniFact
                 label="باز"
                 value={
-                  <span className="text-slate-500 inline-flex items-center gap-1">
+                  <span className="text-zinc-500 inline-flex items-center gap-1">
                     —
-                    <Info size={11} className="text-slate-600" />
+                    <Info size={11} className="text-zinc-600" />
                   </span>
                 }
               />
@@ -738,15 +738,15 @@ function TradeBox({
     >
       <div className="flex items-center gap-1.5 mb-1">
         {icon}
-        <span className="text-[10px] text-slate-500">{label}</span>
-        <span className="text-[10px] text-slate-600 mr-auto">({count})</span>
+        <span className="text-[11px] text-zinc-500">{label}</span>
+        <span className="text-[11px] text-zinc-600 mr-auto">({count})</span>
       </div>
       <div className="text-xs text-white">
         {formatAssetAmount(units, decimals)}{' '}
-        <span className="text-[10px] text-slate-500">{unit}</span>
+        <span className="text-[11px] text-zinc-500">{unit}</span>
       </div>
-      <div className="text-[10px] text-slate-500 mt-1">میانگین قیمت</div>
-      <div className="text-[11px] text-slate-300">
+      <div className="text-[11px] text-zinc-500 mt-1">میانگین قیمت</div>
+      <div className="text-xs text-zinc-300">
         {formatCurrency(primary, currencyMode)}
       </div>
     </div>
@@ -764,10 +764,10 @@ function MiniFact({
 }) {
   return (
     <div>
-      <div className="text-[10px] text-slate-500">{label}</div>
-      <div className="text-xs font-bold text-white">{value}</div>
+      <div className="text-[11px] text-zinc-500">{label}</div>
+      <div className="text-xs font-semibold text-white">{value}</div>
       {hint && (
-        <div className="text-[9px] text-amber-400/70 mt-0.5">{hint}</div>
+        <div className="text-[10px] text-amber-400/70 mt-0.5">{hint}</div>
       )}
     </div>
   );

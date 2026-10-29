@@ -255,37 +255,37 @@ export function SubscriptionsHubView() {
   return (
     <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">اشتراک‌ها</h2>
+        <h2 className="text-xl font-semibold text-white">اشتراک‌ها</h2>
         <button
           type="button"
           onClick={() => router.push('/deadlines/subscriptions/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
         >
           <Plus size={16} />
           اشتراک جدید
         </button>
       </div>
 
-      <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+      <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-white">هزینه ماهانه</h3>
-            <p className="text-[11px] text-slate-500">جمع اشتراک‌های فعال در ماه انتخاب‌شده</p>
+            <h3 className="text-sm font-semibold text-white">هزینه ماهانه</h3>
+            <p className="text-xs text-zinc-500">جمع اشتراک‌های فعال در ماه انتخاب‌شده</p>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, -1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
               aria-label="previous-month"
             >
               <ChevronRight size={16} />
             </button>
-            <span className="text-xs text-slate-300 min-w-[6rem] text-center">{monthlySummary.label}</span>
+            <span className="text-xs text-zinc-300 min-w-[6rem] text-center">{monthlySummary.label}</span>
             <button
               type="button"
               onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, 1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
               aria-label="next-month"
             >
               <ChevronLeft size={16} />
@@ -294,14 +294,14 @@ export function SubscriptionsHubView() {
         </div>
 
         <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5">
-          <span className="text-xs text-slate-400">جمع</span>
-          <span className="text-sm font-bold text-emerald-300" dir="ltr">
+          <span className="text-xs text-zinc-400">جمع</span>
+          <span className="text-sm font-semibold text-emerald-300" dir="ltr">
             {formatCurrency(monthlySummary.total, currencyMode)}
           </span>
         </div>
 
         {monthlySummary.lineItems.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-2">سررسیدی در این ماه نیست.</p>
+          <p className="text-xs text-zinc-500 text-center py-2">سررسیدی در این ماه نیست.</p>
         ) : (
           <div className="space-y-1.5">
             {monthlySummary.lineItems.map((item) => (
@@ -310,15 +310,15 @@ export function SubscriptionsHubView() {
                 className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-2.5 py-1.5"
               >
                 <div className="min-w-0">
-                  <p className="text-[11px] text-slate-200 truncate">{item.platform}</p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-xs text-zinc-200 truncate">{item.platform}</p>
+                  <p className="text-[11px] text-zinc-500">
                     {toPersianDigits(item.count)} بار
                   </p>
                 </div>
-                <span className="text-[11px] text-slate-300 shrink-0" dir="ltr">
+                <span className="text-xs text-zinc-300 shrink-0" dir="ltr">
                   <p>{formatCurrency(item.displayTotal, currencyMode)}</p>
                   {item.currency !== 'IRT' && (
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[11px] text-zinc-500">
                       {formatSubscriptionNativeAmount(item.nativeTotal, item.currency)}
                     </p>
                   )}
@@ -329,7 +329,7 @@ export function SubscriptionsHubView() {
         )}
       </section>
 
-      <div className="grid grid-cols-3 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
         {(
           [
             ['active', 'فعال'],
@@ -341,8 +341,8 @@ export function SubscriptionsHubView() {
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-              filter === key ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+              filter === key ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             {label}
@@ -351,7 +351,7 @@ export function SubscriptionsHubView() {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
       ) : filteredRows.length === 0 ? (
         <EmptyState
           icon={<Repeat size={24} />}
@@ -379,26 +379,26 @@ export function SubscriptionsHubView() {
             return (
               <div
                 key={row.id}
-                className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl space-y-3"
+                className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-100 truncate">{row.platform}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <h3 className="font-semibold text-zinc-100 truncate">{row.platform}</h3>
+                    <p className="text-xs text-zinc-500 mt-1">
                       {[intervalLabel(row), category?.name, wallet?.name]
                         .filter(Boolean)
                         .join(' · ') || '—'}
                     </p>
                   </div>
                   <span
-                    className={`text-[11px] px-2 py-1 rounded-lg shrink-0 ${
+                    className={`text-xs px-2 py-1 rounded-lg shrink-0 ${
                       row.status === 'active'
                         ? isOverdue
                           ? 'bg-rose-500/15 text-rose-300'
                           : isToday
                             ? 'bg-amber-500/15 text-amber-300'
                             : 'bg-emerald-500/15 text-emerald-300'
-                        : 'bg-slate-500/15 text-slate-400'
+                        : 'bg-zinc-500/15 text-zinc-400'
                     }`}
                   >
                     {STATUS_LABEL[row.status]}
@@ -407,7 +407,7 @@ export function SubscriptionsHubView() {
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">مبلغ</p>
+                    <p className="text-zinc-500">مبلغ</p>
                     <div className="mt-1">
                       <SubscriptionAmountDisplay
                         amount={row.amount}
@@ -415,13 +415,13 @@ export function SubscriptionsHubView() {
                         currencyRates={currencyRates}
                         currencyMode={currencyMode}
                         usdRate={usdRate}
-                        primaryClassName="text-slate-200 text-xs"
+                        primaryClassName="text-zinc-200 text-xs"
                       />
                     </div>
                   </div>
                   <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">سررسید بعدی</p>
-                    <p className="text-slate-200 mt-1">
+                    <p className="text-zinc-500">سررسید بعدی</p>
+                    <p className="text-zinc-200 mt-1">
                       {due ? toPersianDigits(formatJalaaliHuman(due)) : row.next_due_date_string}
                     </p>
                   </div>
@@ -434,7 +434,7 @@ export function SubscriptionsHubView() {
                         type="button"
                         onClick={() => openSettle(row)}
                         disabled={isSubmitting}
-                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition disabled:opacity-50"
                       >
                         <CreditCard size={13} />
                         پرداخت
@@ -463,7 +463,7 @@ export function SubscriptionsHubView() {
                   )}
                   <Link
                     href={`/deadlines/subscriptions/${row.id}/edit`}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
+                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
                   >
                     ویرایش
                   </Link>
@@ -499,12 +499,12 @@ export function SubscriptionsHubView() {
 
       {settlementTarget && (
         <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-[#13141C] border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
+          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
             <button
               type="button"
               onClick={() => void handleSettle()}
               disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-1">
@@ -521,14 +521,14 @@ export function SubscriptionsHubView() {
               type="button"
               onClick={() => setIsSettlementPickerOpen(true)}
               disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
             >
               {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
             </button>
             <button
               type="button"
               onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
             >
               انصراف
             </button>

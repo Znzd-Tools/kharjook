@@ -64,7 +64,7 @@ export function computeGoalDelta(
     status: 'under',
     delta: 0,
     deltaLabel: '—',
-    badgeClassName: 'bg-white/5 text-slate-500',
+    badgeClassName: 'bg-white/5 text-zinc-500',
   };
 
   if (!progress || progress.target <= 0) return fallback;

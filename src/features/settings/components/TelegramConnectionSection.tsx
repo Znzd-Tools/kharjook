@@ -66,25 +66,25 @@ export function TelegramConnectionSection() {
   const connected = connection?.is_active !== false && !!connection;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-3xl p-5 space-y-4">
+    <section className="bg-surface-raised border border-white/5 rounded-2xl p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
           <Link2 size={20} />
         </div>
         <div>
-          <h3 className="font-bold text-white">تلگرام</h3>
-          <p className="text-xs text-slate-400 mt-0.5">دریافت گزارش و یادآور اقساط</p>
+          <h3 className="font-semibold text-white">تلگرام</h3>
+          <p className="text-xs text-zinc-400 mt-0.5">دریافت گزارش و یادآور اقساط</p>
         </div>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-slate-500 animate-pulse">در حال بارگذاری...</p>
+        <p className="text-sm text-zinc-500 animate-pulse">در حال بارگذاری...</p>
       ) : connected ? (
         <div className="space-y-3">
           <div className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">
             ✅ متصل
             {connection.telegram_username ? (
-              <span className="text-slate-300 mr-2" dir="ltr">
+              <span className="text-zinc-300 mr-2" dir="ltr">
                 @{connection.telegram_username}
               </span>
             ) : null}
@@ -101,7 +101,7 @@ export function TelegramConnectionSection() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-slate-400 leading-relaxed">
+          <p className="text-sm text-zinc-400 leading-relaxed">
             برای دریافت پیام‌های خصوصی، ربات را در تلگرام فعال کنید.
           </p>
           <button
@@ -114,7 +114,7 @@ export function TelegramConnectionSection() {
             اتصال تلگرام
           </button>
           {linkUrl ? (
-            <p className="text-xs text-slate-500 break-all" dir="ltr">
+            <p className="text-xs text-zinc-500 break-all" dir="ltr">
               {linkUrl}
             </p>
           ) : null}

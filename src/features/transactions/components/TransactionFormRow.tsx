@@ -326,18 +326,18 @@ export function TransactionFormRow({
   return (
     <>
       <div
-        className={`rounded-2xl border ${style.accentBorder} bg-linear-to-b ${style.accentGradient} p-4 space-y-5`}
+        className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-4 space-y-5`}
       >
         {isBulk && (
           <div className="flex items-center justify-between">
-            <span className={`text-xs font-bold ${style.accentText}`}>
+            <span className={`text-xs font-semibold ${style.accentText}`}>
               تراکنش #{rowIndex + 1}
             </span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={onToggleCollapsed}
-                className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg text-slate-400 transition-colors"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg text-zinc-400 transition-colors"
                 aria-label="جمع‌کردن"
               >
                 <ChevronLeft size={16} />
@@ -346,7 +346,7 @@ export function TransactionFormRow({
                 <button
                   type="button"
                   onClick={onRemove}
-                  className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-slate-400 transition-colors"
+                  className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg text-zinc-400 transition-colors"
                   aria-label="حذف"
                 >
                   <Trash2 size={16} />
@@ -381,7 +381,7 @@ export function TransactionFormRow({
               <button
                 type="button"
                 onClick={clearOptionalSource}
-                className="text-[11px] text-slate-500 hover:text-white transition"
+                className="text-xs text-zinc-500 hover:text-white transition"
               >
                 بدون ثبت مبدأ
               </button>
@@ -434,7 +434,7 @@ export function TransactionFormRow({
               <button
                 type="button"
                 onClick={clearOptionalTarget}
-                className="text-[11px] text-slate-500 hover:text-white transition"
+                className="text-xs text-zinc-500 hover:text-white transition"
               >
                 بدون ثبت مقصد
               </button>
@@ -444,14 +444,14 @@ export function TransactionFormRow({
 
         {/* Date */}
         <div>
-          <label className="block text-xs text-slate-400 mb-1">تاریخ</label>
+          <label className="block text-xs text-zinc-400 mb-1">تاریخ</label>
           <button
             type="button"
             onClick={() => setDateOpen(true)}
             className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
           >
             <Calendar size={16} className={style.accentText} />
-            <span className="text-sm text-slate-100 flex-1">{dateLabel}</span>
+            <span className="text-sm text-zinc-100 flex-1">{dateLabel}</span>
           </button>
           <div className="mt-2 flex gap-2">
             <DateChip
@@ -482,13 +482,13 @@ export function TransactionFormRow({
         {/* Source balance info + quick chips */}
         {canShowQuickChips && (
           <div className="flex flex-wrap items-center gap-2 -mt-2">
-            <span className="text-[11px] text-slate-500">درصدی از موجودی:</span>
+            <span className="text-xs text-zinc-500">درصدی از موجودی:</span>
             {[25, 50, 75, 100].map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => applySourcePercent(p)}
-                className={`min-h-11 px-3 py-2 text-xs font-bold rounded-lg bg-white/5 hover:bg-white/10 ${style.accentText} transition`}
+                className={`min-h-11 px-3 py-2 text-xs font-semibold rounded-lg bg-white/5 hover:bg-white/10 ${style.accentText} transition`}
               >
                 {p === 100 ? 'همه' : `${p}٪`}
               </button>
@@ -558,14 +558,14 @@ export function TransactionFormRow({
 
         {/* Note */}
         <div>
-          <label htmlFor={noteId} className="block text-xs text-slate-400 mb-1">
+          <label htmlFor={noteId} className="block text-xs text-zinc-400 mb-1">
             توضیحات (اختیاری)
           </label>
           <textarea
             id={noteId}
             value={form.note}
             onChange={(e) => updateField('note', e.target.value)}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm focus:border-purple-500 outline-none min-h-[60px]"
+            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm focus:border-accent-500 outline-none min-h-[60px]"
             maxLength={500}
           />
         </div>
@@ -575,7 +575,7 @@ export function TransactionFormRow({
           sourceWallet &&
           targetWallet &&
           sourceWallet.currency !== targetWallet.currency && (
-            <div className="flex items-center gap-2 text-[11px] text-amber-400/80 -mt-2">
+            <div className="flex items-center gap-2 text-xs text-amber-400/80 -mt-2">
               <ArrowLeftRight size={12} />
               انتقال بین دو ارز متفاوت — هر دو مقدار را به‌صورت دستی وارد کن.
             </div>

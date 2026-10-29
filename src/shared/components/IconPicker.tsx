@@ -108,13 +108,13 @@ export function IconPicker({
       </div>
 
       <div className="flex flex-col gap-2 min-w-0 flex-1">
-        {label && <span className="text-xs text-slate-400">{label}</span>}
+        {label && <span className="text-xs text-zinc-400">{label}</span>}
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isUploading}
-            className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-slate-200 text-xs px-3 py-2 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-zinc-200 text-xs px-3 py-2 rounded-lg transition-colors"
           >
             <Camera size={14} />
             {value ? 'تغییر آیکون' : 'بارگذاری آیکون'}
@@ -131,7 +131,7 @@ export function IconPicker({
             </button>
           )}
         </div>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-xs text-zinc-500">
           اختیاری · PNG/JPG/WebP · به‌صورت مربع ۲۵۶ پیکسل فشرده می‌شود
         </span>
       </div>

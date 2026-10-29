@@ -106,19 +106,19 @@ export function CurrencyRatesView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1">نرخ تبدیل ارزها</h2>
+        <h2 className="text-lg font-semibold text-white flex-1">نرخ تبدیل ارزها</h2>
       </div>
 
       <div className="px-6 pt-4">
-        <p className="text-xs text-slate-500 leading-5">
+        <p className="text-xs text-zinc-500 leading-5">
           هر مقدار نشان می‌دهد یک واحد از ارز انتخابی چند تومان ارزش دارد. این
           نرخ‌ها به‌صورت خودکار در فرم‌های تراکنش پیش‌نهاد می‌شوند و در صورت نیاز
           می‌توانی آن‌ها را در همان لحظه تغییر دهی.
@@ -131,18 +131,18 @@ export function CurrencyRatesView() {
           return (
             <div
               key={c}
-              className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-2"
+              className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300 text-sm font-bold" dir="ltr">
+                  <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300 text-sm font-semibold" dir="ltr">
                     {meta.symbol}
                   </div>
                   <div>
-                    <p className="text-slate-200 text-sm font-medium">
+                    <p className="text-zinc-200 text-sm font-medium">
                       {meta.label}
                     </p>
-                    <p className="text-slate-500 text-[11px]" dir="ltr">
+                    <p className="text-zinc-500 text-xs" dir="ltr">
                       1 {c} = ? تومان
                     </p>
                   </div>
@@ -151,7 +151,7 @@ export function CurrencyRatesView() {
               <FormattedNumberInput
                 value={local[c]}
                 onValueChange={(canonical) => setOne(c, canonical)}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
+                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-accent-500 text-left"
                 dir="ltr"
                 placeholder="0"
               />
@@ -163,7 +163,7 @@ export function CurrencyRatesView() {
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2 z-30 disabled:opacity-50"
+        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2 z-30 disabled:opacity-50"
       >
         {isSaving ? (
           <RefreshCw className="animate-spin" size={20} />

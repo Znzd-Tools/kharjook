@@ -32,16 +32,16 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
   return (
     <div className="space-y-3">
       {/* Kind tabs */}
-      <div className="flex bg-[#1A1B26] rounded-xl border border-white/5 p-1">
+      <div className="flex bg-surface-raised rounded-xl border border-white/5 p-1">
         {PERIOD_KINDS.map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => onKind(k)}
-            className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${
+            className={`flex-1 text-xs font-semibold py-2 rounded-lg transition ${
               k === period.kind
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-zinc-50 text-zinc-900'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             {formatPeriodKindLabel(k)}
@@ -58,28 +58,28 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
           disabled={isAllPeriod}
           className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
             isAllPeriod
-              ? 'bg-[#1A1B26] text-slate-700 cursor-not-allowed'
-              : 'bg-[#1A1B26] text-slate-300 hover:bg-white/5'
+              ? 'bg-surface-raised text-zinc-700 cursor-not-allowed'
+              : 'bg-surface-raised text-zinc-300 hover:bg-white/5'
           }`}
         >
           <ChevronRight size={18} />
         </button>
         <div className="flex-1 text-center">
-          <div className="text-sm font-bold text-white">{formatPeriodLabel(period)}</div>
+          <div className="text-sm font-semibold text-white">{formatPeriodLabel(period)}</div>
           {!atCurrent && !isAllPeriod && (
             <button
               type="button"
               onClick={() => onChange(currentPeriod(period.kind))}
-              className="text-[10px] text-purple-400 hover:text-purple-300 mt-0.5"
+              className="text-[11px] text-accent-400 hover:text-accent-300 mt-0.5"
             >
               برگشت به {formatPeriodKindLabel(period.kind)} جاری
             </button>
           )}
           {atCurrent && !isAllPeriod && (
-            <div className="text-[10px] text-slate-500 mt-0.5">{formatPeriodKindLabel(period.kind)} جاری</div>
+            <div className="text-[11px] text-zinc-500 mt-0.5">{formatPeriodKindLabel(period.kind)} جاری</div>
           )}
           {isAllPeriod && (
-            <div className="text-[10px] text-slate-500 mt-0.5">نمایش تمام تاریخچه</div>
+            <div className="text-[11px] text-zinc-500 mt-0.5">نمایش تمام تاریخچه</div>
           )}
         </div>
         <button
@@ -89,8 +89,8 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
           disabled={isAllPeriod}
           className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
             isAllPeriod
-              ? 'bg-[#1A1B26] text-slate-700 cursor-not-allowed'
-              : 'bg-[#1A1B26] text-slate-300 hover:bg-white/5'
+              ? 'bg-surface-raised text-zinc-700 cursor-not-allowed'
+              : 'bg-surface-raised text-zinc-300 hover:bg-white/5'
           }`}
         >
           <ChevronLeft size={18} />

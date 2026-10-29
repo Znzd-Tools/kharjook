@@ -82,13 +82,13 @@ export function ListSheetPicker({
           <div className="relative">
             <Search
               size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
             />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="جستجو..."
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+              className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-zinc-500 focus:border-accent-500 outline-none"
               autoFocus
             />
           </div>
@@ -102,28 +102,28 @@ export function ListSheetPicker({
             onClick={() => commit(null)}
             className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
               value === null
-                ? 'bg-purple-500/10 border-purple-500/40'
-                : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                ? 'bg-accent-500/10 border-accent-500/40'
+                : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
             }`}
           >
-            <span className={value === null ? 'text-purple-300' : 'text-slate-500'}>
+            <span className={value === null ? 'text-accent-300' : 'text-zinc-500'}>
               {noneLeading ?? <Ban size={14} />}
             </span>
             <span
               className={`flex-1 min-w-0 text-sm truncate ${
-                value === null ? 'text-white font-semibold' : 'text-slate-200'
+                value === null ? 'text-white font-semibold' : 'text-zinc-200'
               }`}
             >
               {noneLabel}
             </span>
             {value === null && (
-              <Check size={14} className="text-purple-300 shrink-0" />
+              <Check size={14} className="text-accent-300 shrink-0" />
             )}
           </button>
         )}
 
         {filtered.length === 0 ? (
-          <p className="text-xs text-slate-500 py-8 text-center">{emptyLabel}</p>
+          <p className="text-xs text-zinc-500 py-8 text-center">{emptyLabel}</p>
         ) : (
           filtered.map((it) => {
             const selected = value === it.id;
@@ -135,14 +135,14 @@ export function ListSheetPicker({
                 onClick={() => commit(it.id)}
                 className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                   selected
-                    ? 'bg-purple-500/10 border-purple-500/40'
-                    : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                    ? 'bg-accent-500/10 border-accent-500/40'
+                    : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
                 } ${it.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {it.leading && (
                   <span
                     className={`shrink-0 ${
-                      selected ? 'text-purple-300' : 'text-slate-500'
+                      selected ? 'text-accent-300' : 'text-zinc-500'
                     }`}
                   >
                     {it.leading}
@@ -151,20 +151,20 @@ export function ListSheetPicker({
                 <div className="flex-1 min-w-0 text-right">
                   <div
                     className={`text-sm truncate ${
-                      selected ? 'text-white font-semibold' : 'text-slate-200'
+                      selected ? 'text-white font-semibold' : 'text-zinc-200'
                     }`}
                   >
                     {it.label}
                   </div>
                   {it.sublabel && (
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    <div className="text-xs text-zinc-500 truncate mt-0.5">
                       {it.sublabel}
                     </div>
                   )}
                 </div>
                 {it.trailing}
                 {selected && (
-                  <Check size={14} className="text-purple-300 shrink-0" />
+                  <Check size={14} className="text-accent-300 shrink-0" />
                 )}
               </button>
             );

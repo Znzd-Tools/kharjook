@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
+/* Design tokens.
+   Minimal dark theme: neutral zinc surfaces, hairline borders, one accent.
+   Components use these through Tailwind (`bg-surface-raised`, `text-accent-400`…),
+   so a palette change happens here and nowhere else. */
 :root {
-  --background: #0F1015;
-  --foreground: #e2e8f0;
-  --surface-shell: #161722;
-  --surface-raised: #1A1B26;
-  --surface-hover: #222436;
-  --surface-inset: #0F1015;
-  --accent-purple: #9333ea;
-  --accent-purple-soft: rgba(168, 85, 247, 0.15);
+  --background: #09090b;
+  --foreground: #e4e4e7;
+  --surface-shell: #09090b;
+  --surface-raised: #121215;
+  --surface-hover: #18181c;
+  --surface-active: #202025;
+  --surface-inset: #0c0c0e;
+  --surface-overlay: #161619;
+  --hairline: rgba(255, 255, 255, 0.06);
   color-scheme: dark;
 }
 
@@ -18,9 +23,25 @@
   --color-surface-shell: var(--surface-shell);
   --color-surface-raised: var(--surface-raised);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
   --color-surface-inset: var(--surface-inset);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-purple-soft: var(--accent-purple-soft);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-hairline: var(--hairline);
+}
+
+/* Single brand accent (indigo-violet). Replaces the old neon purple. */
+@theme {
+  --color-accent-50: #eef0ff;
+  --color-accent-100: #e0e3ff;
+  --color-accent-200: #c7cbfe;
+  --color-accent-300: #a5a9fc;
+  --color-accent-400: #8b8af8;
+  --color-accent-500: #7470f1;
+  --color-accent-600: #615ae4;
+  --color-accent-700: #5148c9;
+  --color-accent-800: #433ca3;
+  --color-accent-900: #393581;
+  --color-accent-950: #22204b;
 }
 
 html,
@@ -37,6 +58,22 @@ body {
 body {
   /* Prevent accidental horizontal scroll on mobile. */
   overflow-x: hidden;
+  font-feature-settings: 'ss02';
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-accent-500) 35%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-400);
+  outline-offset: 2px;
+}
+
+/* Money reads better with fixed-width digits. */
+.tabular-nums,
+[dir='ltr'] {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Tailwind v4 custom utilities. */

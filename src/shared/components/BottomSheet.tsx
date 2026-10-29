@@ -188,7 +188,7 @@ export function BottomSheet({
         aria-label="بستن"
         tabIndex={open ? 0 : -1}
         onClick={closeWithHaptic}
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
+        className={`absolute inset-0 bg-black/70 transition-opacity duration-200 ${
           open ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -199,7 +199,7 @@ export function BottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : 'پنجره'}
-        className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-surface-shell rounded-t-3xl border-t border-white/10 shadow-2xl transition-transform ease-out ${
+        className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-surface-overlay rounded-t-[28px] border-t border-white/8 transition-transform ease-out ${
           isDragging ? 'duration-75' : 'duration-300'
         } ${
           open ? 'translate-y-0' : 'translate-y-full'
@@ -221,12 +221,12 @@ export function BottomSheet({
           onTouchEnd={onTouchEnd}
           onTouchCancel={onTouchEnd}
         >
-          <div className="mx-auto w-10 h-1 rounded-full bg-white/20" />
+          <div className="mx-auto w-9 h-1 rounded-full bg-white/15" />
         </div>
 
         {title && (
           <div className="px-5 pb-3 shrink-0">
-            <h3 className="text-base font-bold text-white">{title}</h3>
+            <h3 className="text-base font-semibold text-zinc-50">{title}</h3>
           </div>
         )}
         {header && <div className="px-5 pb-3 shrink-0">{header}</div>}

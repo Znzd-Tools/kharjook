@@ -18,13 +18,13 @@ export function Input({
   return (
     <div>
       {label && (
-        <label htmlFor={inputId} className="block text-xs text-slate-400 mb-1.5 ml-1">
+        <label htmlFor={inputId} className="block text-xs font-medium text-zinc-400 mb-1.5">
           {label}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
             {icon}
           </span>
         )}
@@ -32,9 +32,9 @@ export function Input({
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${inputId}-error` : undefined}
-          className={`w-full bg-surface-raised border rounded-xl py-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none transition-colors ${
+          className={`w-full h-11 bg-surface-inset border rounded-xl text-sm text-zinc-50 placeholder:text-zinc-600 focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 outline-none transition ${
             icon ? 'pl-10 pr-4' : 'px-4'
-          } ${error ? 'border-rose-500/50' : 'border-white/10'} ${className}`}
+          } ${error ? 'border-rose-500/50' : 'border-white/8'} ${className}`}
           {...props}
         />
       </div>

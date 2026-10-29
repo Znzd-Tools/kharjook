@@ -62,15 +62,15 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
 
   if (!person) {
     return (
-      <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
-        <p className="text-slate-500 text-sm">شخص پیدا نشد.</p>
+      <div className="bg-surface-inset min-h-full flex items-center justify-center p-6">
+        <p className="text-zinc-500 text-sm">شخص پیدا نشد.</p>
       </div>
     );
   }
 
   const status = balance > 0 ? 'بدهکار' : balance < 0 ? 'بستانکار' : 'تسویه';
   const tone =
-    balance > 0 ? 'text-amber-300' : balance < 0 ? 'text-cyan-300' : 'text-slate-400';
+    balance > 0 ? 'text-amber-300' : balance < 0 ? 'text-cyan-300' : 'text-zinc-400';
 
   const openSettle = () => {
     if (!defaultWallet) {
@@ -103,27 +103,27 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
+          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
         >
           <ArrowRight size={20} />
         </button>
-        <h2 className="text-lg font-bold text-white flex-1 truncate">{person.name}</h2>
+        <h2 className="text-lg font-semibold text-white flex-1 truncate">{person.name}</h2>
       </div>
 
       <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-linear-to-b from-cyan-500/10 to-transparent rounded-3xl border border-cyan-500/20">
+        <div className="text-center py-6 bg-surface-raised rounded-2xl border border-white/5">
           <div className="flex justify-center mb-3">
             <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-300 flex items-center justify-center">
               <UserRound size={24} />
             </div>
           </div>
-          <p className="text-slate-400 text-sm mb-2">مانده حساب</p>
-          <p className={`text-3xl font-bold ${tone}`} dir="ltr">
+          <p className="text-zinc-400 text-sm mb-2">مانده حساب</p>
+          <p className={`text-3xl font-semibold ${tone}`} dir="ltr">
             {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
           </p>
           <p className={`text-sm mt-2 ${tone}`}>{status}</p>
@@ -131,7 +131,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
             <button
               type="button"
               onClick={openSettle}
-              className="mt-4 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors"
+              className="mt-4 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
             >
               <HandCoins size={16} />
               {balance > 0 ? 'دریافت تسویه' : 'پرداخت تسویه'}
@@ -140,7 +140,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-400">تراکنش‌ها</h3>
+          <h3 className="text-sm font-semibold text-zinc-400">تراکنش‌ها</h3>
           {personTxs.length === 0 ? (
             <EmptyState
               icon={<ArrowLeftRight size={24} />}
@@ -193,7 +193,7 @@ function PersonTxRow({
   const counterparty = describePersonCounterparty(tx, personId, wallets, assets, categories);
 
   return (
-    <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
+    <div className="bg-surface-raised p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 min-w-0">
@@ -203,20 +203,20 @@ function PersonTxRow({
             <Icon size={16} />
           </div>
           <div className="min-w-0">
-            <p className="text-slate-200 text-sm font-medium">{TYPE_LABELS[tx.type]}</p>
-            <p className="text-slate-500 text-xs mt-0.5 truncate">{counterparty}</p>
+            <p className="text-zinc-200 text-sm font-medium">{TYPE_LABELS[tx.type]}</p>
+            <p className="text-zinc-500 text-xs mt-0.5 truncate">{counterparty}</p>
           </div>
         </div>
         <div className="text-left shrink-0">
-          <p className={`text-sm font-bold ${tone}`} dir="ltr">
+          <p className={`text-sm font-semibold ${tone}`} dir="ltr">
             {isOut ? '-' : '+'}
             {Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 6 })}
           </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">{latinizeDigits(tx.date_string)}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">{latinizeDigits(tx.date_string)}</p>
         </div>
       </div>
       <div className="flex justify-between items-center pt-2 border-t border-white/5">
-        <span className="text-[10px] text-slate-600 truncate" dir="ltr">
+        <span className="text-[11px] text-zinc-600 truncate" dir="ltr">
           {tx.note || ''}
         </span>
         <div className="flex items-center gap-1 shrink-0">
