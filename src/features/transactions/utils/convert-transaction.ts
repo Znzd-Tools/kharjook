@@ -440,3 +440,31 @@ export function transactionIdsInConvertGroups(
 export function countConvertOperations(transactions: Transaction[]): number {
   return groupConvertTransactions(transactions).length;
 }
+
+export function convertGroupsForAsset(
+  assetId: string,
+  groups: ConvertTransactionGroup[]
+): ConvertTransactionGroup[] {
+  return groups.filter(
+    (g) =>
+      g.sell.source_asset_id === assetId || g.buy.target_asset_id === assetId
+  );
+}
+
+export function convertGroupsForWallet(
+  walletId: string,
+  groups: ConvertTransactionGroup[]
+): ConvertTransactionGroup[] {
+  return groups.filter(
+    (g) =>
+      g.sell.target_wallet_id === walletId || g.buy.source_wallet_id === walletId
+  );
+}
+
+export function convertGroupsTouchingTransactions(
+  transactions: Transaction[],
+  groups: ConvertTransactionGroup[]
+): ConvertTransactionGroup[] {
+  const ids = new Set(transactions.map((tx) => tx.id));
+  return groups.filter((g) => ids.has(g.sell.id) || ids.has(g.buy.id));
+}

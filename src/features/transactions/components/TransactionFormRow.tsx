@@ -442,31 +442,6 @@ export function TransactionFormRow({
           )}
         </div>
 
-        {/* Date */}
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">تاریخ</label>
-          <button
-            type="button"
-            onClick={() => setDateOpen(true)}
-            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
-          >
-            <Calendar size={16} className={style.accentText} />
-            <span className="text-sm text-zinc-100 flex-1">{dateLabel}</span>
-          </button>
-          <div className="mt-2 flex gap-2">
-            <DateChip
-              label="امروز"
-              active={!!isToday}
-              onClick={() => updateField('date', formatJalaali(today))}
-            />
-            <DateChip
-              label="دیروز"
-              active={!!isYesterday}
-              onClick={() => updateField('date', formatJalaali(yesterday))}
-            />
-          </div>
-        </div>
-
         {/* Primary amount input */}
         <PrimaryAmountField
           form={form}
@@ -555,6 +530,31 @@ export function TransactionFormRow({
             onOpen={() => setCategoryOpen(true)}
           />
         )}
+
+        {/* Date */}
+        <div>
+          <label className="block text-xs text-zinc-400 mb-1">تاریخ</label>
+          <button
+            type="button"
+            onClick={() => setDateOpen(true)}
+            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
+          >
+            <Calendar size={16} className={style.accentText} />
+            <span className="text-sm text-zinc-100 flex-1">{dateLabel}</span>
+          </button>
+          <div className="mt-2 flex gap-2">
+            <DateChip
+              label="امروز"
+              active={!!isToday}
+              onClick={() => updateField('date', formatJalaali(today))}
+            />
+            <DateChip
+              label="دیروز"
+              active={!!isYesterday}
+              onClick={() => updateField('date', formatJalaali(yesterday))}
+            />
+          </div>
+        </div>
 
         {/* Note */}
         <div>

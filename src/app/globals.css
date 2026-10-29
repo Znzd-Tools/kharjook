@@ -205,39 +205,7 @@ body {
   }
 }
 
-@keyframes price-ticker-scroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-.price-ticker-viewport {
-  direction: ltr;
-}
-
-.price-ticker-track {
-  animation: price-ticker-scroll var(--ticker-duration, 36s) linear infinite;
-  will-change: transform;
-}
-
-.price-ticker-viewport:hover .price-ticker-track {
-  animation-play-state: paused;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .price-ticker-viewport {
-    overflow-x: auto;
-    direction: rtl;
-  }
-
-  .price-ticker-track {
-    animation: none;
-    will-change: auto;
-  }
-
   /* Global fallback: collapse every other animation/transition to
      near-instant rather than fully off, so state changes still land. */
   *,

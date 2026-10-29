@@ -1,5 +1,6 @@
 'use client';
 
+import { HeaderAction, PageHeader } from '@/shared/components/ui';
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -8,7 +9,6 @@ import {
   Ban,
   CreditCard,
   Loader2,
-  Plus,
   ReceiptText,
   Trash2,
   XCircle,
@@ -287,18 +287,12 @@ export function ChecksHubView() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">چک‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/checks/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          چک جدید
-        </button>
-      </div>
+    <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
+      <PageHeader
+        className="-mx-4"
+        title="چک‌ها"
+        actions={<HeaderAction label="چک جدید" href="/deadlines/checks/new" />}
+      />
 
       <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
         {(
@@ -313,7 +307,7 @@ export function ChecksHubView() {
             type="button"
             onClick={() => setFilter(key)}
             className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              filter === key ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+              filter === key ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             {label}

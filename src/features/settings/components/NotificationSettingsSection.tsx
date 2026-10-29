@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bell,
-  BellOff,
   CalendarClock,
   Mail,
   MessageCircle,
@@ -11,6 +10,14 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useToast } from '@/shared/components/Toast';
+import {
+  Card,
+  IconBadge,
+  ListGroup,
+  Section,
+  SegmentedControl,
+  SwitchVisual,
+} from '@/shared/components/ui';
 
 type NotificationSettings = {
   enabled: boolean;
@@ -78,36 +85,12 @@ const TOGGLE_META: Record<
   },
 };
 
-const ACCENT_STYLES = {
-  amber: {
-    iconOn: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
-    badgeOn: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
-    toggleOn: 'bg-amber-500/10 border-amber-500/25 hover:bg-amber-500/15',
-    switchOn: 'bg-amber-500',
-    iconAccent: 'text-amber-400',
-  },
-  sky: {
-    iconOn: 'bg-sky-500/15 border-sky-500/30 text-sky-300',
-    badgeOn: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
-    toggleOn: 'bg-sky-500/10 border-sky-500/25 hover:bg-sky-500/15',
-    switchOn: 'bg-sky-500',
-    iconAccent: 'text-sky-400',
-  },
-  rose: {
-    iconOn: 'bg-rose-500/15 border-rose-500/30 text-rose-300',
-    badgeOn: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
-    toggleOn: 'bg-rose-500/10 border-rose-500/25 hover:bg-rose-500/15',
-    switchOn: 'bg-rose-500',
-    iconAccent: 'text-rose-400',
-  },
-  violet: {
-    iconOn: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
-    badgeOn: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
-    toggleOn: 'bg-violet-500/10 border-violet-500/25 hover:bg-violet-500/15',
-    switchOn: 'bg-violet-500',
-    iconAccent: 'text-violet-400',
-  },
-} as const;
+const ACCENT_COLOR: Record<(typeof TOGGLE_META)[ToggleKey]['accent'], string> = {
+  amber: '#fbbf24',
+  sky: '#38bdf8',
+  rose: '#fb7185',
+  violet: '#a78bfa',
+};
 
 function SettingsToggle({
   settingKey,
@@ -121,68 +104,28 @@ function SettingsToggle({
   onChange: (next: boolean) => void;
 }) {
   const meta = TOGGLE_META[settingKey];
-  const styles = ACCENT_STYLES[meta.accent];
   const Icon = meta.icon;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center border ${
-              checked ? styles.iconOn : 'bg-white/5 border-white/10 text-zinc-500'
-            }`}
-          >
-            {checked ? <Icon size={20} /> : <BellOff size={20} />}
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">{meta.title}</h3>
-            <p className="text-xs text-zinc-400 mt-1">{meta.subtitle}</p>
-          </div>
-        </div>
-        <span
-          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border ${
-            checked ? styles.badgeOn : 'bg-white/5 border-white/10 text-zinc-500'
-          }`}
-        >
-          {checked ? 'فعال' : 'خاموش'}
-        </span>
-      </div>
-
-      <div className="flex gap-3 rounded-2xl bg-surface-inset border border-white/5 p-4">
-        <Icon size={18} className={`${styles.iconAccent} shrink-0 mt-0.5`} />
-        <p className="text-xs text-zinc-400 leading-relaxed">{meta.description}</p>
-      </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className={`w-full flex items-center justify-between gap-4 rounded-2xl border p-4 text-right transition-colors disabled:opacity-50 ${
-          checked ? styles.toggleOn : 'bg-surface-inset border-white/5 hover:border-white/10'
-        }`}
-      >
-        <div>
-          <p className="text-sm font-medium text-white">یادآوری خودکار در تلگرام</p>
-          <p className="text-xs text-zinc-500 mt-1">
-            {checked ? meta.activeLabel : meta.inactiveLabel}
-          </p>
-        </div>
-        <div
-          className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${
-            checked ? styles.switchOn : 'bg-white/10'
-          }`}
-        >
-          <span
-            className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-              checked ? 'right-1' : 'right-6'
-            }`}
-          />
-        </div>
-      </button>
-    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-start gap-3 px-4 py-4 text-right transition-colors hover:bg-surface-hover disabled:opacity-60"
+    >
+      <IconBadge color={checked ? ACCENT_COLOR[meta.accent] : undefined}>
+        <Icon size={18} strokeWidth={1.9} />
+      </IconBadge>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-zinc-100">{meta.title}</span>
+        <span className="mt-1 block text-xs leading-relaxed text-zinc-500">{meta.description}</span>
+      </span>
+      <span className="pt-1.5">
+        <SwitchVisual checked={checked} />
+      </span>
+    </button>
   );
 }
 
@@ -240,9 +183,11 @@ export function NotificationSettingsSection() {
 
   if (isLoading || !settings) {
     return (
-      <section className="bg-surface-raised border border-white/5 rounded-2xl p-5">
-        <p className="text-sm text-zinc-500 animate-pulse">در حال بارگذاری...</p>
-      </section>
+      <Section title="اعلان‌های تلگرام">
+        <Card>
+          <p className="text-sm text-zinc-500 animate-pulse">در حال بارگذاری...</p>
+        </Card>
+      </Section>
     );
   }
 
@@ -254,22 +199,10 @@ export function NotificationSettingsSection() {
   ];
 
   return (
-    <section className="overflow-hidden bg-surface-raised border border-white/5 rounded-2xl">
-      <div className="bg-transparent px-5 pt-5 pb-4 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center border bg-accent-500/15 border-accent-500/30 text-accent-300">
-            <Bell size={20} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">اعلان‌های تلگرام</h3>
-            <p className="text-xs text-zinc-400 mt-1">هر گزینه مستقل از بقیه قابل تنظیم است</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-5 space-y-8">
+    <Section title="اعلان‌های تلگرام" description="هر گزینه مستقل از بقیه تنظیم می‌شود.">
+      <ListGroup>
         {toggleKeys.map((key) => (
-          <div key={key} className="space-y-3">
+          <div key={key}>
             <SettingsToggle
               settingKey={key}
               checked={settings[key]}
@@ -277,40 +210,27 @@ export function NotificationSettingsSection() {
               onChange={(next) => void patchSetting(key, next)}
             />
             {key === 'report_enabled' && settings.report_enabled ? (
-              <div className="rounded-2xl bg-surface-inset border border-white/5 p-4 space-y-2">
-                <p className="text-xs text-zinc-400">بازه ارسال گزارش</p>
-                <div className="flex gap-2">
-                  {(['daily', 'weekly'] as const).map((interval) => (
-                    <button
-                      key={interval}
-                      type="button"
-                      disabled={savingKey !== null}
-                      onClick={() => void patchSetting('report_interval', interval)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-colors ${
-                        settings.report_interval === interval
-                          ? 'bg-violet-500/20 border-violet-500/40 text-violet-200'
-                          : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
-                      }`}
-                    >
-                      {interval === 'daily' ? 'روزانه' : 'هفتگی'}
-                    </button>
-                  ))}
-                </div>
+              <div className="px-4 pb-4 pr-17">
+                <SegmentedControl
+                  size="sm"
+                  value={settings.report_interval}
+                  onChange={(interval) => {
+                    if (savingKey === null) void patchSetting('report_interval', interval);
+                  }}
+                  options={[
+                    { value: 'daily', label: 'روزانه' },
+                    { value: 'weekly', label: 'هفتگی' },
+                  ]}
+                />
               </div>
             ) : null}
           </div>
         ))}
-
-        <div className="rounded-2xl bg-surface-inset border border-white/5 p-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
-            <MessageCircle size={14} className="text-sky-400" />
-            <span>منوی بات: ثبت سریع، گزارش‌ها، قیمت‌ها، تنظیمات</span>
-          </div>
-          <p className="text-xs text-zinc-600 leading-relaxed">
-            اقساط معوق، موجودی کیف‌ها، ثبت درآمد/هزینه — از دکمه‌های بات در دسترس است.
-          </p>
-        </div>
-      </div>
-    </section>
+      </ListGroup>
+      <p className="flex items-start gap-2 px-1 text-xs leading-relaxed text-zinc-500">
+        <MessageCircle size={14} className="mt-0.5 shrink-0" />
+        منوی بات: ثبت سریع، گزارش‌ها، قیمت‌ها، اقساط معوق و موجودی کیف‌ها.
+      </p>
+    </Section>
   );
 }

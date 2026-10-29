@@ -7,13 +7,17 @@ import {
   useState,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { DailyPrice, Transaction } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
-import { undoTransactionInsert } from '@/features/transactions/utils/transaction-undo';
+import {
+  undoTransactionDelete,
+  undoTransactionInsert,
+} from '@/features/transactions/utils/transaction-undo';
 import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
 import { TransactionFormRow } from '@/features/transactions/components/TransactionFormRow';
 import {
@@ -62,6 +66,7 @@ export function AddTransactionView({
 }: AddTransactionViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   const {
     assets,
@@ -93,15 +98,18 @@ export function AddTransactionView({
     [txToEdit, transactions]
   );
 
+  // Opened from an asset → trading it is the likely intent; otherwise the
+  // everyday case is logging an expense.
+  const effectiveDefaultType = defaultType ?? (assetId ? 'BUY' : 'EXPENSE');
   const initialUiMode: UiTransactionMode =
     defaultUiMode ??
-    (convertPair ? CONVERT_UI_MODE : defaultType ?? 'BUY');
+    (convertPair ? CONVERT_UI_MODE : effectiveDefaultType);
 
   const [uiMode, setUiMode] = useState<UiTransactionMode>(initialUiMode);
   const prefillDefaults = {
     assetId,
     walletId,
-    defaultType,
+    defaultType: effectiveDefaultType,
     personId,
     personSide,
     settleAmount,
@@ -450,18 +458,59 @@ export function AddTransactionView({
     }
   };
 
+  const handleDelete = async () => {
+    if (!txToEdit) return;
+    const ids = convertPair ? [convertPair.sell.id, convertPair.buy.id] : [txToEdit.id];
+    const ok = await confirm({
+      message: convertPair
+        ? 'آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟'
+        : 'آیا از حذف این تراکنش مطمئن هستید؟',
+      variant: 'danger',
+      confirmLabel: 'حذف',
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from('transactions').delete().in('id', ids);
+      if (error) throw error;
+      setTransactions((prev) => prev.filter((tx) => !ids.includes(tx.id)));
+      if (convertPair) {
+        toast.success('تبدیل حذف شد.');
+      } else {
+        const snapshot = txToEdit;
+        toast.success('تراکنش حذف شد.', {
+          duration: 8000,
+          action: {
+            label: 'بازگردانی',
+            onClick: () => {
+              void undoTransactionDelete(snapshot, (restored) => {
+                setTransactions((prev) => [restored, ...prev]);
+              }).then((result) => {
+                if (!result.ok) toast.error(result.error);
+                else toast.info('تراکنش بازگردانده شد.');
+              });
+            },
+          },
+        });
+      }
+      router.back();
+    } catch (err) {
+      console.error(err);
+      toast.error('خطا در حذف رکورد.');
+    }
+  };
+
   return (
-    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out] relative z-50">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-background min-h-full animate-[slide-fade-in-up_300ms_ease-out] relative z-50">
+      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
+          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
         >
-          <ArrowRight size={20} />
+          <ArrowRight size={20} strokeWidth={1.75} />
         </button>
-        <h2 className="text-lg font-semibold text-white flex-1">
+        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">
           {isEdit
             ? isConvertEdit
               ? 'ویرایش تبدیل'
@@ -472,9 +521,20 @@ export function AddTransactionView({
                 ? `ثبت ${rows.length} تراکنش`
                 : 'ثبت تراکنش جدید'}
         </h2>
+        {isEdit && (
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            aria-label="حذف"
+            title="حذف"
+            className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-rose-400 hover:bg-rose-500/10"
+          >
+            <Trash2 size={19} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
 
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+      <form onSubmit={handleSubmit} className="px-4 pt-4 space-y-4">
         {formError && (
           <div
             role="alert"
@@ -485,7 +545,7 @@ export function AddTransactionView({
         )}
         {/* Type tabs — 2×3: trade row then cash/move row; equal weight, readable Persian labels */}
         <div
-          className="grid grid-cols-3 gap-1.5 bg-surface-raised p-1.5 rounded-xl"
+          className="grid grid-cols-3 gap-1 bg-white/5 p-1 rounded-2xl"
           role="tablist"
           aria-label="نوع تراکنش"
         >
@@ -500,7 +560,7 @@ export function AddTransactionView({
                 aria-selected={active}
                 onClick={() => switchUiMode(t)}
                 disabled={isEdit && t !== uiMode}
-                className={`min-h-11 px-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
+                className={`h-10 px-1 text-[13px] font-medium rounded-xl transition-all ${
                   active
                     ? `${s.accentBg} text-white`
                     : 'text-zinc-400 hover:text-zinc-200 disabled:opacity-30'
@@ -563,7 +623,7 @@ export function AddTransactionView({
           <button
             type="button"
             onClick={addRow}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-zinc-300 min-h-11 p-3 rounded-xl text-sm font-semibold transition-all"
+            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
           >
             <Plus size={16} />
             افزودن تراکنش دیگر
@@ -582,10 +642,11 @@ export function AddTransactionView({
           </>
         )}
 
+        <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-safe bg-background/90 backdrop-blur-md">
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full ${sharedStyle.accentBtnBg} text-white min-h-11 p-4 rounded-xl font-semibold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none`}
+          className={`w-full ${sharedStyle.accentBtnBg} text-white h-12 rounded-2xl font-semibold ${sharedStyle.accentBtnShadow} transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none`}
         >
           {isSubmitting
             ? 'در حال ارسال...'
@@ -599,6 +660,7 @@ export function AddTransactionView({
                   ? `ثبت ${rows.length} تراکنش`
                   : 'ثبت تراکنش'}
         </button>
+        </div>
       </form>
     </div>
   );

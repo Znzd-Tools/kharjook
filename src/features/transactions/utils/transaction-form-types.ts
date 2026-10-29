@@ -250,13 +250,14 @@ export const TYPE_STYLES: Record<TransactionType, TypeStyle> = {
   },
 };
 
+/** Everyday cash moves first, trading second. */
 export const UI_TABS: UiTransactionMode[] = [
+  'EXPENSE',
+  'INCOME',
+  'TRANSFER',
   'BUY',
   'SELL',
   CONVERT_UI_MODE,
-  'TRANSFER',
-  'INCOME',
-  'EXPENSE',
 ];
 
 export const CONVERT_TAB_STYLE: TypeStyle = {

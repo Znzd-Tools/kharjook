@@ -29,7 +29,7 @@ export function TransactionHistoryTypeFilter({
   onChange: (next: TxHistoryTypeFilter) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="tablist" aria-label="نوع تراکنش">
+    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-hide" role="tablist" aria-label="نوع تراکنش">
       <FilterChip
         active={value === 'ALL'}
         onClick={() => onChange('ALL')}

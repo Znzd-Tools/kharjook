@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Download, X } from 'lucide-react';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -95,60 +96,47 @@ export function PwaInstallPrompt() {
   if (!storageReady) return null;
   if (!showInstall && !showIosHint && !showFallbackHint) return null;
 
+  const hint = showInstall
+    ? 'بدون نوار مرورگر، مثل یک اپ واقعی.'
+    : showIosHint
+      ? 'در Safari: Share ← Add to Home Screen'
+      : 'از منوی مرورگر: Install app';
+
   return (
-    <div className="px-4 pt-3">
-      <div className="rounded-2xl border border-white/8 bg-surface-raised p-3.5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-white">نصب اپ</p>
-            <p className="text-xs text-zinc-300 mt-1 leading-5">
-              {showInstall
-                ? 'برای تجربه شبیه اپ، خرجوک را روی هوم‌اسکرین نصب کن.'
-                : showIosHint
-                  ? 'در آیفون: Safari > Share > Add to Home Screen'
-                  : 'در اندروید/دسکتاپ: منوی مرورگر > Install app / Add to Home Screen'}
-            </p>
-          </div>
+    <div className="px-4 pt-2">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-surface-raised py-2.5 pr-3 pl-2">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-600 text-white">
+          <Download size={17} strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-100">خرجوک را نصب کن</p>
+          <p className="truncate text-xs text-zinc-500">{hint}</p>
+        </div>
+        {showInstall && (
           <button
             type="button"
-            onClick={dismissPermanently}
-            className="text-zinc-400 hover:text-white text-xs"
+            onClick={async () => {
+              if (!promptEvent) return;
+              await promptEvent.prompt();
+              const choice = await promptEvent.userChoice;
+              setPromptEvent(null);
+              if (choice.outcome !== 'accepted') {
+                dismissPermanently();
+              }
+            }}
+            className="h-8 shrink-0 rounded-full bg-zinc-50 px-3.5 text-xs font-semibold text-zinc-900 hover:bg-white"
           >
-            بستن
+            نصب
           </button>
-        </div>
-
-        {showInstall && (
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                if (!promptEvent) return;
-                await promptEvent.prompt();
-                const choice = await promptEvent.userChoice;
-                setPromptEvent(null);
-                if (choice.outcome !== 'accepted') {
-                  dismissPermanently();
-                }
-              }}
-              className="h-9 px-4 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium"
-            >
-              نصب
-            </button>
-            <span className="text-[11px] text-zinc-400">
-              بعد از نصب، اپ بدون نوار مرورگر باز می‌شود.
-            </span>
-          </div>
         )}
-
-        {showFallbackHint && (
-          <div className="mt-3 rounded-xl bg-white/4 p-2.5">
-            <p className="text-[11px] text-zinc-400 leading-5">
-              اگر دکمه نصب مرورگر ظاهر نمی‌شود، یک بار صفحه را Hard Refresh کن و
-              از HTTPS استفاده کن. سپس از منوی مرورگر گزینه Install app را بزن.
-            </p>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={dismissPermanently}
+          aria-label="بستن"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-white/6 hover:text-zinc-200"
+        >
+          <X size={16} />
+        </button>
       </div>
     </div>
   );

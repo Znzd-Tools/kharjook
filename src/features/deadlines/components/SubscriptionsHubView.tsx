@@ -1,5 +1,6 @@
 'use client';
 
+import { HeaderAction, PageHeader } from '@/shared/components/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,7 +9,6 @@ import {
   ChevronRight,
   CreditCard,
   Loader2,
-  Plus,
   Repeat,
   RotateCcw,
   Trash2,
@@ -253,18 +253,12 @@ export function SubscriptionsHubView() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">اشتراک‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/subscriptions/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          اشتراک جدید
-        </button>
-      </div>
+    <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
+      <PageHeader
+        className="-mx-4"
+        title="اشتراک‌ها"
+        actions={<HeaderAction label="اشتراک جدید" href="/deadlines/subscriptions/new" />}
+      />
 
       <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -342,7 +336,7 @@ export function SubscriptionsHubView() {
             type="button"
             onClick={() => setFilter(key)}
             className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              filter === key ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+              filter === key ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             {label}

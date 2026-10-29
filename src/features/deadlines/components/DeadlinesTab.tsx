@@ -1,114 +1,99 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  CalendarClock,
-  ChevronLeft,
-  HandCoins,
-  ReceiptText,
-  Repeat,
-} from 'lucide-react';
-
-type DeadlineItem = {
-  key: string;
-  title: string;
-  subtitle: string;
-  icon: ReactNode;
-  href?: string;
-  disabled?: boolean;
-};
-
-const DEADLINE_ITEMS: DeadlineItem[] = [
-  {
-    key: 'loans',
-    title: 'اقساط و وام‌ها',
-    subtitle: 'مدیریت پرداخت‌های دوره‌ای و اقساط',
-    icon: <CalendarClock size={20} />,
-    href: '/deadlines/loans',
-  },
-  {
-    key: 'persons',
-    title: 'اشخاص',
-    subtitle: 'مدیریت طلب و بدهی اشخاص',
-    icon: <HandCoins size={20} />,
-    href: '/deadlines/persons',
-  },
-  {
-    key: 'checks',
-    title: 'چک‌ها',
-    subtitle: 'ثبت و پیگیری چک‌های صادره',
-    icon: <ReceiptText size={20} />,
-    href: '/deadlines/checks',
-  },
-  {
-    key: 'subscriptions',
-    title: 'اشتراک‌ها',
-    subtitle: 'مدیریت اشتراک‌های دوره‌ای',
-    icon: <Repeat size={20} />,
-    href: '/deadlines/subscriptions',
-  },
-];
-
-function DeadlinesItem({
-  item,
-  onClick,
-}: {
-  item: DeadlineItem;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={item.disabled}
-      onClick={onClick}
-      className={`w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors ${
-        item.disabled
-          ? 'opacity-50 cursor-not-allowed'
-          : 'hover:bg-surface-hover hover:border-accent-500/20'
-      }`}
-    >
-      <div className="flex items-center gap-4">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            item.disabled
-              ? 'bg-zinc-500/10 text-zinc-500'
-              : 'bg-accent-500/10 text-accent-400'
-          }`}
-        >
-          {item.icon}
-        </div>
-        <div className="text-right">
-          <p className="font-medium text-zinc-200">{item.title}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">{item.subtitle}</p>
-        </div>
-      </div>
-      <ChevronLeft
-        size={20}
-        className={item.disabled ? 'text-zinc-700' : 'text-zinc-600'}
-      />
-    </button>
-  );
-}
+import { useMemo } from 'react';
+import { CalendarClock, HandCoins, ReceiptText, Repeat } from 'lucide-react';
+import { useData } from '@/features/portfolio/PortfolioProvider';
+import { UpcomingList } from '@/features/deadlines/components/UpcomingList';
+import { IconBadge, ListGroup, ListRow, Page, Section } from '@/shared/components/ui';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
+import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 
 export function DeadlinesTab() {
-  const router = useRouter();
-  return (
-    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
-      <h2 className="text-xl font-semibold text-white mb-2">سررسید</h2>
+  const { upcomingDeadlines, checks, activeSubscriptions, persons } = useData();
+  const today = useMemo(() => formatJalaali(todayJalaali()), []);
 
-      <div className="space-y-3">
-        {DEADLINE_ITEMS.map((item) => (
-          <DeadlinesItem
-            key={item.key}
-            item={item}
-            onClick={() => {
-              if (!item.href) return;
-              router.push(item.href);
-            }}
+  const counts = useMemo(() => {
+    const pendingChecks = checks.filter((c) => c.status === 'pending');
+    const overdue =
+      upcomingDeadlines.filter((i) => i.due_date_string < today).length +
+      pendingChecks.filter((c) => c.due_date_string < today).length +
+      activeSubscriptions.filter((s) => s.next_due_date_string < today).length;
+    return {
+      loans: new Set(upcomingDeadlines.map((i) => i.loan_id)).size,
+      installments: upcomingDeadlines.length,
+      checks: pendingChecks.length,
+      subscriptions: activeSubscriptions.length,
+      persons: persons.length,
+      overdue,
+    };
+  }, [upcomingDeadlines, checks, activeSubscriptions, persons, today]);
+
+  const n = (v: number) => toPersianDigits(v);
+
+  return (
+    <Page>
+      {counts.overdue > 0 && (
+        <div className="rounded-2xl bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+          {n(counts.overdue)} مورد از موعدش گذشته و هنوز پرداخت نشده.
+        </div>
+      )}
+
+      <UpcomingList maxRows={8} showAction={false} title="۳۰ روز آینده" />
+
+      <Section title="همه سررسیدها">
+        <ListGroup>
+          <ListRow
+            href="/deadlines/loans"
+            leading={
+              <IconBadge color="#fbbf24">
+                <CalendarClock size={18} strokeWidth={1.9} />
+              </IconBadge>
+            }
+            title="اقساط و وام‌ها"
+            subtitle={
+              counts.loans > 0
+                ? `${n(counts.loans)} وام فعال · ${n(counts.installments)} قسط مانده`
+                : 'وام یا خرید اعتباری ثبت نشده'
+            }
+            chevron
           />
-        ))}
-      </div>
-    </div>
+          <ListRow
+            href="/deadlines/checks"
+            leading={
+              <IconBadge color="#a78bfa">
+                <ReceiptText size={18} strokeWidth={1.9} />
+              </IconBadge>
+            }
+            title="چک‌ها"
+            subtitle={counts.checks > 0 ? `${n(counts.checks)} چک در انتظار` : 'چک در انتظاری نداری'}
+            chevron
+          />
+          <ListRow
+            href="/deadlines/subscriptions"
+            leading={
+              <IconBadge color="#22d3ee">
+                <Repeat size={18} strokeWidth={1.9} />
+              </IconBadge>
+            }
+            title="اشتراک‌ها"
+            subtitle={
+              counts.subscriptions > 0 ? `${n(counts.subscriptions)} اشتراک فعال` : 'اشتراک فعالی نداری'
+            }
+            chevron
+          />
+          <ListRow
+            href="/deadlines/persons"
+            leading={
+              <IconBadge color="#34d399">
+                <HandCoins size={18} strokeWidth={1.9} />
+              </IconBadge>
+            }
+            title="طلب و بدهی اشخاص"
+            subtitle={counts.persons > 0 ? `${n(counts.persons)} شخص` : 'شخصی ثبت نشده'}
+            chevron
+          />
+        </ListGroup>
+      </Section>
+    </Page>
   );
 }

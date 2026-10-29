@@ -115,12 +115,12 @@ export function CashflowReportView() {
 
   return (
     <div className="bg-surface-shell min-h-full">
-      <header className="sticky top-0 z-10 bg-surface-shell/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 bg-surface-shell/85 backdrop-blur-md border-b border-white/5 px-3 pt-safe pb-3 flex items-center gap-2">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-surface-raised border border-white/5 flex items-center justify-center text-zinc-300 hover:bg-white/5"
+          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
         >
           <ChevronRight size={18} />
         </button>

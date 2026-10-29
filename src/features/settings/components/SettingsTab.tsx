@@ -1,12 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowRight, LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { TelegramConnectionSection } from '@/features/settings/components/TelegramConnectionSection';
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
+import { IconBadge, ListGroup, ListRow, PageHeader, Section } from '@/shared/components/ui';
 
 export function SettingsTab() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export function SettingsTab() {
 
   if (!user) return null;
 
-  const displayPhone = user.email ? user.email.split('@')[0] : user.phone ?? '';
+  const displayName = user.email ? user.email.split('@')[0] : user.phone ?? '';
 
   const handleLogout = async () => {
     await logout();
@@ -22,47 +23,42 @@ export function SettingsTab() {
   };
 
   return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
-          aria-label="بازگشت"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-semibold text-white flex-1">تنظیمات</h2>
-      </div>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="تنظیمات" />
 
-      <div className="p-6 space-y-6">
-        <div className="bg-surface-raised border border-white/5 p-5 rounded-2xl flex items-center gap-4">
-          <div className="w-14 h-14 bg-surface-shell rounded-full flex items-center justify-center border-2 border-accent-500/50 text-accent-400">
-            <UserIcon size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-zinc-400">اکانت</p>
-            <p className="text-sm font-semibold text-white mt-1" dir="ltr">
-              {latinizeDigits(displayPhone)}
-            </p>
-          </div>
-        </div>
+      <div className="px-4 pt-5 space-y-7">
+        <ListGroup>
+          <ListRow
+            leading={
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-600 text-white">
+                <UserIcon size={22} strokeWidth={1.75} />
+              </span>
+            }
+            title={<span dir="ltr">{latinizeDigits(displayName)}</span>}
+            subtitle={user.email ?? undefined}
+          />
+        </ListGroup>
 
-        <TelegramConnectionSection />
-        <PasskeySettingsSection />
+        <Section title="اتصال‌ها و امنیت">
+          <div className="space-y-3">
+            <TelegramConnectionSection />
+            <PasskeySettingsSection />
+          </div>
+        </Section>
+
         <NotificationSettingsSection />
 
-        <button
-          onClick={handleLogout}
-          className="w-full bg-surface-raised hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:bg-rose-500/20 transition-colors">
-              <LogOut size={20} />
-            </div>
-            <span className="font-medium text-rose-400">خروج از حساب</span>
-          </div>
-        </button>
+        <ListGroup>
+          <ListRow
+            onClick={() => void handleLogout()}
+            leading={
+              <IconBadge color="#fb7185">
+                <LogOut size={18} strokeWidth={1.9} />
+              </IconBadge>
+            }
+            title={<span className="text-rose-400">خروج از حساب</span>}
+          />
+        </ListGroup>
       </div>
     </div>
   );

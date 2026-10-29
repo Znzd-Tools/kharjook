@@ -107,14 +107,14 @@ export function CurrencyRatesView() {
 
   return (
     <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
+          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
         >
-          <ArrowRight size={20} />
+          <ArrowRight size={20} strokeWidth={1.75} />
         </button>
-        <h2 className="text-lg font-semibold text-white flex-1">نرخ تبدیل ارزها</h2>
+        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">نرخ تبدیل ارزها</h2>
       </div>
 
       <div className="px-6 pt-4">

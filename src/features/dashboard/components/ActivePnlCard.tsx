@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, TrendingDown, TrendingUp } from 'lucide-react';
+import { Card, DeltaPill, ListGroup, ListRow, Money, Section, Stat } from '@/shared/components/ui';
 import type { CurrencyMode } from '@/shared/types/domain';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatDisplayNumber } from '@/shared/utils/format-display-number';
@@ -24,8 +24,8 @@ function signedPercent(value: number): string {
 
 /**
  * Open (active / unrealized) P/L of what you hold right now — the number you
- * can still act on. This-year and from-the-beginning P/L are shown smaller,
- * as context, because they mostly describe the past.
+ * can still act on — then this-year and all-time as context, then the biggest
+ * movers.
  */
 export function ActivePnlCard({
   currencyMode,
@@ -36,7 +36,6 @@ export function ActivePnlCard({
   allTimeValue,
   movers,
   warning,
-  onOpen,
 }: {
   currencyMode: CurrencyMode;
   openValue: number;
@@ -46,121 +45,47 @@ export function ActivePnlCard({
   allTimeValue: number;
   movers: ActivePnlMover[];
   warning?: string | null;
-  onOpen?: () => void;
 }) {
-  const positive = openValue >= 0;
-  const Icon = positive ? TrendingUp : TrendingDown;
-  const hasHoldings = openCostBasis > 0;
+  const tone = (v: number): 'positive' | 'negative' => (v >= 0 ? 'positive' : 'negative');
 
   return (
-    <section
-      aria-label="سود و زیان باز"
-      className="relative overflow-hidden rounded-2xl border border-white/5 bg-surface-raised p-4"
-    >
-
-      <div className="relative flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-zinc-400 font-medium">سود/زیان باز</p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">روی دارایی‌هایی که الان داری</p>
+    <Section title="سود و زیان" action={{ label: 'دارایی‌ها', href: '/assets' }}>
+      <Card className="space-y-4">
+        <div>
+          <p className="text-xs text-zinc-500">سود/زیان باز</p>
+          {openCostBasis > 0 ? (
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-2xl font-semibold tracking-tight">
+                <Money tone={tone(openValue)}>{signed(openValue, currencyMode)}</Money>
+              </span>
+              <DeltaPill value={openPercent}>{signedPercent(openPercent)}</DeltaPill>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-zinc-500">فعلاً دارایی بازی نداری.</p>
+          )}
         </div>
-        {onOpen ? (
-          <button
-            type="button"
-            onClick={onOpen}
-            className="shrink-0 inline-flex items-center gap-0.5 rounded-lg bg-white/5 px-2 py-1 text-xs text-zinc-300 hover:bg-white/10"
-          >
-            دارایی‌ها
-            <ChevronLeft size={14} />
-          </button>
-        ) : null}
-      </div>
-
-      {hasHoldings ? (
-        <div className="relative mt-3 flex items-end justify-between gap-3">
-          <p
-            className={`min-w-0 truncate text-3xl font-semibold tracking-tight ${
-              positive ? 'text-emerald-300' : 'text-rose-300'
-            }`}
-            dir="ltr"
-          >
-            {signed(openValue, currencyMode)}
-          </p>
-          <span
-            className={`mb-1 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-              positive ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'
-            }`}
-            dir="ltr"
-          >
-            <Icon size={13} />
-            {signedPercent(openPercent)}
-          </span>
+        <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4">
+          <Stat label="امسال" value={signed(yearValue, currencyMode)} tone={tone(yearValue)} />
+          <Stat label="از ابتدا" value={signed(allTimeValue, currencyMode)} tone={tone(allTimeValue)} />
         </div>
-      ) : (
-        <p className="relative mt-3 text-sm text-zinc-500">فعلاً دارایی بازی نداری.</p>
-      )}
-
-      {hasHoldings && (
-        <p className="relative mt-1 text-xs text-zinc-500">
-          روی سرمایه‌ی{' '}
-          <span dir="ltr" className="text-zinc-400">
-            {formatCurrency(openCostBasis, currencyMode)}
-          </span>
-        </p>
-      )}
+        {warning ? <p className="text-[11px] leading-relaxed text-amber-400/80">{warning}</p> : null}
+      </Card>
 
       {movers.length > 0 && (
-        <ul className="relative mt-3 space-y-1.5">
-          {movers.map((row) => {
-            const up = row.value >= 0;
-            return (
-              <li
-                key={row.id}
-                className="flex items-center justify-between gap-3 rounded-xl bg-white/4 px-3 py-2"
-              >
-                <span className="min-w-0 truncate text-xs text-zinc-200">{row.name}</span>
-                <span
-                  className={`shrink-0 text-xs font-semibold ${
-                    up ? 'text-emerald-300' : 'text-rose-300'
-                  }`}
-                  dir="ltr"
-                >
-                  {signed(row.value, currencyMode)} · {signedPercent(row.percent)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <ListGroup>
+          {movers.map((row) => (
+            <ListRow
+              key={row.id}
+              href={`/assets/${row.id}`}
+              title={row.name}
+              trailing={<Money tone={tone(row.value)}>{signed(row.value, currencyMode)}</Money>}
+              trailingSub={<Money tone={tone(row.value)}>{signedPercent(row.percent)}</Money>}
+              className="py-3"
+            />
+          ))}
+        </ListGroup>
       )}
-
-      <div className="relative mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
-        <div className="min-w-0">
-          <p className="text-[11px] text-zinc-500">سود/زیان امسال</p>
-          <p
-            className={`truncate text-sm font-semibold ${
-              yearValue >= 0 ? 'text-emerald-300/80' : 'text-rose-300/80'
-            }`}
-            dir="ltr"
-          >
-            {signed(yearValue, currencyMode)}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] text-zinc-500">سود/زیان از ابتدا</p>
-          <p
-            className={`truncate text-sm font-semibold ${
-              allTimeValue >= 0 ? 'text-emerald-300/80' : 'text-rose-300/80'
-            }`}
-            dir="ltr"
-          >
-            {signed(allTimeValue, currencyMode)}
-          </p>
-        </div>
-      </div>
-
-      {warning ? (
-        <p className="relative mt-2 text-[11px] text-amber-400/80">{warning}</p>
-      ) : null}
-    </section>
+    </Section>
   );
 }
 

@@ -188,10 +188,11 @@ export function PrimaryAmountField({
         value={value}
         onValueChange={onChange}
         aria-invalid={showError || undefined}
-        className={`w-full bg-surface-raised border rounded-xl p-3 text-sm  focus:outline-none text-left ${
+        placeholder="0"
+        className={`w-full h-14 bg-surface-inset border rounded-xl px-4 text-2xl font-semibold tracking-tight placeholder:text-zinc-700 focus:outline-none text-left ${
           showError
             ? 'border-rose-500/50 text-rose-200 focus:border-rose-500'
-            : 'border-white/10 text-white focus:border-accent-500'
+            : 'border-white/8 text-zinc-50 focus:border-accent-400'
         }`}
         dir="ltr"
         required
@@ -536,15 +537,8 @@ export function PreviewPanel({
   const valid = rows.map((r) => validateForm(r, wallets) === null);
   const validCount = valid.filter(Boolean).length;
 
-  if (validCount === 0) {
-    return (
-      <div className="rounded-2xl border border-white/5 bg-white/2 p-4 text-center">
-        <p className="text-xs text-zinc-500">
-          پیش‌نمایش پس از تکمیل فرم در اینجا ظاهر می‌شود.
-        </p>
-      </div>
-    );
-  }
+  // Nothing to preview yet: render nothing rather than a placeholder box.
+  if (validCount === 0) return null;
 
   return (
     <div className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-4 space-y-2`}>
@@ -643,16 +637,16 @@ void formatCurrency;
 export function NotFound({ message, onBack }: { message: string; onBack: () => void }) {
   return (
     <div className="bg-background min-h-full">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5">
+      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5">
         <button
           type="button"
           onClick={onBack}
           aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
+          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
         >
-          <ArrowRight size={20} />
+          <ArrowRight size={20} strokeWidth={1.75} />
         </button>
-        <h2 className="text-lg font-semibold text-white flex-1">تراکنش</h2>
+        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">تراکنش</h2>
       </div>
       <div className="px-4 py-6 text-center text-zinc-500 text-sm">{message}</div>
     </div>

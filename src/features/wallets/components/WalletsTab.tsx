@@ -2,10 +2,13 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Settings2, Wallet as WalletIcon } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, Settings2, Wallet as WalletIcon } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { RouteSkeleton } from '@/shared/components/RouteSkeleton';
+import { IconButton, ListGroup, ListRow, Money, Page } from '@/shared/components/ui';
+import { PortfolioSwitcher } from '@/features/portfolio/components/PortfolioSwitcher';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
@@ -31,45 +34,43 @@ export function WalletsTab() {
   }, [wallets, transactions, currencyRates, rateHistories]);
 
   const totalToman = rows.reduce((acc, r) => acc + r.balanceToman, 0);
+  // Shares are of money actually held; overdrawn wallets would push them past 100%.
+  const positiveToman = rows.reduce((acc, r) => acc + Math.max(0, r.balanceToman), 0);
   const totalUsd = usdRate > 0 ? totalToman / usdRate : 0;
   const displayTotal = currencyMode === 'USD' ? totalUsd : totalToman;
 
   const hasMissingRate = rows.some((r) => r.wallet.currency !== 'IRT' && r.rate === 0);
 
   return (
-    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
-      <div className="flex justify-between items-center gap-3">
-        <h2 className="text-xl font-semibold text-white">کیف پول‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/manage/wallets')}
-          className="p-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:border-accent-500/30 transition-colors"
-          aria-label="مدیریت کیف پول‌ها"
-          title="مدیریت"
-        >
-          <Settings2 size={18} />
-        </button>
+    <Page>
+      <PortfolioSwitcher value="wallets" />
+
+      <div className="flex items-end justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <p className="text-xs text-zinc-500">
+            جمع نقد · به {currencyMode === 'USD' ? 'دلار' : 'تومان'}
+          </p>
+          <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight text-zinc-50">
+            <Money>{formatCurrency(displayTotal, currencyMode)}</Money>
+          </p>
+        </div>
+        <IconButton label="مدیریت کیف پول‌ها" href="/manage/wallets">
+          <Settings2 size={19} strokeWidth={1.75} />
+        </IconButton>
       </div>
 
-      <div className="bg-surface-raised border border-white/5 p-5 rounded-2xl">
-        <p className="text-zinc-400 text-sm mb-2">جمع کل نقد (تبدیل به {currencyMode === 'USD' ? 'دلار' : 'تومان'})</p>
-        <p className="text-3xl font-semibold text-white tracking-tight" dir="ltr">
-          {formatCurrency(displayTotal, currencyMode)}
-        </p>
-        {hasMissingRate && (
-          <p className="text-xs text-amber-400/80 mt-3">
-            برای برخی ارزها نرخ تبدیل تعریف نشده. از{' '}
-            <button
-              type="button"
-              onClick={() => router.push('/prices')}
-              className="underline hover:text-amber-300"
-            >
-              قیمت‌ها و نرخ‌ها
-            </button>{' '}
-            مقدار را اضافه کن.
-          </p>
-        )}
-      </div>
+      {hasMissingRate && (
+        <Link
+          href="/prices"
+          className="flex items-start gap-3 rounded-2xl bg-amber-400/8 px-4 py-3 text-xs leading-5 text-amber-200"
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+          <span>
+            نرخ تبدیل بعضی ارزها ثبت نشده و در جمع حساب نشده‌اند.{' '}
+            <span className="font-medium text-amber-100 underline underline-offset-2">ثبت نرخ</span>
+          </span>
+        </Link>
+      )}
 
       {isLoadingData && wallets.length === 0 && <RouteSkeleton blocks={3} compact />}
 
@@ -77,61 +78,57 @@ export function WalletsTab() {
         <EmptyState
           icon={<WalletIcon size={24} />}
           title="هنوز کیف پولی نساخته‌ای."
+          description="حساب بانکی، کارت یا پول نقد — هر جایی که پول نگه می‌داری."
           actionLabel="افزودن کیف پول"
           onAction={() => router.push('/manage/wallets')}
         />
       )}
 
       {wallets.length > 0 && (
-        <div className="space-y-3">
+        <ListGroup>
           {rows.map(({ wallet, meta, stats, balanceToman }) => {
-            const balanceDisplay = currencyMode === 'USD' && usdRate > 0
-              ? balanceToman / usdRate
-              : balanceToman;
+            const balanceDisplay =
+              currencyMode === 'USD' && usdRate > 0 ? balanceToman / usdRate : balanceToman;
+            const isHome = wallet.currency === 'IRT';
             return (
-              <button
+              <ListRow
                 key={wallet.id}
-                type="button"
-                onClick={() => router.push(`/wallets/${wallet.id}`)}
-                className="w-full bg-surface-raised border border-white/5 p-4 rounded-2xl flex items-center justify-between hover:bg-surface-hover active:scale-[0.99] transition-all text-right"
-              >
-                <div className="flex items-center gap-4 min-w-0">
+                href={`/wallets/${wallet.id}`}
+                leading={
                   <EntityIcon
                     iconUrl={wallet.icon_url}
-                    fallback={<WalletIcon size={22} />}
-                    bgColor="rgba(168, 85, 247, 0.10)"
-                    color="#a5a9fc"
-                    className="w-12 h-12 shrink-0"
+                    fallback={<WalletIcon size={18} />}
+                    bgColor="rgba(255,255,255,0.06)"
+                    color="#d4d4d8"
+                    className="h-10 w-10 rounded-full!"
                   />
-                  <div className="min-w-0">
-                    <p className="font-semibold text-zinc-200 truncate">
-                      {wallet.name}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1 " dir="ltr">
-                      {meta.symbol}{' '}
-                      {formatCurrencyAmount(stats.balance, wallet.currency)}{' '}
-                      {wallet.currency}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-left">
-                    <p className="text-zinc-200 font-semibold text-sm" dir="ltr">
-                      {formatCurrency(balanceDisplay, currencyMode)}
-                    </p>
-                    {(stats.incomeTotal > 0 || stats.expenseTotal > 0) && (
-                      <p className="text-[11px] text-zinc-500 mt-0.5" dir="ltr">
-                        +{formatCurrencyAmount(stats.incomeTotal, wallet.currency)} / -{formatCurrencyAmount(stats.expenseTotal, wallet.currency)}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronLeft size={18} className="text-zinc-600" />
-                </div>
-              </button>
+                }
+                title={wallet.name}
+                subtitle={
+                  isHome ? (
+                    meta.label
+                  ) : (
+                    <Money>
+                      {meta.symbol}
+                      {formatCurrencyAmount(stats.balance, wallet.currency)} {wallet.currency}
+                    </Money>
+                  )
+                }
+                trailing={
+                  <Money tone={balanceDisplay < 0 ? 'negative' : 'neutral'}>
+                    {formatCurrency(balanceDisplay, currencyMode)}
+                  </Money>
+                }
+                trailingSub={
+                  positiveToman > 0 && balanceToman > 0
+                    ? `${((balanceToman / positiveToman) * 100).toFixed(0)}٪ از نقد`
+                    : undefined
+                }
+              />
             );
           })}
-        </div>
+        </ListGroup>
       )}
-    </div>
+    </Page>
   );
 }

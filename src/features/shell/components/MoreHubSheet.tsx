@@ -7,7 +7,6 @@ import {
   Coins,
   FileUp,
   LayoutGrid,
-  Receipt,
   Repeat,
   Target,
   TrendingUp,
@@ -21,12 +20,6 @@ type MoreHubSheetProps = {
 };
 
 const LINKS = [
-  {
-    href: '/transactions',
-    title: 'تراکنش‌ها',
-    subtitle: 'جستجو، فیلتر و خروجی CSV',
-    icon: Receipt,
-  },
   {
     href: '/reports',
     title: 'گزارش‌ها',

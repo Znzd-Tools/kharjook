@@ -2,22 +2,17 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, ArrowLeftRight, ArrowRight, Edit3, Plus, TargetIcon, Trash2 } from 'lucide-react';
+import { Activity, ArrowLeftRight, Plus, TargetIcon } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
-import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
-import { supabase } from '@/shared/lib/supabase/client';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { toPersianDigits } from '@/shared/utils/format-display-number';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
-import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { sortTransactionsNewestFirst } from '@/shared/utils/sort-transactions';
 import { computeAssetPnl, pick, pnlPercent } from '@/features/reports/utils/asset-pnl';
 import { AssetPnlBreakdown } from '@/features/assets/components/AssetPnlBreakdown';
-import { DetailCard } from '@/features/assets/components/DetailCard';
 import {
   buildAssetSnapshots,
   calculateAssetGoalProgress,
@@ -36,24 +31,17 @@ import {
   transactionMatchesSearch,
 } from '@/features/transactions/utils/transaction-history-search';
 import {
-  ConvertTransactionCard,
-  convertGroupsForAsset,
-} from '@/features/transactions/components/ConvertTransactionCard';
+  ConvertListItem,
+  TransactionListItem,
+} from '@/features/transactions/components/TransactionListItem';
 import {
   CONVERT_UI_MODE,
+  convertGroupsForAsset,
   groupConvertTransactions,
   transactionIdsInConvertGroups,
   type ConvertTransactionGroup,
 } from '@/features/transactions/utils/convert-transaction';
-
-const TYPE_LABELS: Record<string, string> = {
-  BUY: 'خرید',
-  SELL: 'فروش',
-  TRANSFER: 'انتقال',
-  INCOME: 'درآمد',
-  EXPENSE: 'هزینه',
-};
-
+import { Card, DeltaPill, ListGroup, ListRow, Money, PageHeader, Section } from '@/shared/components/ui';
 
 export interface AssetDetailsViewProps {
   assetId: string;
@@ -61,9 +49,7 @@ export interface AssetDetailsViewProps {
 
 export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
-  const toast = useToast();
-  const { confirm } = useConfirm();
-  const { assets, categories, transactions, goals, dailyPrices, setTransactions, wallets } = useData();
+  const { assets, categories, transactions, goals, dailyPrices, wallets, persons } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
   const [txSearchQuery, setTxSearchQuery] = useState('');
@@ -95,8 +81,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
     [transactions]
   );
   const historyLookup = useMemo(
-    () => ({ wallets, assets, categories }),
-    [wallets, assets, categories]
+    () => ({ wallets, assets, categories, persons }),
+    [wallets, assets, categories, persons]
   );
 
   const assetHistoryItems = useMemo(() => {
@@ -215,33 +201,6 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const pnlExcluded = asset.include_in_profit_loss === false;
   const balanceExcluded = asset.include_in_balance === false;
 
-  const deleteTx = async (id: string) => {
-    if (!(await confirm({ message: 'آیا از حذف این تراکنش مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
-    try {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (error) throw error;
-      setTransactions((prev) => prev.filter((tx) => tx.id !== id));
-    } catch {
-      toast.error('خطا در حذف رکورد.');
-    }
-  };
-
-  const deleteConvert = async (group: ConvertTransactionGroup) => {
-    if (!(await confirm({ message: 'آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .in('id', [group.sell.id, group.buy.id]);
-      if (error) throw error;
-      setTransactions((prev) =>
-        prev.filter((tx) => tx.id !== group.sell.id && tx.id !== group.buy.id)
-      );
-    } catch {
-      toast.error('خطا در حذف تبدیل.');
-    }
-  };
-
   const openConvert = (params?: { targetAmount?: string }) => {
     const query = new URLSearchParams({
       type: CONVERT_UI_MODE,
@@ -254,307 +213,208 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
     router.push(`/transactions/new?${query.toString()}`);
   };
 
-  return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-semibold text-white flex-1">{asset.name}</h2>
-      </div>
+  const category = categories.find((c) => c.id === asset.category_id);
+  const tint = category?.color ?? '#a1a1aa';
+  const currentPrice = currencyMode === 'USD' ? stats.currentPriceUsd : stats.currentPriceToman;
+  const exclusionNote = balanceExcluded
+    ? pnlExcluded
+      ? 'خارج از ارزش کل سبد و سود/زیان.'
+      : 'در ارزش کل سبد و نمودارهای داشبورد حساب نمی‌شود.'
+    : pnlExcluded
+      ? 'از محاسبات سود/زیان مستثنا شده است.'
+      : null;
 
-      <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-surface-raised rounded-2xl border border-white/5">
-          <div className="flex justify-center mb-3">
+  return (
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title={asset.name} subtitle={category?.name} />
+
+      <div className="px-4 pt-5 space-y-7">
+        <section className="px-1">
+          <div className="flex items-center gap-3">
             <EntityIcon
               iconUrl={asset.icon_url}
-              fallback={<Activity size={22} />}
-              bgColor="rgba(168, 85, 247, 0.12)"
-              color="#a5a9fc"
-              className="w-14 h-14"
+              fallback={<Activity size={20} />}
+              bgColor={`${tint}1f`}
+              color={tint}
+              className="h-11 w-11 rounded-full!"
             />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300">
+                <Money>{formatAssetAmount(stats.totalAmount, decimals)}</Money> {asset.unit}
+              </p>
+              <p className="text-xs text-zinc-500">
+                هر {asset.unit} <Money>{formatCurrency(currentPrice, currencyMode)}</Money>
+              </p>
+            </div>
           </div>
-          <p className="text-zinc-400 text-sm mb-2">ارزش فعلی کل</p>
-          <h2 className="text-3xl font-semibold text-white mb-2" dir="ltr">
-            {formatCurrency(displayValue, currencyMode)}
-          </h2>
+          <p className="mt-4 text-[2.25rem] leading-tight font-semibold tracking-tight text-zinc-50">
+            <Money>{formatCurrency(displayValue, currencyMode)}</Money>
+          </p>
+          {headerHasOpen && (
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              {headerOpenPercent !== null && (
+                <DeltaPill value={headerOpen}>
+                  {headerOpenPercent >= 0 ? '+' : ''}
+                  {headerOpenPercent.toFixed(2)}%
+                </DeltaPill>
+              )}
+              <Money tone={isHeaderProfit ? 'positive' : 'negative'} className="font-medium">
+                {isHeaderProfit ? '+' : ''}
+                {formatCurrency(headerOpen, currencyMode)}
+              </Money>
+              <span className="text-zinc-500">سود/زیان باز</span>
+            </div>
+          )}
           {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
-            <p className="text-xs text-amber-300/80 mb-2">
+            <p className="mt-3 text-xs text-amber-300/80">
               قیمت روز ثبت نشده؛ با قیمت آخرین معامله
               {stats.currentPriceDate ? ` (${toPersianDigits(stats.currentPriceDate)})` : ''} حساب شد.
             </p>
           )}
-          {headerHasOpen ? (
-            <div
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${
-                isHeaderProfit
-                  ? 'bg-emerald-400/10 text-emerald-300'
-                  : 'bg-rose-400/10 text-rose-300'
-              }`}
-              dir="ltr"
-            >
-              <span>
-                {isHeaderProfit ? '+' : ''}
-                {formatCurrency(headerOpen, currencyMode)}
-              </span>
-              {headerOpenPercent !== null && (
-                <span className="text-xs opacity-80">
-                  {headerOpenPercent >= 0 ? '+' : ''}
-                  {headerOpenPercent.toFixed(2)}%
-                </span>
-              )}
-            </div>
-          ) : null}
-          {headerHasOpen && (
-            <p className="text-[11px] text-zinc-500 mt-1">سود/زیان باز</p>
-          )}
-          {balanceExcluded && (
-            <p className="text-xs text-sky-300/80 mt-2">
-              این دارایی در «ارزش کل سبد» و پراکندگی داشبورد لحاظ نمی‌شود؛ ارزش
-              نمایش‌داده‌شده همان ارزش بازاری این دارایی است.
-            </p>
-          )}
-          {pnlExcluded && !balanceExcluded && (
-            <p className="text-xs text-amber-300/80 mt-2">
-              این دارایی از محاسبات سود/زیان مستثنا شده و در ارزش کل سبد لحاظ
-              می‌شود.
-            </p>
-          )}
-          {pnlExcluded && balanceExcluded && (
-            <p className="text-xs text-amber-300/80 mt-2">
-              این دارایی از محاسبات سود/زیان هم مستثنا شده است.
-            </p>
-          )}
-        </div>
+          {exclusionNote && <p className="mt-2 text-xs text-sky-300/80">{exclusionNote}</p>}
 
-        {pnl && pnl.included && <AssetPnlBreakdown pnl={pnl} mode={currencyMode} />}
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => router.push(`/transactions/new?assetId=${asset.id}`)}
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-900 hover:bg-white"
+            >
+              <Plus size={17} />
+              ثبت عملیات
+            </button>
+            <button
+              type="button"
+              onClick={() => openConvert()}
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white/6 text-sm font-semibold text-zinc-100 hover:bg-white/10"
+            >
+              <ArrowLeftRight size={17} />
+              تبدیل
+            </button>
+          </div>
+        </section>
+
+        <Section title="جزئیات">
+          <ListGroup>
+            <ListRow title="موجودی" trailing={<Money>{`${formatAssetAmount(stats.totalAmount, decimals)} ${asset.unit}`}</Money>} />
+            <ListRow title="قیمت روز" trailing={<Money>{formatCurrency(currentPrice, currencyMode)}</Money>} />
+            <ListRow
+              title="میانگین خرید"
+              trailing={
+                <Money>
+                  {formatCurrency(
+                    currencyMode === 'USD' ? stats.avgBuyPriceUsd : stats.avgBuyPriceToman,
+                    currencyMode
+                  )}
+                </Money>
+              }
+            />
+            <ListRow
+              title="ارزش خرید کل"
+              trailing={
+                <Money>
+                  {formatCurrency(
+                    currencyMode === 'USD' ? stats.totalCostUsd : stats.totalCostToman,
+                    currencyMode
+                  )}
+                </Money>
+              }
+            />
+          </ListGroup>
+        </Section>
+
+        {pnl && pnl.included && (
+          <Section title="سود و زیان">
+            <AssetPnlBreakdown pnl={pnl} mode={currencyMode} />
+          </Section>
+        )}
 
         {assetGoals.length > 0 && (
-          <div className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-3">
-            <div className="flex items-center gap-2 text-accent-300">
-              <TargetIcon size={16} />
-              <h3 className="text-sm font-semibold">پیشرفت هدف</h3>
-            </div>
-            <div className="space-y-3">
+          <Section
+            title={
+              <span className="flex items-center gap-1.5">
+                <TargetIcon size={15} className="text-accent-300" />
+                هدف
+              </span>
+            }
+            action={{ label: 'مدیریت', href: '/manage/goals' }}
+          >
+            <Card className="space-y-3">
               {assetGoals.map((goal) => (
                 <GoalProgressDisplay
                   key={goal.id}
-                  label={
-                    goal.target_kind === 'quantity' ? 'هدف مقداری' : 'هدف درصد سبد'
-                  }
+                  label={goal.target_kind === 'quantity' ? 'هدف مقداری' : 'هدف درصد سبد'}
                   kind={goalValueKindFromGoal(goal.target_kind)}
                   unit={asset.unit}
-                  progress={calculateAssetGoalProgress(
-                    goal,
-                    snapshots,
-                    totalValueToman
-                  )}
+                  progress={calculateAssetGoalProgress(goal, snapshots, totalValueToman)}
                 />
               ))}
-            </div>
-            {assetGoalSuggestions.length > 0 && (
-              <div className="space-y-2 rounded-xl border border-accent-400/10 bg-accent-500/5 px-3 py-2.5">
-                <p className="text-[11px] font-semibold text-accent-300">پیشنهاد</p>
-                <ul className="space-y-1.5">
-                {assetGoalSuggestions.map((item) => (
-                  <li key={item.goalId}>
-                    {item.action === 'buy' && item.convertTargetAmount ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openConvert({ targetAmount: item.convertTargetAmount })
-                        }
-                        className="text-[11px] leading-relaxed text-emerald-300 hover:text-emerald-200 text-right w-full"
-                      >
-                        {item.message}
-                      </button>
-                    ) : (
-                      <span
-                        className={`text-[11px] leading-relaxed block ${
-                          item.action === 'buy' ? 'text-emerald-300' : 'text-rose-300'
-                        }`}
-                      >
-                        {item.message}
-                      </span>
-                    )}
-                  </li>
-                ))}
+              {assetGoalSuggestions.length > 0 && (
+                <ul className="space-y-1.5 rounded-xl bg-accent-500/8 p-3">
+                  {assetGoalSuggestions.map((item) => (
+                    <li key={item.goalId}>
+                      {item.action === 'buy' && item.convertTargetAmount ? (
+                        <button
+                          type="button"
+                          onClick={() => openConvert({ targetAmount: item.convertTargetAmount })}
+                          className="w-full text-right text-xs leading-relaxed text-emerald-300 hover:text-emerald-200"
+                        >
+                          {item.message}
+                        </button>
+                      ) : (
+                        <span
+                          className={`block text-xs leading-relaxed ${
+                            item.action === 'buy' ? 'text-emerald-300' : 'text-rose-300'
+                          }`}
+                        >
+                          {item.message}
+                        </span>
+                      )}
+                    </li>
+                  ))}
                 </ul>
-              </div>
-            )}
-          </div>
+              )}
+            </Card>
+          </Section>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <DetailCard
-            label="موجودی"
-            value={`${formatAssetAmount(stats.totalAmount, decimals)} ${asset.unit}`}
-          />
-          <DetailCard
-            label="میانگین خرید"
-            value={formatCurrency(
-              currencyMode === 'USD'
-                ? stats.avgBuyPriceUsd
-                : stats.avgBuyPriceToman,
-              currencyMode
-            )}
-          />
-          <DetailCard
-            label="ارزش خرید کل"
-            value={formatCurrency(
-              currencyMode === 'USD'
-                ? stats.totalCostUsd
-                : stats.totalCostToman,
-              currencyMode
-            )}
-          />
-          <DetailCard
-            label="قیمت روز"
-            value={formatCurrency(
-              // Same price the value above uses (live, else last trade).
-              currencyMode === 'USD' ? stats.currentPriceUsd : stats.currentPriceToman,
-              currencyMode
-            )}
-          />
-        </div>
-
-        <div className="pt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-white">تاریخچه عملیات</h3>
-          </div>
-          {assetTxsSorted.length > 0 && (
-            <div className="mb-4 space-y-3">
-              <TransactionHistorySearchBar
-                value={txSearchQuery}
-                onChange={setTxSearchQuery}
-              />
-              <TransactionHistoryTypeFilter
-                value={txTypeFilter}
-                onChange={setTxTypeFilter}
-              />
+        <Section title="تاریخچه">
+          {assetTxsSorted.length > 4 && (
+            <div className="space-y-3">
+              <TransactionHistorySearchBar value={txSearchQuery} onChange={setTxSearchQuery} />
+              <TransactionHistoryTypeFilter value={txTypeFilter} onChange={setTxTypeFilter} />
             </div>
           )}
-          <div className="space-y-3">
-            {assetTxsSorted.length === 0 && (
-              <div className="text-center text-zinc-500 text-sm py-4">
-                تراکنشی ثبت نشده است.
-              </div>
-            )}
-            {assetTxsSorted.length > 0 && visibleAssetTxs.length === 0 && assetHistoryItems.length === 0 && (
-              <div className="text-center text-zinc-500 text-sm py-4">
-                {txSearchQuery.trim()
+          {assetHistoryItems.length === 0 ? (
+            <p className="py-6 text-center text-sm text-zinc-500">
+              {assetTxsSorted.length === 0
+                ? 'تراکنشی ثبت نشده است.'
+                : txSearchQuery.trim()
                   ? 'تراکنشی با این جستجو پیدا نشد.'
                   : 'تراکنشی با این نوع وجود ندارد.'}
-              </div>
-            )}
-            {assetHistoryItems.map((item) => {
-              if (item.kind === 'convert') {
-                return (
-                  <ConvertTransactionCard
+            </p>
+          ) : (
+            <ListGroup>
+              {assetHistoryItems.map((item) =>
+                item.kind === 'convert' ? (
+                  <ConvertListItem
                     key={item.group.operationId}
                     group={item.group}
-                    assets={assets}
-                    onEdit={() =>
-                      router.push(`/transactions/${item.group.sell.id}/edit`)
-                    }
-                    onDelete={() => void deleteConvert(item.group)}
+                    lookup={historyLookup}
+                    href={`/transactions/${item.group.sell.id}/edit`}
                   />
-                );
-              }
-              const tx = item.tx;
-              const categoryTitle =
-                (tx.type === 'INCOME' || tx.type === 'EXPENSE') && tx.category_id
-                  ? categories.find((c) => c.id === tx.category_id)?.name ?? null
-                  : null;
-              const isAcquire =
-                tx.type === 'BUY' ||
-                tx.type === 'INCOME' ||
-                (tx.type === 'TRANSFER' && tx.target_asset_id === asset.id);
-              const accent = isAcquire ? 'bg-emerald-500' : 'bg-rose-500';
-              const amount =
-                tx.amount ??
-                (tx.type === 'BUY' || tx.type === 'INCOME'
-                  ? tx.target_amount
-                  : tx.source_amount);
-              return (
-              <div
-                key={tx.id}
-                className="bg-surface-raised p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden group"
-              >
-                <div
-                  className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`}
-                ></div>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-zinc-200 font-medium text-sm">
-                      {TYPE_LABELS[tx.type] ?? tx.type}
-                    </span>
-                    {categoryTitle && (
-                      <p className="text-zinc-400 text-xs mt-0.5 truncate">
-                        {categoryTitle}
-                      </p>
-                    )}
-                    <p className="text-zinc-500 text-xs mt-1">
-                      {latinizeDigits(tx.date_string)}
-                    </p>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-zinc-200 font-semibold text-sm" dir="ltr">
-                      {formatAssetAmount(amount, decimals)} {asset.unit}
-                    </p>
-                    <p className="text-zinc-500 text-xs mt-1" dir="ltr">
-                      {formatCurrency(tx.price_toman, 'TOMAN')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                  <span className="text-[11px] text-zinc-600" dir="ltr">
-                    دلار: {formatCurrency(tx.usd_rate, 'TOMAN')}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() =>
-                        router.push(`/transactions/${tx.id}/edit`)
-                      }
-                      className="text-blue-400/50 hover:text-blue-400 transition-colors p-1.5"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button
-                      onClick={() => void deleteTx(tx.id)}
-                      className="text-rose-400/50 hover:text-rose-400 transition-colors p-1.5"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 flex flex-col gap-2 z-30">
-        <button
-          type="button"
-          onClick={() => openConvert()}
-          className="w-full bg-violet-600 hover:bg-violet-500 text-white p-3.5 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2"
-        >
-          <ArrowLeftRight size={18} />
-          تبدیل این دارایی
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push(`/transactions/new?assetId=${asset.id}`)}
-          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-3.5 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2"
-        >
-          <Plus size={18} />
-          ثبت عملیات جدید
-        </button>
+                ) : (
+                  <TransactionListItem
+                    key={item.tx.id}
+                    tx={item.tx}
+                    lookup={historyLookup}
+                    href={`/transactions/${item.tx.id}/edit`}
+                    showDate
+                  />
+                )
+              )}
+            </ListGroup>
+          )}
+        </Section>
       </div>
     </div>
   );

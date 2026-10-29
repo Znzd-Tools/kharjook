@@ -1,5 +1,6 @@
 'use client';
 
+import { HeaderAction, PageHeader } from '@/shared/components/ui';
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -507,25 +508,19 @@ export function LoansHubView() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">اقساط و وام‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/loans/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          وام جدید
-        </button>
-      </div>
+    <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
+      <PageHeader
+        className="-mx-4"
+        title="اقساط و وام‌ها"
+        actions={<HeaderAction label="وام جدید" href="/deadlines/loans/new" />}
+      />
 
       <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
         <button
           type="button"
           onClick={() => setTab('loans')}
           className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'loans' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+            tab === 'loans' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           وام‌ها
@@ -534,7 +529,7 @@ export function LoansHubView() {
           type="button"
           onClick={() => setTab('installments')}
           className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'installments' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+            tab === 'installments' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           اقساط
@@ -543,7 +538,7 @@ export function LoansHubView() {
           type="button"
           onClick={() => setTab('calendar')}
           className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'calendar' ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-400 hover:text-zinc-200'
+            tab === 'calendar' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           تقویم بدهی

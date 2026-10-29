@@ -12,6 +12,7 @@ import {
   type PeriodKind,
   formatPeriodKindLabel,
 } from '@/shared/utils/period';
+import { SegmentedControl } from '@/shared/components/ui';
 
 interface PeriodNavHeaderProps {
   period: Period;
@@ -29,57 +30,42 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
   const atCurrent = isCurrentPeriod(period);
   const isAllPeriod = period.kind === 'all';
 
-  return (
-    <div className="space-y-3">
-      {/* Kind tabs */}
-      <div className="flex bg-surface-raised rounded-xl border border-white/5 p-1">
-        {PERIOD_KINDS.map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => onKind(k)}
-            className={`flex-1 text-xs font-semibold py-2 rounded-lg transition ${
-              k === period.kind
-                ? 'bg-zinc-50 text-zinc-900'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            {formatPeriodKindLabel(k)}
-          </button>
-        ))}
-      </div>
+  const navBtn =
+    'shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-zinc-300 hover:bg-white/6 disabled:text-zinc-700 disabled:hover:bg-transparent transition-colors';
 
-      {/* Prev / label / next */}
+  return (
+    <div className="space-y-2">
+      <SegmentedControl
+        size="sm"
+        value={period.kind}
+        onChange={onKind}
+        options={PERIOD_KINDS.map((k) => ({ value: k, label: formatPeriodKindLabel(k) }))}
+      />
+
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => onChange(shiftPeriod(period, -1))}
           aria-label="قبلی"
           disabled={isAllPeriod}
-          className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
-            isAllPeriod
-              ? 'bg-surface-raised text-zinc-700 cursor-not-allowed'
-              : 'bg-surface-raised text-zinc-300 hover:bg-white/5'
-          }`}
+          className={navBtn}
         >
           <ChevronRight size={18} />
         </button>
         <div className="flex-1 text-center">
-          <div className="text-sm font-semibold text-white">{formatPeriodLabel(period)}</div>
-          {!atCurrent && !isAllPeriod && (
+          <div className="text-sm font-semibold text-zinc-100">{formatPeriodLabel(period)}</div>
+          {!atCurrent && !isAllPeriod ? (
             <button
               type="button"
               onClick={() => onChange(currentPeriod(period.kind))}
-              className="text-[11px] text-accent-400 hover:text-accent-300 mt-0.5"
+              className="mt-0.5 text-[11px] text-accent-300 hover:text-accent-200"
             >
               برگشت به {formatPeriodKindLabel(period.kind)} جاری
             </button>
-          )}
-          {atCurrent && !isAllPeriod && (
-            <div className="text-[11px] text-zinc-500 mt-0.5">{formatPeriodKindLabel(period.kind)} جاری</div>
-          )}
-          {isAllPeriod && (
-            <div className="text-[11px] text-zinc-500 mt-0.5">نمایش تمام تاریخچه</div>
+          ) : (
+            <div className="mt-0.5 text-[11px] text-zinc-500">
+              {isAllPeriod ? 'تمام تاریخچه' : `${formatPeriodKindLabel(period.kind)} جاری`}
+            </div>
           )}
         </div>
         <button
@@ -87,11 +73,7 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
           onClick={() => onChange(shiftPeriod(period, 1))}
           aria-label="بعدی"
           disabled={isAllPeriod}
-          className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
-            isAllPeriod
-              ? 'bg-surface-raised text-zinc-700 cursor-not-allowed'
-              : 'bg-surface-raised text-zinc-300 hover:bg-white/5'
-          }`}
+          className={navBtn}
         >
           <ChevronLeft size={18} />
         </button>

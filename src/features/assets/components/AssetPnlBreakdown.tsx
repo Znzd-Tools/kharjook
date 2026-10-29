@@ -10,7 +10,7 @@ function signed(value: number, mode: CurrencyMode): string {
 }
 
 function tone(value: number): string {
-  return value >= 0 ? 'text-emerald-300' : 'text-rose-300';
+  return value >= 0 ? 'text-emerald-400' : 'text-rose-400';
 }
 
 function Row({
@@ -34,18 +34,10 @@ function Row({
 }) {
   const v = value ? pick(value, mode) : null;
   return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        emphasis
-          ? v !== null && v < 0
-            ? 'border-rose-400/25 bg-rose-500/8'
-            : 'border-emerald-400/25 bg-emerald-500/8'
-          : 'border-white/5 bg-surface-raised'
-      }`}
-    >
+    <div className="px-4 py-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-xs font-semibold ${emphasis ? 'text-zinc-200' : 'text-zinc-400'}`}>
+          <p className="text-sm font-medium text-zinc-100">
             {title}
           </p>
           <p className="mt-0.5 text-[11px] text-zinc-500">{hint}</p>
@@ -54,7 +46,7 @@ function Row({
           <p className="text-sm text-amber-400/80">—</p>
         ) : (
           <div className="text-left shrink-0" dir="ltr">
-            <p className={`font-semibold ${emphasis ? 'text-xl' : 'text-sm'} ${tone(v)}`}>
+            <p className={`font-semibold ${emphasis ? 'text-lg' : 'text-sm'} ${tone(v)}`}>
               {signed(v, mode)}
             </p>
             {percent !== null && (
@@ -67,7 +59,7 @@ function Row({
         )}
       </div>
       {splits && splits.length > 0 && v !== null && (
-        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {splits.map((s) => {
             const sv = pick(s.value, mode);
             return (
@@ -92,7 +84,10 @@ export function AssetPnlBreakdown({ pnl, mode }: { pnl: AssetPnl; mode: Currency
   const since = pnl.active.since ? toPersianDigits(pnl.active.since) : null;
 
   return (
-    <section aria-label="سود و زیان" className="space-y-3">
+    <section
+      aria-label="سود و زیان"
+      className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5"
+    >
       <Row
         title="سود/زیان باز (فعال)"
         hint={

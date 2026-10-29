@@ -1,117 +1,64 @@
 'use client';
 
-import { ArrowDownCircle, ArrowUpCircle, ChevronLeft } from 'lucide-react';
 import type { CurrencyMode } from '@/shared/types/domain';
 import { formatCurrency } from '@/shared/utils/format-currency';
+import { Card, Money, Section } from '@/shared/components/ui';
 import type { MonthCashflowPoint } from '@/features/dashboard/utils/year-cashflow';
 
 export interface MonthlyCashflowChartProps {
   months: MonthCashflowPoint[];
   currencyMode: CurrencyMode;
   yearLabel: string;
-  onOpenReports?: () => void;
 }
 
-export function MonthlyCashflowChart({
-  months,
-  currencyMode,
-  yearLabel,
-  onOpenReports,
-}: MonthlyCashflowChartProps) {
-  const maxValue = Math.max(
-    1,
-    ...months.flatMap((m) => [m.income, m.expense])
-  );
-
+export function MonthlyCashflowChart({ months, currencyMode, yearLabel }: MonthlyCashflowChartProps) {
+  const maxValue = Math.max(1, ...months.flatMap((m) => [m.income, m.expense]));
   const totalIncome = months.reduce((s, m) => s + m.income, 0);
   const totalExpense = months.reduce((s, m) => s + m.expense, 0);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-surface-raised p-4">
-
-      <div className="relative mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-white">درآمد و هزینه</p>
-          <p className="mt-1 text-xs text-zinc-500">{yearLabel}</p>
+    <Section title={`روند ${yearLabel}`} action={{ label: 'گزارش کامل', href: '/reports/cashflow' }}>
+      <Card>
+        <div className="mb-5 flex items-center gap-4 text-xs">
+          <span className="inline-flex items-center gap-1.5 text-zinc-500">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            درآمد
+            <Money className="font-medium text-zinc-200">{formatCurrency(totalIncome, currencyMode)}</Money>
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-zinc-500">
+            <span className="h-2 w-2 rounded-full bg-rose-400" />
+            هزینه
+            <Money className="font-medium text-zinc-200">{formatCurrency(totalExpense, currencyMode)}</Money>
+          </span>
         </div>
-        {onOpenReports && (
-          <button
-            type="button"
-            onClick={onOpenReports}
-            className="flex items-center gap-1 text-xs text-accent-400 hover:text-accent-300 shrink-0"
-          >
-            گزارش کامل
-            <ChevronLeft size={14} />
-          </button>
-        )}
-      </div>
 
-      <div className="relative mb-4 grid grid-cols-2 gap-2">
-        <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-3 py-2">
-          <div className="flex items-center gap-1.5 text-emerald-300 mb-1">
-            <ArrowUpCircle size={13} />
-            <span className="text-[11px]">جمع درآمد</span>
-          </div>
-          <p className="text-sm font-semibold text-white" dir="ltr">
-            {formatCurrency(totalIncome, currencyMode)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-rose-500/15 bg-rose-500/5 px-3 py-2">
-          <div className="flex items-center gap-1.5 text-rose-300 mb-1">
-            <ArrowDownCircle size={13} />
-            <span className="text-[11px]">جمع هزینه</span>
-          </div>
-          <p className="text-sm font-semibold text-white" dir="ltr">
-            {formatCurrency(totalExpense, currencyMode)}
-          </p>
-        </div>
-      </div>
-
-      {months.length === 0 ? (
-        <p className="text-center text-xs text-zinc-500 py-10">تراکنش درآمد/هزینه‌ای ثبت نشده.</p>
-      ) : (
-        <>
-          <div className="relative flex items-end gap-1.5 sm:gap-2 h-36" dir="ltr">
-            {months.map((point) => {
-              const incomeH = (point.income / maxValue) * 100;
-              const expenseH = (point.expense / maxValue) * 100;
-              return (
-                <div
-                  key={point.month}
-                  className="flex flex-1 min-w-0 flex-col items-center gap-1.5"
-                >
-                  <div className="flex w-full items-end justify-center gap-0.5 h-28">
-                    <div
-                      className="w-[42%] max-w-5 rounded-t-md bg-emerald-500/85 transition-all"
-                      style={{ height: `${Math.max(point.income > 0 ? 4 : 0, incomeH)}%` }}
-                      title={`درآمد: ${formatCurrency(point.income, currencyMode)}`}
-                    />
-                    <div
-                      className="w-[42%] max-w-5 rounded-t-md bg-rose-500/85 transition-all"
-                      style={{ height: `${Math.max(point.expense > 0 ? 4 : 0, expenseH)}%` }}
-                      title={`هزینه: ${formatCurrency(point.expense, currencyMode)}`}
-                    />
-                  </div>
-                  <span className="w-full truncate text-center text-[10px] sm:text-[11px] text-zinc-500">
-                    {point.label}
-                  </span>
+        {months.length === 0 ? (
+          <p className="py-10 text-center text-xs text-zinc-500">تراکنش درآمد/هزینه‌ای ثبت نشده.</p>
+        ) : (
+          <div className="flex h-32 items-end gap-1" dir="ltr">
+            {months.map((point) => (
+              <div key={point.month} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                <div className="flex h-24 w-full items-end justify-center gap-[3px]">
+                  <Bar value={point.income} max={maxValue} className="bg-emerald-400" title={`درآمد: ${formatCurrency(point.income, currencyMode)}`} />
+                  <Bar value={point.expense} max={maxValue} className="bg-rose-400" title={`هزینه: ${formatCurrency(point.expense, currencyMode)}`} />
                 </div>
-              );
-            })}
+                <span className="w-full truncate text-center text-[10px] text-zinc-500">{point.label}</span>
+              </div>
+            ))}
           </div>
+        )}
+      </Card>
+    </Section>
+  );
+}
 
-          <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-zinc-500">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-sm bg-emerald-500/85" />
-              درآمد
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-sm bg-rose-500/85" />
-              هزینه
-            </span>
-          </div>
-        </>
-      )}
-    </div>
+function Bar({ value, max, className, title }: { value: number; max: number; className: string; title: string }) {
+  const h = (value / max) * 100;
+  return (
+    <div
+      className={`w-[38%] max-w-2.5 rounded-full ${className}`}
+      style={{ height: `${Math.max(value > 0 ? 4 : 0, h)}%` }}
+      title={title}
+    />
   );
 }
