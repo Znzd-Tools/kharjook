@@ -16,7 +16,13 @@ import {
   subscriptionDueDatesInPeriod,
 } from '@/features/plan/utils/recurring-due-in-period';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
-import { isInPeriod, shiftPeriod, type Period } from '@/shared/utils/period';
+import { parseJalaali } from '@/shared/utils/jalali';
+import {
+  isInPeriod,
+  jalaaliToNumber,
+  shiftPeriod,
+  type Period,
+} from '@/shared/utils/period';
 
 export type PlanSuggestion = {
   key: string;
@@ -39,9 +45,18 @@ function amountInCurrencyToToman(
   return amount * rate;
 }
 
-/** Selected month plus the next one. Same window for installments and checks. */
+/** Installments: the month on screen, plus the month after it. */
 function inPlanWindow(dateString: string, period: Period): boolean {
   return isInPeriod(dateString, period) || isInPeriod(dateString, shiftPeriod(period, 1));
+}
+
+function compareDueDate(a: string, b: string): number {
+  const left = parseJalaali(a);
+  const right = parseJalaali(b);
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return jalaaliToNumber(left) - jalaaliToNumber(right);
 }
 
 function isSuggestionAlreadyAdded(
@@ -78,7 +93,7 @@ export function buildPlanSuggestions(input: {
   } = input;
   const loansById = new Map(loans.map((loan) => [loan.id, loan]));
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
-  const installmentSuggestions: Array<{ dueDate: string; suggestion: PlanSuggestion }> = [];
+  const dated: Array<{ dueDate: string; suggestion: PlanSuggestion }> = [];
   const out: PlanSuggestion[] = [];
 
   for (const installment of installments) {
@@ -94,7 +109,7 @@ export function buildPlanSuggestions(input: {
     const amountToman = loanAmountToToman(remaining, loan, currencyRates, assetsById);
     if (amountToman <= 0) continue;
 
-    installmentSuggestions.push({
+    dated.push({
       dueDate: installment.due_date_string,
       suggestion: {
         key: `installment:${installment.id}`,
@@ -111,21 +126,23 @@ export function buildPlanSuggestions(input: {
 
   for (const check of checks) {
     if (check.status !== 'pending' || check.deleted_at) continue;
-    if (!inPlanWindow(check.due_date_string, period)) continue;
     if (isSuggestionAlreadyAdded(items, 'check', check.id)) continue;
 
     const amountToman = amountInCurrencyToToman(check.amount, check.currency, currencyRates);
     if (amountToman <= 0) continue;
 
-    out.push({
-      key: `check:${check.id}`,
-      sourceType: 'check',
-      sourceId: check.id,
-      title: check.title,
-      subtitle: check.due_date_string,
-      amountToman,
-      categoryId: check.category_id,
-      note: check.note,
+    dated.push({
+      dueDate: check.due_date_string,
+      suggestion: {
+        key: `check:${check.id}`,
+        sourceType: 'check',
+        sourceId: check.id,
+        title: check.title,
+        subtitle: check.due_date_string,
+        amountToman,
+        categoryId: check.category_id,
+        note: check.note,
+      },
     });
   }
 
@@ -179,12 +196,12 @@ export function buildPlanSuggestions(input: {
     });
   }
 
-  const sortedInstallments = installmentSuggestions
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  const byDate = dated
+    .sort((a, b) => compareDueDate(a.dueDate, b.dueDate))
     .map((row) => row.suggestion);
 
-  const nonInstallments = out.sort((a, b) => b.amountToman - a.amountToman);
-  return [...sortedInstallments, ...nonInstallments];
+  const rest = out.sort((a, b) => b.amountToman - a.amountToman);
+  return [...byDate, ...rest];
 }
 
 export function planItemsTotalToman(items: ExpensePlanItem[]): number {
