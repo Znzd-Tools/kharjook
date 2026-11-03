@@ -16,7 +16,7 @@ import {
   subscriptionDueDatesInPeriod,
 } from '@/features/plan/utils/recurring-due-in-period';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
-import type { Period } from '@/shared/utils/period';
+import { isInPeriod, shiftPeriod, type Period } from '@/shared/utils/period';
 
 export type PlanSuggestion = {
   key: string;
@@ -37,6 +37,11 @@ function amountInCurrencyToToman(
   const rate = tomanPerUnit(currency, currencyRates);
   if (!(rate > 0)) return 0;
   return amount * rate;
+}
+
+/** Selected month plus the next one. Same window for installments and checks. */
+function inPlanWindow(dateString: string, period: Period): boolean {
+  return isInPeriod(dateString, period) || isInPeriod(dateString, shiftPeriod(period, 1));
 }
 
 function isSuggestionAlreadyAdded(
@@ -83,6 +88,7 @@ export function buildPlanSuggestions(input: {
 
     const loan = loansById.get(installment.loan_id);
     if (!loan) continue;
+    if (!inPlanWindow(installment.due_date_string, period)) continue;
     if (isSuggestionAlreadyAdded(items, 'installment', installment.id)) continue;
 
     const amountToman = loanAmountToToman(remaining, loan, currencyRates, assetsById);
@@ -105,6 +111,7 @@ export function buildPlanSuggestions(input: {
 
   for (const check of checks) {
     if (check.status !== 'pending' || check.deleted_at) continue;
+    if (!inPlanWindow(check.due_date_string, period)) continue;
     if (isSuggestionAlreadyAdded(items, 'check', check.id)) continue;
 
     const amountToman = amountInCurrencyToToman(check.amount, check.currency, currencyRates);

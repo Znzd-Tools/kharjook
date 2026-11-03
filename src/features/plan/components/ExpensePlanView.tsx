@@ -668,7 +668,7 @@ export function ExpensePlanView() {
                 <h2 className="text-sm font-bold text-white">پیشنهادها</h2>
               </div>
               <p className="text-[11px] text-slate-500">
-                اقساط باقی‌مانده، چک‌های در انتظار و هزینه‌های دوره‌ای این ماه
+                اقساط و چک‌های در انتظار این ماه و ماه بعد، به‌علاوه هزینه‌های دوره‌ای این ماه
               </p>
               <div className="space-y-2">
                 {suggestions.map((suggestion) => (
