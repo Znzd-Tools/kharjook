@@ -1,0 +1,229 @@
+/*
+ * Kharjook design system — tokens.
+ *
+ * Import order: this file is imported by `src/app/globals.css` AFTER
+ * `@import "tailwindcss"`. Every token here becomes a Tailwind utility
+ * (`bg-canvas`, `text-fg-muted`, `rounded-card`, `text-title`, …).
+ *
+ * Theming uses CSS `light-dark()`. The active theme comes from
+ * `color-scheme` on the root element:
+ *   <html>                      → dark (default, the app is dark-first)
+ *   <html data-theme="light">   → light
+ *   <html data-theme="system">  → follows the OS
+ *
+ * Rules:
+ *   1. Components use SEMANTIC tokens only (canvas, panel, fg, accent …).
+ *   2. Never use raw hex or Tailwind palette colors (purple-600, slate-400)
+ *      inside design-system components.
+ *   3. Chart colors (`chart-1..8`) are for data marks only, in fixed order.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Layout */
+  --ds-gutter: 1rem;
+  --ds-tabbar-height: 4.5rem;
+  --ds-topbar-height: 3.5rem;
+  --ds-max-width: 28rem;
+
+  /* Motion durations */
+  --ds-duration-instant: 80ms;
+  --ds-duration-fast: 150ms;
+  --ds-duration-base: 220ms;
+  --ds-duration-slow: 350ms;
+
+  /* Stacking */
+  --ds-z-sticky: 20;
+  --ds-z-nav: 40;
+  --ds-z-overlay: 80;
+  --ds-z-popover: 90;
+  --ds-z-toast: 100;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='system'] {
+  color-scheme: light dark;
+}
+
+/* `static`: emit every token as a CSS variable, even when no utility uses it
+   (charts and inline styles read var(--color-chart-N) directly). */
+@theme static {
+  /* ---------------------------------------------------------------
+   * Color — surfaces (light-dark(LIGHT, DARK))
+   * ------------------------------------------------------------- */
+  --color-canvas: light-dark(oklch(0.975 0.004 285), oklch(0.155 0.012 280));
+  --color-sunken: light-dark(oklch(0.945 0.006 285), oklch(0.125 0.01 280));
+  --color-panel: light-dark(oklch(1 0 0), oklch(0.195 0.014 280));
+  --color-elevated: light-dark(oklch(1 0 0), oklch(0.235 0.016 280));
+  --color-hover: light-dark(oklch(0.2 0.02 285 / 0.05), oklch(1 0 0 / 0.06));
+  --color-pressed: light-dark(oklch(0.2 0.02 285 / 0.09), oklch(1 0 0 / 0.1));
+  --color-scrim: light-dark(oklch(0.2 0.02 285 / 0.4), oklch(0 0 0 / 0.62));
+
+  /* Color — lines */
+  --color-line: light-dark(oklch(0.2 0.02 285 / 0.09), oklch(1 0 0 / 0.08));
+  --color-line-strong: light-dark(oklch(0.2 0.02 285 / 0.16), oklch(1 0 0 / 0.15));
+
+  /* Color — text */
+  --color-fg: light-dark(oklch(0.21 0.02 285), oklch(0.96 0.005 285));
+  --color-fg-muted: light-dark(oklch(0.45 0.02 285), oklch(0.75 0.012 285));
+  --color-fg-subtle: light-dark(oklch(0.56 0.018 285), oklch(0.6 0.014 285));
+  --color-fg-disabled: light-dark(oklch(0.7 0.01 285), oklch(0.43 0.012 285));
+  --color-fg-on-accent: oklch(0.99 0 0);
+
+  /* Color — brand accent (violet). Use ONLY for the main action,
+     the active state and focus. */
+  --color-accent: light-dark(oklch(0.52 0.22 293), oklch(0.6 0.21 293));
+  --color-accent-hover: light-dark(oklch(0.47 0.22 293), oklch(0.66 0.2 293));
+  --color-accent-soft: light-dark(oklch(0.52 0.22 293 / 0.1), oklch(0.6 0.21 293 / 0.18));
+  --color-accent-ink: light-dark(oklch(0.46 0.2 293), oklch(0.8 0.12 293));
+  --color-focus: light-dark(oklch(0.52 0.22 293), oklch(0.72 0.17 293));
+
+  /* Color — semantic status. `*-soft` = tinted background,
+     `*-ink` = readable text on `*-soft` or on surfaces. */
+  --color-positive: light-dark(oklch(0.56 0.14 158), oklch(0.72 0.15 160));
+  --color-positive-soft: light-dark(oklch(0.56 0.14 158 / 0.1), oklch(0.72 0.15 160 / 0.14));
+  --color-positive-ink: light-dark(oklch(0.46 0.12 158), oklch(0.8 0.13 160));
+
+  --color-negative: light-dark(oklch(0.56 0.2 22), oklch(0.68 0.18 20));
+  --color-negative-soft: light-dark(oklch(0.56 0.2 22 / 0.1), oklch(0.68 0.18 20 / 0.15));
+  --color-negative-ink: light-dark(oklch(0.48 0.18 22), oklch(0.78 0.13 20));
+
+  --color-warning: light-dark(oklch(0.68 0.15 70), oklch(0.8 0.14 80));
+  --color-warning-soft: light-dark(oklch(0.68 0.15 70 / 0.12), oklch(0.8 0.14 80 / 0.14));
+  --color-warning-ink: light-dark(oklch(0.48 0.11 65), oklch(0.85 0.11 85));
+
+  --color-info: light-dark(oklch(0.55 0.15 245), oklch(0.72 0.12 240));
+  --color-info-soft: light-dark(oklch(0.55 0.15 245 / 0.1), oklch(0.72 0.12 240 / 0.14));
+  --color-info-ink: light-dark(oklch(0.46 0.14 245), oklch(0.82 0.09 240));
+
+  /* Color — data visualization. Fixed order, never cycled. Validated
+     categorical set (adjacent-pair CVD safe in both modes). */
+  --color-chart-1: light-dark(#2a78d6, #3987e5);
+  --color-chart-2: light-dark(#eb6834, #d95926);
+  --color-chart-3: light-dark(#1baf7a, #199e70);
+  --color-chart-4: light-dark(#eda100, #c98500);
+  --color-chart-5: light-dark(#e87ba4, #d55181);
+  --color-chart-6: light-dark(#008300, #008300);
+  --color-chart-7: light-dark(#6250d6, #9085e9);
+  --color-chart-8: light-dark(#e34948, #e66767);
+  --color-chart-other: light-dark(oklch(0.75 0.01 285), oklch(0.45 0.012 285));
+
+  /* ---------------------------------------------------------------
+   * Typography — IRANSansX. 7 steps. Do not add more.
+   * ------------------------------------------------------------- */
+  --text-display: 2rem;
+  --text-display--line-height: 2.75rem;
+  --text-display--font-weight: 800;
+
+  --text-headline: 1.5rem;
+  --text-headline--line-height: 2.125rem;
+  --text-headline--font-weight: 800;
+
+  --text-title: 1.125rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+
+  --text-callout: 0.8125rem;
+  --text-callout--line-height: 1.375rem;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
+
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-micro--font-weight: 500;
+
+  /* ---------------------------------------------------------------
+   * Radius — 3 steps + full (pill / circle).
+   * ------------------------------------------------------------- */
+  --radius-control: 0.75rem; /* buttons, inputs, list icons */
+  --radius-card: 1.125rem; /* cards, sections */
+  --radius-sheet: 1.75rem; /* sheets, dialogs */
+
+  /* ---------------------------------------------------------------
+   * Elevation — flat UI. Shadows only on floating layers.
+   * ------------------------------------------------------------- */
+  --shadow-raised: 0 1px 2px oklch(0 0 0 / 0.12), 0 2px 8px -2px oklch(0 0 0 / 0.16);
+  --shadow-overlay: 0 16px 40px -12px oklch(0 0 0 / 0.5), 0 2px 6px oklch(0 0 0 / 0.18);
+  --shadow-fab: 0 8px 20px -6px oklch(0.6 0.21 293 / 0.55);
+
+  /* ---------------------------------------------------------------
+   * Motion
+   * ------------------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --animate-ds-fade-in: ds-fade-in var(--ds-duration-base) var(--ease-standard) both;
+  --animate-ds-rise-in: ds-rise-in var(--ds-duration-slow) var(--ease-emphasized) both;
+  --animate-ds-shimmer: ds-shimmer 1.4s ease-in-out infinite;
+  --animate-ds-spin: spin 0.8s linear infinite;
+
+  @keyframes ds-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ds-rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ds-shimmer {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* Numbers: tabular figures so amounts line up in lists. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Standard focus ring for every interactive element. */
+@utility ds-focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  &:focus-visible {
+    outline-color: var(--color-focus);
+  }
+}
+
+/* Minimum touch target (44×44) without changing the visual size. */
+@utility touch-target {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}

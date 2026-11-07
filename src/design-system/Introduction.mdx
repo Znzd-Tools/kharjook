@@ -1,0 +1,75 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+<div dir="rtl" lang="fa">
+
+# سیستم طراحی خرجوک
+
+یک زبان بصری واحد برای همه صفحه‌ها: **مینیمال، فارسی‌محور، موبایل‌محور.**
+
+</div>
+
+## Principles
+
+1. **One primary action per screen.** Everything else is secondary, ghost or hidden in a sheet.
+2. **Lists over cards.** Use `List` for collections. A `Card` only when content really needs a box.
+3. **Numbers first.** Money is the content. Use `Amount` — big, tabular, Persian digits, a real minus sign.
+4. **Fewer taps.** Smart defaults, quick chips (امروز / دیروز), one-tap `ChoiceGrid`, swipe and long-press actions.
+5. **Color has a job.** Accent = main action, active state, focus. Green/red = money direction. Never decoration.
+6. **Persian-first.** RTL, Jalali, تومان. Directional icons are mirrored (back = `ArrowRight`).
+7. **Accessible by default.** 44px touch targets, visible focus rings, labels on icon buttons, color never the only cue.
+
+## Usage
+
+```tsx
+// app/layout.tsx (once)
+import { DesignSystemProvider } from '@/design-system';
+<DesignSystemProvider>{children}</DesignSystemProvider>
+
+// any component
+import { Button, List, ListRow, Amount, toast } from '@/design-system';
+```
+
+Tokens live in `src/design-system/styles/tokens.css` and are imported by `src/app/globals.css`.
+Use token classes only: `bg-panel`, `text-fg-muted`, `rounded-card`, `text-title`.
+
+**Do not** use raw hex, `slate-*`, `purple-*` or `text-[11px]` in new code.
+
+## Themes
+
+Dark is the default. Set `data-theme="light"` or `data-theme="system"` on `<html>`.
+All colors use CSS `light-dark()`, so one token works in both themes.
+Use the theme switch in the Storybook toolbar to check every story in both.
+
+## Building blocks
+
+| Group | Components |
+| --- | --- |
+| Actions | Button, IconButton, Chip, ChipGroup, InputChip, Fab |
+| Data display | Text, Amount, Delta, StatTile, Avatar, Badge, CounterBadge, Card, Section, List, ListRow, ListHeader, SwipeRow, ProgressBar, ProgressRing, Divider |
+| Forms | Field, Input, Textarea, SearchField, AmountField, Keypad, Switch, Checkbox, RadioGroup, SegmentedControl, PickerField, PickerSheet, ChoiceGrid, DateField, Calendar, Disclosure |
+| Feedback | toast, Banner, EmptyState, Skeleton, SkeletonList, Spinner |
+| Overlays | Sheet, ActionSheet, Dialog, ConfirmDialog, useConfirm, Menu, Tooltip |
+| Navigation | TopBar, TabBar, Tabs |
+| Charts | Sparkline, AllocationBar, BarChart |
+
+## Migration map (old → new)
+
+| Old | New |
+| --- | --- |
+| `shared/components/Button` | `Button` |
+| `shared/components/Input` | `Field` + `Input` |
+| `FormattedNumberInput` | `AmountField` |
+| `FilterChip` | `Chip` in `ChipGroup` |
+| `BottomSheet` | `Sheet` |
+| `ListSheetPicker`, `CategorySheetPicker` | `PickerSheet` / `PickerField` / `ChoiceGrid` |
+| `IOSDatePicker` | `DateField` + `Calendar` |
+| `ConfirmDialog` (provider) | `useConfirm` |
+| `Toast` (provider) | `toast.success()` etc. |
+| `EmptyState` | `EmptyState` (new API: `action` node) |
+| `EntityIcon` | `Avatar` |
+| `RouteSkeleton` | `Skeleton`, `SkeletonList` |
+| `Shell` header + `BottomNav` + `MoreHubSheet` | `TopBar` per page + `TabBar` + `Fab` + `ActionSheet` |
+| `MetricCard`, dashboard cards | `StatTile`, `Section` + `List` |
+| `MonthlyCashflowChart`, `DistributionChartCard` | `BarChart`, `AllocationBar` |
