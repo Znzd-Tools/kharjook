@@ -1,5 +1,6 @@
 'use client';
 
+import { fieldInputClass } from '@/shared/components/ui';
 import { useEffect, useState } from 'react';
 import { BottomSheet } from '@/shared/components/BottomSheet';
 import { useToast } from '@/shared/components/Toast';
@@ -13,11 +14,8 @@ import {
   paymentDetailsFormFromWallet,
 } from '@/features/wallets/utils/wallet-payment-details';
 
-const inputClassName =
-  'w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500 font-mono';
-
-const textInputClassName =
-  'w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500';
+const textInputClassName = fieldInputClass;
+const inputClassName = `${fieldInputClass} font-mono`;
 
 export interface WalletPaymentDetailsSheetProps {
   open: boolean;
@@ -103,7 +101,7 @@ export function WalletPaymentDetailsSheet({
         </p>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">نام صاحب حساب</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-400">نام صاحب حساب</label>
           <input
             type="text"
             autoComplete="name"
@@ -115,7 +113,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">شماره کارت</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-400">شماره کارت</label>
           <input
             type="text"
             inputMode="numeric"
@@ -130,7 +128,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">شماره حساب</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-400">شماره حساب</label>
           <input
             type="text"
             inputMode="numeric"
@@ -144,7 +142,7 @@ export function WalletPaymentDetailsSheet({
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">شبا (IBAN)</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-400">شبا (IBAN)</label>
           <input
             type="text"
             autoComplete="off"
@@ -160,7 +158,7 @@ export function WalletPaymentDetailsSheet({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-zinc-50 hover:bg-white disabled:opacity-50 text-zinc-900 py-3 rounded-xl font-semibold text-sm transition-colors"
+          className="w-full h-12 bg-zinc-50 hover:bg-white disabled:opacity-40 text-zinc-900 rounded-2xl font-semibold text-sm transition-colors"
         >
           {isSubmitting ? 'در حال ذخیره...' : 'ذخیره'}
         </button>

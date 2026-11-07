@@ -16,20 +16,20 @@ export default function Error({
 
   return (
     <div className="min-h-dvh bg-background text-zinc-200 flex items-center justify-center p-6">
-      <div className="w-full max-w-md text-center space-y-4">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-          <AlertTriangle size={24} className="text-rose-400" />
-        </div>
-        <h1 className="text-lg font-semibold text-white">خطایی رخ داد</h1>
-        <p className="text-sm text-zinc-400">
-          مشکلی در بارگذاری صفحه پیش آمد. دوباره تلاش کن.
+      <div className="w-full max-w-xs text-center">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-500/10 text-rose-400">
+          <AlertTriangle size={24} strokeWidth={1.75} />
+        </span>
+        <h1 className="mt-5 text-xl font-semibold text-zinc-50">مشکلی پیش آمد</h1>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+          این صفحه بارگذاری نشد. اطلاعاتت سر جایش است؛ دوباره تلاش کن.
         </p>
         <button
           type="button"
           onClick={reset}
-          className="px-6 py-2.5 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium transition-colors"
+          className="mt-6 flex h-12 w-full items-center justify-center rounded-2xl bg-zinc-50 text-sm font-semibold text-zinc-900 transition-colors hover:bg-white"
         >
-          تلاش مجدد
+          تلاش دوباره
         </button>
       </div>
     </div>

@@ -1,17 +1,35 @@
 'use client';
 
-import { HeaderAction, PageHeader } from '@/shared/components/ui';
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import { EmptyState } from '@/shared/components/EmptyState';
+import {
+  ActionSheet,
+  Card,
+  ChoiceChips,
+  Field,
+  HeaderAction,
+  IconBadge,
+  ListGroup,
+  ListRow,
+  Money,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  ProgressBar,
+  SegmentedControl,
+  Section,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  CalendarClock,
   CheckCircle2,
+  Pencil,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   Loader2,
-  Plus,
   Trash2,
 } from 'lucide-react';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -61,6 +79,7 @@ export function LoansHubView() {
   const assetsById = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
   const [tab, setTab] = useState<TabKey>('loans');
+  const [actionLoanId, setActionLoanId] = useState<string | null>(null);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [installments, setInstallments] = useState<LoanInstallment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -507,6 +526,54 @@ export function LoansHubView() {
     }
   };
 
+  const actionLoan = loansRows.find((r) => r.loan.id === actionLoanId)?.loan ?? null;
+  const navBtn =
+    'inline-flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 hover:bg-white/6 hover:text-zinc-100';
+
+  const renderInstallmentRow = (
+    { installment, loan }: { installment: LoanInstallment; loan: Loan },
+    showDue: boolean
+  ) => {
+    const parsed = parseJalaali(installment.due_date_string);
+    const dueLabel = parsed ? formatJalaaliHuman(parsed) : installment.due_date_string;
+    const meta = installmentMetaByLoan.get(loan.id);
+    const total = meta?.total ?? installment.sequence_no;
+    const isLast = installment.sequence_no === (meta?.lastSeq ?? installment.sequence_no);
+    const amount = isAssetLoan(loan)
+      ? formatLoanQty(installment.is_paid ? installment.amount : installmentRemainingAmount(installment), loan)
+      : formatCurrency(displayAmount({ installment, loan }), currencyMode);
+    return (
+      <ListRow
+        key={installment.id}
+        onClick={installment.is_paid ? undefined : () => openSettle(installment)}
+        className={installment.is_paid ? 'opacity-60' : ''}
+        leading={
+          <IconBadge color={installment.is_paid ? '#34d399' : '#fbbf24'}>
+            {installment.is_paid ? <CheckCircle2 size={17} strokeWidth={1.9} /> : <CalendarClock size={17} strokeWidth={1.9} />}
+          </IconBadge>
+        }
+        title={
+          <span className="flex items-center gap-1.5">
+            <span className="truncate">{loan.title}</span>
+            <span className="shrink-0 text-xs font-normal text-zinc-500" dir="ltr">
+              {toPersianDigits(`${installment.sequence_no}/${total}`)}
+            </span>
+            {isLast && (
+              <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                آخرین
+              </span>
+            )}
+          </span>
+        }
+        subtitle={[showDue ? dueLabel : null, installmentHasPartialPay(installment) ? 'پرداخت جزئی' : null]
+          .filter(Boolean)
+          .join(' · ') || undefined}
+        trailing={<Money>{amount}</Money>}
+        trailingSub={installment.is_paid ? <span className="text-emerald-400">تسویه‌شده</span> : <span className="text-zinc-400">تسویه ›</span>}
+      />
+    );
+  };
+
   return (
     <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
       <PageHeader
@@ -515,439 +582,289 @@ export function LoansHubView() {
         actions={<HeaderAction label="وام جدید" href="/deadlines/loans/new" />}
       />
 
-      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
-        <button
-          type="button"
-          onClick={() => setTab('loans')}
-          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'loans' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          وام‌ها
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('installments')}
-          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'installments' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          اقساط
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('calendar')}
-          className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'calendar' ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          تقویم بدهی
-        </button>
-      </div>
+      {remainingTotalDisplay > 0 && (
+        <div className="px-1">
+          <p className="text-xs text-zinc-500">جمع اقساط باقی‌مانده</p>
+          <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight text-zinc-50">
+            <Money>{formatCurrency(remainingTotalDisplay, currencyMode)}</Money>
+          </p>
+        </div>
+      )}
+
+      <SegmentedControl
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'loans', label: 'وام‌ها' },
+          { value: 'installments', label: 'اقساط' },
+          { value: 'calendar', label: 'تقویم' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="py-10 text-center text-zinc-500 animate-pulse">در حال دریافت...</div>
       ) : tab === 'loans' ? (
         loansRows.length === 0 ? (
-          <div className="text-center py-10 space-y-3">
-            <p className="text-zinc-500 text-sm">هنوز وامی ثبت نشده.</p>
-            <button
-              type="button"
-              onClick={() => router.push('/deadlines/loans/new')}
-              className="inline-flex items-center gap-1 text-accent-400 hover:text-accent-300 text-sm font-medium"
-            >
-              <Plus size={16} />
-              ایجاد اولین وام
-            </button>
-          </div>
+          <EmptyState
+            icon={<CalendarClock size={22} />}
+            title="هنوز وامی ثبت نشده."
+            description="وام یا خرید اقساطی را ثبت کن تا اقساطش خودکار برنامه‌ریزی شود."
+            actionLabel="ایجاد اولین وام"
+            onAction={() => router.push('/deadlines/loans/new')}
+          />
         ) : (
           <div className="space-y-3">
-            <div className="bg-surface-raised border border-white/5 rounded-2xl p-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    loanFilter === 'all'
-                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
-                >
-                  همه
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('remaining')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    loanFilter === 'remaining'
-                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
-                >
-                  باقی‌مانده
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('finished')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    loanFilter === 'finished'
-                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
-                >
-                  تمام‌شده
-                </button>
-              </div>
-            </div>
+            <ChoiceChips
+              value={loanFilter}
+              onChange={setLoanFilter}
+              options={[
+                { value: 'remaining', label: 'باقی‌مانده' },
+                { value: 'finished', label: 'تمام‌شده' },
+                { value: 'all', label: 'همه' },
+              ]}
+            />
             {filteredLoanRows.length === 0 ? (
-              <div className="text-center text-zinc-500 text-sm py-6">
-                موردی با این فیلتر وجود ندارد.
-              </div>
-            ) : filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
-              const category = loan.category_id
-                ? categories.find((c) => c.id === loan.category_id)
-                : null;
-              const loanAsset = isAssetLoan(loan)
-                ? assetsById.get(loan.asset_id!) ?? null
-                : null;
-              const totalDisplay =
-                loan.total_amount ?? (loan.installment_amount * loan.repeat_count);
-              const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
-              return (
-                <div
-                  key={loan.id}
-                  className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-zinc-100">{loan.title}</h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        {loan.type === 'expense' ? 'خرید اعتباری' : 'وام نقدی'}
-                        {loanAsset
-                          ? ` · ${loanAsset.name}`
-                          : category
-                            ? ` · ${category.name}`
-                            : ''}
-                      </p>
-                    </div>
-                    <span className="text-xs text-zinc-400">
-                      {paidCount}/{totalCount} تسویه
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-500">پیشرفت تسویه</span>
-                      <span className="text-zinc-300">{toPersianDigits(progressPercent)}٪</span>
-                    </div>
-                    <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 right-0 rounded-full bg-accent-500 transition-[width] duration-300"
-                        style={{ width: `${progressPercent > 0 ? Math.max(progressPercent, 4) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-zinc-500">
-                        {isAssetLoan(loan) ? 'مقدار هر قسط' : 'مبلغ هر قسط'}
-                      </p>
-                      <p className="text-zinc-200 mt-1" dir="ltr">
-                        {formatLoanQty(loan.installment_amount, loan)}
-                      </p>
-                    </div>
-                    <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-zinc-500">جمع کل</p>
-                      <p className="text-zinc-200 mt-1" dir="ltr">
-                        {formatLoanQty(totalDisplay, loan)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2">
-                    <Link
-                      href={`/deadlines/loans/${loan.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
-                    >
-                      ویرایش
-                    </Link>
+              <p className="py-6 text-center text-sm text-zinc-500">موردی با این فیلتر نیست.</p>
+            ) : (
+              <ListGroup>
+                {filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
+                  const category = loan.category_id ? categories.find((c) => c.id === loan.category_id) : null;
+                  const loanAsset = isAssetLoan(loan) ? assetsById.get(loan.asset_id!) ?? null : null;
+                  const totalDisplay = loan.total_amount ?? loan.installment_amount * loan.repeat_count;
+                  const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
+                  return (
                     <button
+                      key={loan.id}
                       type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleDeleteLoan(loan)}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
+                      onClick={() => setActionLoanId(loan.id)}
+                      className="block w-full px-4 py-3.5 text-right transition-colors hover:bg-surface-hover"
                     >
-                      <span className="inline-flex items-center gap-1">
-                        <Trash2 size={13} />
-                        حذف
-                      </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-100">{loan.title}</p>
+                          <p className="mt-0.5 truncate text-xs text-zinc-500">
+                            {[loan.type === 'expense' ? 'خرید اعتباری' : 'وام نقدی', loanAsset?.name ?? category?.name]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-left">
+                          <p className="text-sm font-semibold text-zinc-100">
+                            <Money>{formatLoanQty(loan.installment_amount, loan)}</Money>
+                          </p>
+                          <p className="mt-0.5 text-xs text-zinc-500">
+                            از <Money>{formatLoanQty(totalDisplay, loan)}</Money>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="flex-1">
+                          <ProgressBar value={progressPercent} tone={progressPercent >= 100 ? 'positive' : 'accent'} />
+                        </div>
+                        <span className="shrink-0 text-xs text-zinc-400">
+                          {toPersianDigits(paidCount)} از {toPersianDigits(totalCount)} قسط
+                        </span>
+                      </div>
                     </button>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </ListGroup>
+            )}
           </div>
         )
-      ) : tab === 'installments' ? installmentRows.length === 0 ? (
-        <div className="text-center py-10 space-y-2">
-          <p className="text-zinc-500 text-sm">قسطی برای نمایش نیست.</p>
-          <p className="text-zinc-600 text-xs">بعد از ثبت وام، برنامه اقساط اینجا نمایش داده می‌شود.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-zinc-400">جمع باقی‌مانده</span>
-              <span className="text-sm font-semibold text-zinc-100" dir="ltr">
-                {formatCurrency(remainingTotalDisplay, currencyMode)}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                  installmentFilter === 'all'
-                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                }`}
-              >
-                همه
-              </button>
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('paid')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                  installmentFilter === 'paid'
-                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                }`}
-              >
-                تسویه شده
-              </button>
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('remaining')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                  installmentFilter === 'remaining'
-                    ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                    : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                }`}
-              >
-                باقی‌مانده
-              </button>
-            </div>
+      ) : tab === 'installments' ? (
+        installmentRows.length === 0 ? (
+          <EmptyState
+            icon={<CalendarClock size={22} />}
+            title="قسطی برای نمایش نیست."
+            description="بعد از ثبت وام، برنامه اقساط اینجا نمایش داده می‌شود."
+          />
+        ) : (
+          <div className="space-y-5">
+            <ChoiceChips
+              value={installmentFilter}
+              onChange={setInstallmentFilter}
+              options={[
+                { value: 'remaining', label: 'باقی‌مانده' },
+                { value: 'paid', label: 'تسویه‌شده' },
+                { value: 'all', label: 'همه' },
+              ]}
+            />
+            {groupedInstallments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-zinc-500">موردی با این فیلتر نیست.</p>
+            ) : (
+              groupedInstallments.map((group) => (
+                <Section
+                  key={group.key}
+                  title={group.label}
+                  description={<Money>{formatCurrency(group.total, currencyMode)}</Money>}
+                >
+                  <ListGroup>{group.rows.map((row) => renderInstallmentRow(row, true))}</ListGroup>
+                </Section>
+              ))
+            )}
           </div>
-
-          {groupedInstallments.length === 0 ? (
-            <div className="text-center text-zinc-500 text-sm py-6">
-              موردی با این فیلتر وجود ندارد.
-            </div>
-          ) : groupedInstallments.map((group) => (
-            <div key={group.key} className="space-y-2">
-              <div className="px-1 flex items-center justify-between gap-3">
-                <h3 className="text-xs font-semibold text-zinc-400">{group.label}</h3>
-                <span className="text-xs font-semibold text-zinc-300" dir="ltr">
-                  {formatCurrency(group.total, currencyMode)}
-                </span>
-              </div>
-              {group.rows.map(({ installment, loan }) => {
-                const parsed = parseJalaali(installment.due_date_string);
-                const dueLabel = parsed ? formatJalaaliHuman(parsed) : installment.due_date_string;
-                const amountDisplay = displayAmount({ installment, loan });
-                const meta = installmentMetaByLoan.get(loan.id);
-                const total = meta?.total ?? installment.sequence_no;
-                const isLast = installment.sequence_no === (meta?.lastSeq ?? installment.sequence_no);
-                return (
-                  <div
-                    key={installment.id}
-                    className="bg-surface-raised border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-100 truncate">{loan.title}</p>
-                        <span className="text-xs font-semibold text-zinc-400 shrink-0" dir="ltr">
-                          {toPersianDigits(`${installment.sequence_no}/${total}`)}
-                        </span>
-                        {isLast && (
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
-                            آخرین قسط
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-500 mt-1">{dueLabel}</p>
-                      <p className="text-xs text-zinc-300 mt-1" dir="ltr">
-                        {isAssetLoan(loan)
-                          ? formatLoanQty(
-                              installment.is_paid
-                                ? installment.amount
-                                : installmentRemainingAmount(installment),
-                              loan
-                            )
-                          : formatCurrency(amountDisplay, currencyMode)}
-                      </p>
-                      {installmentHasPartialPay(installment) && (
-                        <p className="text-[11px] text-amber-300 mt-1">پرداخت جزئی</p>
-                      )}
-                    </div>
-
-                    {installment.is_paid ? (
-                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 shrink-0">
-                        <CheckCircle2 size={14} />
-                        تسویه‌شده
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => openSettle(installment)}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition shrink-0"
-                      >
-                        <CreditCard size={14} />
-                        تسویه
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        )
       ) : (
-        <div className="space-y-3">
-          <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 space-y-3">
+        <div className="space-y-5">
+          <Card className="space-y-3">
             <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => moveCalendarMonth(1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
-                aria-label="ماه بعد"
-              >
-                <ChevronLeft size={16} />
+              <button type="button" onClick={() => moveCalendarMonth(-1)} className={navBtn} aria-label="ماه قبل">
+                <ChevronRight size={17} />
               </button>
               <div className="text-center">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-zinc-100">
                   {JALALI_MONTHS[calendarMonth.jm - 1]} {toPersianDigits(calendarMonth.jy)}
                 </p>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  جمع بدهی ماه: {formatCurrency(monthRemainingTotal, currencyMode)}
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  بدهی ماه <Money>{formatCurrency(monthRemainingTotal, currencyMode)}</Money>
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => moveCalendarMonth(-1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
-                aria-label="ماه قبل"
-              >
-                <ChevronRight size={16} />
+              <button type="button" onClick={() => moveCalendarMonth(1)} className={navBtn} aria-label="ماه بعد">
+                <ChevronLeft size={17} />
               </button>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center">
               {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="text-xs text-zinc-500 py-1">
+                <div key={label} className="py-1 text-[11px] text-zinc-500">
                   {label}
                 </div>
               ))}
               {calendarCells.map((cell, idx) => {
-                if (!cell) {
-                  return <div key={`empty-${idx}`} className="h-12 rounded-lg bg-transparent" />;
-                }
+                if (!cell) return <div key={`empty-${idx}`} className="h-11" />;
                 const isSelected = selectedCalendarDate === cell.date;
                 const isToday = cell.date === todayStr;
-                const isOverdue = cell.rows.length > 0 && cell.date < todayStr;
+                const hasRows = cell.rows.length > 0;
+                const isOverdue = hasRows && cell.date < todayStr;
                 return (
                   <button
                     type="button"
                     key={cell.date}
                     onClick={() => setSelectedCalendarDate(cell.date)}
-                    className={`h-12 rounded-lg border transition relative ${
+                    className={`relative flex h-11 flex-col items-center justify-center rounded-xl text-xs transition-colors ${
                       isSelected
-                        ? 'bg-accent-600/30 border-accent-500/60'
-                        : cell.rows.length > 0
-                          ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/15'
-                          : 'bg-white/3 border-white/5 hover:bg-white/6'
+                        ? 'bg-zinc-50 font-semibold text-zinc-900'
+                        : isToday
+                          ? 'bg-white/8 text-zinc-50'
+                          : 'text-zinc-300 hover:bg-white/5'
                     }`}
                   >
-                    <span
-                      className={`text-xs ${isSelected ? 'text-accent-100 font-semibold' : 'text-zinc-300'}`}
-                    >
-                      {toPersianDigits(cell.day)}
-                    </span>
-                    {cell.rows.length > 0 && (
+                    {toPersianDigits(cell.day)}
+                    {hasRows && (
                       <span
-                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] px-1.5 rounded-full ${
-                          isOverdue ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'
+                        className={`absolute bottom-1.5 h-1 w-1 rounded-full ${
+                          isOverdue ? 'bg-rose-400' : isSelected ? 'bg-zinc-900' : 'bg-amber-400'
                         }`}
-                      >
-                        {toPersianDigits(cell.rows.length)}
-                      </span>
-                    )}
-                    {isToday && (
-                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400" />
+                      />
                     )}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-100">{selectedDayLabel}</h3>
-              <span className="text-xs text-zinc-400" dir="ltr">
-                {formatCurrency(selectedRemainingTotal, currencyMode)}
-              </span>
-            </div>
+          <Section
+            title={selectedDayLabel}
+            description={selectedDayRows.length > 0 ? <Money>{formatCurrency(selectedRemainingTotal, currencyMode)}</Money> : undefined}
+          >
             {selectedDayRows.length === 0 ? (
-              <p className="text-xs text-zinc-500 py-3 text-center">برای این روز قسطی ثبت نشده.</p>
+              <p className="py-4 text-center text-sm text-zinc-500">برای این روز قسطی نیست.</p>
             ) : (
-              <div className="space-y-2">
-                {selectedDayRows.map((row) => {
-                  const meta = installmentMetaByLoan.get(row.loan.id);
-                  const total = meta?.total ?? row.installment.sequence_no;
-                  const isLast = row.installment.sequence_no === (meta?.lastSeq ?? row.installment.sequence_no);
-                  return (
-                  <div
-                    key={row.installment.id}
-                    className="bg-white/3 border border-white/5 rounded-xl p-3 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm text-zinc-100 truncate">{row.loan.title}</p>
-                        {isLast && (
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
-                            آخرین قسط
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-400 mt-1" dir="ltr">
-                        {toPersianDigits(`${row.installment.sequence_no}/${total}`)}
-                      </p>
-                      <p className="text-xs text-zinc-200 mt-1" dir="ltr">
-                        {isAssetLoan(row.loan)
-                          ? formatLoanQty(installmentRemainingAmount(row.installment), row.loan)
-                          : formatCurrency(displayAmount(row), currencyMode)}
-                      </p>
-                      {installmentHasPartialPay(row.installment) && (
-                        <p className="text-[11px] text-amber-300 mt-1">پرداخت جزئی</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openSettle(row.installment)}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition shrink-0"
-                    >
-                      <CreditCard size={14} />
-                      تسویه
-                    </button>
-                  </div>
-                  );
-                })}
-              </div>
+              <ListGroup>{selectedDayRows.map((row) => renderInstallmentRow(row, false))}</ListGroup>
             )}
-          </div>
+          </Section>
         </div>
       )}
+
+      <ActionSheet
+        open={actionLoan !== null}
+        onClose={() => setActionLoanId(null)}
+        title={actionLoan?.title}
+        actions={
+          actionLoan
+            ? [
+                {
+                  label: 'ویرایش',
+                  icon: <Pencil size={17} />,
+                  onSelect: () => router.push(`/deadlines/loans/${actionLoan.id}/edit`),
+                },
+                {
+                  label: 'حذف وام و اقساط',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  disabled: isSubmitting,
+                  onSelect: () => void handleDeleteLoan(actionLoan),
+                },
+              ]
+            : []
+        }
+      />
+
+      <BottomSheet open={settlementTarget !== null} onClose={closeSettle} title="تسویه قسط">
+        {settlementTarget &&
+          (() => {
+            const settleLoan = loansById.get(settlementTarget.loan_id);
+            const assetSettle = settleLoan ? isAssetLoan(settleLoan) : false;
+            const settleAsset =
+              assetSettle && settleLoan?.asset_id ? assetsById.get(settleLoan.asset_id) ?? null : null;
+            const unitLabel = assetSettle
+              ? (settleAsset?.unit ?? 'واحد')
+              : settleLoan
+                ? CURRENCY_META[settleLoan.currency].label
+                : '';
+            const remaining = installmentRemainingAmount(settlementTarget);
+            const canSubmit = assetSettle
+              ? !!settlementPayAmount.trim()
+              : !!settlementWalletId && !!settlementPayAmount.trim();
+            return (
+              <div className="space-y-4">
+                {settleLoan && (
+                  <p className="text-sm text-zinc-300">
+                    {settleLoan.title} · قسط {toPersianDigits(settlementTarget.sequence_no)}
+                  </p>
+                )}
+                <Field
+                  label={`${assetSettle ? 'مقدار' : 'مبلغ'} پرداخت (${unitLabel})`}
+                  hint={
+                    <span dir="ltr">
+                      باقی‌مانده: {canonicalInstallmentAmount(remaining)} {unitLabel}
+                      {settleAsset ? ` · ${settleAsset.name}` : ''}
+                    </span>
+                  }
+                >
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={settlementPayAmount}
+                    onChange={(e) => setSettlementPayAmount(e.target.value)}
+                    disabled={isSubmitting}
+                    dir="ltr"
+                    className={`${fieldInputClass} h-14 text-left text-2xl font-semibold`}
+                  />
+                </Field>
+                {!assetSettle && (
+                  <PickerRow
+                    label="پرداخت از"
+                    value={selectedSettlementWallet?.name}
+                    placeholder="انتخاب کیف پول"
+                    disabled={isSubmitting}
+                    onClick={() => setIsSettlementPickerOpen(true)}
+                  />
+                )}
+                <PrimaryButton onClick={handleSettle} disabled={isSubmitting || !canSubmit}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      در حال تسویه...
+                    </>
+                  ) : (
+                    'ثبت پرداخت'
+                  )}
+                </PrimaryButton>
+              </div>
+            );
+          })()}
+      </BottomSheet>
 
       <ListSheetPicker
         open={isSettlementPickerOpen}
@@ -960,84 +877,6 @@ export function LoansHubView() {
           setIsSettlementPickerOpen(false);
         }}
       />
-
-      {settlementTarget && (() => {
-        const settleLoan = loansById.get(settlementTarget.loan_id);
-        const assetSettle = settleLoan ? isAssetLoan(settleLoan) : false;
-        const settleAsset =
-          assetSettle && settleLoan?.asset_id
-            ? assetsById.get(settleLoan.asset_id) ?? null
-            : null;
-        const unitLabel = assetSettle
-          ? (settleAsset?.unit ?? 'واحد')
-          : settleLoan
-            ? CURRENCY_META[settleLoan.currency].label
-            : '';
-        const remaining = installmentRemainingAmount(settlementTarget);
-        const canSubmit = assetSettle
-          ? !!settlementPayAmount.trim()
-          : !!settlementWalletId && !!settlementPayAmount.trim();
-        return (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
-            <div>
-              <label className="text-xs text-zinc-500 block mb-1">
-                {assetSettle ? `مقدار پرداخت (${unitLabel})` : `مبلغ پرداخت (${unitLabel})`}
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={settlementPayAmount}
-                onChange={(e) => setSettlementPayAmount(e.target.value)}
-                disabled={isSubmitting}
-                dir="ltr"
-                className="w-full bg-surface-hover border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-accent-500 disabled:opacity-50"
-              />
-              <p className="text-[11px] text-zinc-500 mt-1" dir="ltr">
-                باقی‌مانده: {canonicalInstallmentAmount(remaining)} {unitLabel}
-                {settleAsset ? ` · ${settleAsset.name}` : ''}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSettle}
-              disabled={isSubmitting || !canSubmit}
-              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : assetSettle ? (
-                settleAsset ? `ثبت با ${settleAsset.name}` : 'ثبت پرداخت'
-              ) : (
-                selectedSettlementWallet ? `ثبت با ${selectedSettlementWallet.name}` : 'ثبت پرداخت'
-              )}
-            </button>
-            {!assetSettle && (
-              <button
-                type="button"
-                onClick={() => setIsSettlementPickerOpen(true)}
-                disabled={isSubmitting}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
-              >
-                {selectedSettlementWallet ? selectedSettlementWallet.name : 'کیف پول'}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
-            >
-              انصراف
-            </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
     </div>
   );
 }

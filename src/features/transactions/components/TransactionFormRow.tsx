@@ -326,7 +326,7 @@ export function TransactionFormRow({
   return (
     <>
       <div
-        className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-4 space-y-5`}
+        className="rounded-2xl border border-white/5 bg-surface-raised p-4 space-y-5"
       >
         {isBulk && (
           <div className="flex items-center justify-between">
@@ -390,7 +390,7 @@ export function TransactionFormRow({
 
           {shape.source && shape.target && (
             <div className="flex justify-center py-0.5">
-              <div className={`p-1.5 rounded-full bg-white/5 ${style.accentText}`}>
+              <div className="p-1 rounded-full text-zinc-600">
                 <ArrowDown size={14} />
               </div>
             </div>
@@ -533,11 +533,11 @@ export function TransactionFormRow({
 
         {/* Date */}
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">تاریخ</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-400">تاریخ</label>
           <button
             type="button"
             onClick={() => setDateOpen(true)}
-            className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 hover:border-white/20 rounded-xl p-3 text-right transition"
+            className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-right transition-colors hover:bg-surface-hover flex items-center gap-3"
           >
             <Calendar size={16} className={style.accentText} />
             <span className="text-sm text-zinc-100 flex-1">{dateLabel}</span>
@@ -558,14 +558,14 @@ export function TransactionFormRow({
 
         {/* Note */}
         <div>
-          <label htmlFor={noteId} className="block text-xs text-zinc-400 mb-1">
+          <label htmlFor={noteId} className="mb-1.5 block text-xs font-medium text-zinc-400">
             توضیحات (اختیاری)
           </label>
           <textarea
             id={noteId}
             value={form.note}
             onChange={(e) => updateField('note', e.target.value)}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm focus:border-accent-500 outline-none min-h-[60px]"
+            className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 min-h-[60px]"
             maxLength={500}
           />
         </div>

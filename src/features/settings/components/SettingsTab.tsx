@@ -40,10 +40,10 @@ export function SettingsTab() {
         </ListGroup>
 
         <Section title="اتصال‌ها و امنیت">
-          <div className="space-y-3">
+          <ListGroup>
             <TelegramConnectionSection />
             <PasskeySettingsSection />
-          </div>
+          </ListGroup>
         </Section>
 
         <NotificationSettingsSection />

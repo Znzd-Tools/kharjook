@@ -1,8 +1,18 @@
 'use client';
 
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import { EmptyState } from '@/shared/components/EmptyState';
+import {
+  ActionSheet,
+  Field,
+  HeaderAction,
+  PageHeader,
+  PrimaryButton,
+  SortableListRow,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Archive, ArrowRight, Edit3, GripVertical, Wallet as WalletIcon, X } from 'lucide-react';
+import { Archive, Edit3, Wallet as WalletIcon } from 'lucide-react';
 import {
   DndContext,
   PointerSensor,
@@ -53,7 +63,6 @@ const emptyForm: FormState = {
 };
 
 export function ManageWalletsView() {
-  const router = useRouter();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { user } = useAuth();
@@ -69,9 +78,20 @@ export function ManageWalletsView() {
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [actionWalletId, setActionWalletId] = useState<string | null>(null);
+
   if (!user) return null;
 
-  const resetForm = () => setForm(emptyForm);
+  const resetForm = () => {
+    setForm(emptyForm);
+    setSheetOpen(false);
+  };
+
+  const openCreate = () => {
+    setForm(emptyForm);
+    setSheetOpen(true);
+  };
 
   const handleEdit = (w: Wallet) => {
     setForm({
@@ -81,6 +101,7 @@ export function ManageWalletsView() {
       initialBalance: String(w.initial_balance ?? ''),
       iconUrl: w.icon_url ?? null,
     });
+    setSheetOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,64 +342,88 @@ export function ManageWalletsView() {
     }
   };
 
+  const actionWallet = wallets.find((w) => w.id === actionWalletId) ?? null;
+
   return (
-    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">مدیریت کیف پول‌ها</h2>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="مدیریت کیف پول‌ها" actions={<HeaderAction label="کیف پول جدید" onClick={openCreate} />} />
+
+      <div className="px-4 pt-5 space-y-3">
+        {wallets.length === 0 ? (
+          <EmptyState
+            icon={<WalletIcon size={22} />}
+            title="هنوز کیف پولی نساخته‌ای."
+            description="حساب بانکی، کارت یا پول نقد — هر جایی که پول نگه می‌داری."
+            actionLabel="ساخت کیف پول"
+            onAction={openCreate}
+          />
+        ) : (
+          <>
+            <p className="px-1 text-xs text-zinc-500">برای جابجایی، دستگیره را بکش. بایگانی، کیف پول را از لیست‌ها پنهان می‌کند.</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+              <SortableContext items={wallets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
+                <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
+                  {wallets.map((w) => (
+                    <SortableWalletRow
+                      key={w.id}
+                      wallet={w}
+                      metaLabel={CURRENCY_META[w.currency]}
+                      onOpen={() => handleEdit(w)}
+                      onMore={() => setActionWalletId(w.id)}
+                      pending={pendingWalletIds.has(w.id) || archivingId === w.id}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
+        )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="p-6 mt-4 mx-6 rounded-2xl border border-white/5 bg-surface-raised"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm text-zinc-400">
-            {form.editingId ? 'ویرایش کیف پول' : 'کیف پول جدید'}
-          </h3>
-          {form.editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
+      <ActionSheet
+        open={actionWallet !== null}
+        onClose={() => setActionWalletId(null)}
+        title={actionWallet?.name}
+        actions={
+          actionWallet
+            ? [
+                { label: 'ویرایش', icon: <Edit3 size={17} />, onSelect: () => handleEdit(actionWallet) },
+                {
+                  label: 'بایگانی',
+                  icon: <Archive size={17} />,
+                  tone: 'danger',
+                  disabled: archivingId === actionWallet.id || pendingWalletIds.has(actionWallet.id),
+                  onSelect: () => void handleArchive(actionWallet),
+                },
+              ]
+            : []
+        }
+      />
 
-        <div className="space-y-4">
+      <BottomSheet open={sheetOpen} onClose={resetForm} title={form.editingId ? 'ویرایش کیف پول' : 'کیف پول جدید'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <IconPicker
             value={form.iconUrl}
             onChange={(url) => setForm({ ...form, iconUrl: url })}
             userId={user.id}
             folder="wallets"
-            fallback={<WalletIcon size={22} className="text-accent-300" />}
-            bgColor="rgba(168, 85, 247, 0.12)"
+            fallback={<WalletIcon size={22} className="text-zinc-300" />}
+            bgColor="rgba(255,255,255,0.06)"
             label="آیکون (اختیاری)"
           />
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">نام</label>
+          <Field label="نام">
             <input
               type="text"
-              placeholder="مثلا: ملی، صرافی نوبیتکس، نقد دلاری"
+              placeholder="مثلاً ملت، نوبیتکس، نقد دلاری"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500"
+              className={fieldInputClass}
               required
               maxLength={64}
             />
-          </div>
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">ارز</label>
-            <div className="grid grid-cols-5 gap-2">
+          </Field>
+          <Field label="ارز" hint={form.editingId ? 'ارز پس از ساخت قابل تغییر نیست.' : undefined}>
+            <div className="grid grid-cols-4 gap-2">
               {CURRENCY_ORDER.map((c) => {
                 const meta = CURRENCY_META[c];
                 const selected = form.currency === c;
@@ -389,90 +434,33 @@ export function ManageWalletsView() {
                     type="button"
                     disabled={disabled}
                     onClick={() => setForm({ ...form, currency: c })}
-                    className={`p-2 rounded-xl border text-xs font-semibold transition-all ${
+                    className={`flex h-14 flex-col items-center justify-center rounded-xl border transition-colors ${
                       selected
-                        ? 'bg-zinc-50 border-zinc-50 text-zinc-900'
-                        : 'bg-surface-hover border-white/10 text-zinc-300 hover:bg-surface-active'
-                    } ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+                        : 'border-white/8 text-zinc-300 hover:bg-white/4'
+                    } ${disabled ? 'cursor-not-allowed opacity-30' : ''}`}
                   >
-                    <div className="text-base leading-none" dir="ltr">
-                      {meta.symbol}
-                    </div>
-                    <div className="mt-1 text-[11px] opacity-80">{c}</div>
+                    <span className="text-base leading-none" dir="ltr">{meta.symbol}</span>
+                    <span className="mt-1 text-[11px] opacity-70">{c}</span>
                   </button>
                 );
               })}
             </div>
-            {form.editingId && (
-              <p className="text-xs text-zinc-500 mt-1">
-                ارز پس از ساخت قابل تغییر نیست.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">
-              موجودی اولیه ({CURRENCY_META[form.currency].label})
-            </label>
+          </Field>
+          <Field label={`موجودی اولیه (${CURRENCY_META[form.currency].label})`}>
             <FormattedNumberInput
               value={form.initialBalance}
-              onValueChange={(canonical) =>
-                setForm({ ...form, initialBalance: canonical })
-              }
-              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-accent-500 text-left"
+              onValueChange={(canonical) => setForm({ ...form, initialBalance: canonical })}
+              className={`${fieldInputClass} text-left text-lg font-semibold`}
               dir="ltr"
               placeholder="0"
             />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full text-white p-3 rounded-xl text-sm font-medium transition-colors ${
-              form.editingId
-                ? 'bg-accent-600 hover:bg-accent-500'
-                : 'bg-white/10 hover:bg-white/20'
-            } disabled:opacity-50`}
-          >
-            {isSubmitting
-              ? 'در حال ثبت...'
-              : form.editingId
-                ? 'ثبت تغییرات'
-                : 'افزودن کیف پول'}
-          </button>
-        </div>
-      </form>
-
-      <div className="px-6 pt-6 space-y-3">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={wallets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
-            {wallets.map((w) => {
-          const meta = CURRENCY_META[w.currency];
-          return (
-            <SortableWalletRow
-              key={w.id}
-              wallet={w}
-              metaLabel={meta}
-              onEdit={() => handleEdit(w)}
-              onArchive={() => void handleArchive(w)}
-              archiving={archivingId === w.id}
-              pending={pendingWalletIds.has(w.id)}
-            />
-          );
-            })}
-          </SortableContext>
-        </DndContext>
-        {wallets.length === 0 && (
-          <p className="text-center text-zinc-500 text-sm py-6">
-            هنوز کیف پولی نساخته‌ای.
-          </p>
-        )}
-      </div>
+          </Field>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ثبت...' : form.editingId ? 'ذخیره تغییرات' : 'افزودن کیف پول'}
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
     </div>
   );
 }
@@ -480,75 +468,41 @@ export function ManageWalletsView() {
 function SortableWalletRow({
   wallet,
   metaLabel,
-  onEdit,
-  onArchive,
-  archiving,
+  onOpen,
+  onMore,
   pending,
 }: {
   wallet: Wallet;
   metaLabel: { symbol: string; decimals: number };
-  onEdit: () => void;
-  onArchive: () => void;
-  archiving: boolean;
+  onOpen: () => void;
+  onMore: () => void;
   pending: boolean;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: wallet.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: wallet.id });
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-surface-raised p-4 rounded-2xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          style={{ touchAction: 'none' }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
-          aria-label="جابجایی"
-        >
-          <GripVertical size={16} />
-        </button>
+    <SortableListRow
+      rowRef={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: pending ? 0.5 : undefined }}
+      handleProps={{ ...attributes, ...listeners }}
+      isDragging={isDragging}
+      onOpen={onOpen}
+      onMore={onMore}
+      leading={
         <EntityIcon
           iconUrl={wallet.icon_url}
-          fallback={<WalletIcon size={18} />}
-          bgColor="rgba(168, 85, 247, 0.10)"
-          color="#a5a9fc"
-          className="w-10 h-10 shrink-0"
+          fallback={<WalletIcon size={17} />}
+          bgColor="rgba(255,255,255,0.06)"
+          color="#d4d4d8"
+          className="h-10 w-10 shrink-0 rounded-full!"
         />
-        <div className="min-w-0">
-          <p className="text-zinc-200 text-sm font-medium truncate">{wallet.name}</p>
-          <p className="text-zinc-500 text-xs mt-0.5" dir="ltr">
-            {metaLabel.symbol} {formatCurrencyAmount(wallet.initial_balance, wallet.currency)} · {wallet.currency}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={onEdit}
-          disabled={pending}
-          className="text-blue-400/50 hover:text-blue-400 p-1.5 transition-colors"
-          aria-label="ویرایش"
-        >
-          <Edit3 size={16} />
-        </button>
-        <button
-          onClick={onArchive}
-          disabled={archiving || pending}
-          className="text-amber-400/50 hover:text-amber-400 p-1.5 transition-colors disabled:opacity-30"
-          aria-label="بایگانی"
-        >
-          <Archive size={16} />
-        </button>
-      </div>
-    </div>
+      }
+      title={wallet.name}
+      subtitle={
+        <span dir="ltr">
+          {wallet.currency} · موجودی اولیه {metaLabel.symbol}
+          {formatCurrencyAmount(wallet.initial_balance, wallet.currency)}
+        </span>
+      }
+    />
   );
 }

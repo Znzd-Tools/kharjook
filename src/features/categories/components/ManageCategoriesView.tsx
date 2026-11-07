@@ -1,16 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import { EmptyState } from '@/shared/components/EmptyState';
 import {
-  ArrowRight,
+  ActionSheet,
+  Field,
+  HeaderAction,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SegmentedControl,
+  SortableListRow,
+  fieldInputClass,
+} from '@/shared/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import {
   Check,
-  ChevronLeft,
   Edit3,
   Folder,
-  GripVertical,
   Trash2,
-  X,
 } from 'lucide-react';
 import {
   DndContext,
@@ -68,7 +76,6 @@ const emptyForm: FormState = {
 };
 
 export function ManageCategoriesView() {
-  const router = useRouter();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { user } = useAuth();
@@ -166,6 +173,9 @@ export function ManageCategoriesView() {
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [actionCategoryId, setActionCategoryId] = useState<string | null>(null);
+
   if (!user) return null;
 
   const switchTab = (kind: CategoryKind) => {
@@ -174,7 +184,15 @@ export function ManageCategoriesView() {
     setForm(emptyForm);
   };
 
-  const resetForm = () => setForm(emptyForm);
+  const resetForm = () => {
+    setForm(emptyForm);
+    setSheetOpen(false);
+  };
+
+  const openCreate = () => {
+    setForm(emptyForm);
+    setSheetOpen(true);
+  };
 
   const persistCategoryCap = async (categoryId: string, rawLimit: string) => {
     const trimmed = rawLimit.trim();
@@ -371,6 +389,7 @@ export function ManageCategoriesView() {
       parentId: cat.parent_id,
       monthlyCapToman: cap ? String(cap.monthly_limit_toman) : '',
     });
+    setSheetOpen(true);
   };
 
   const handleDelete = async (cat: Category) => {
@@ -488,192 +507,142 @@ export function ManageCategoriesView() {
       ? 'ثبت تغییرات'
       : 'افزودن دسته';
 
+  const actionCategory = categories.find((c) => c.id === actionCategoryId) ?? null;
+
   return (
-    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">
-          مدیریت دسته‌بندی‌ها
-        </h2>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="دسته‌بندی‌ها" actions={<HeaderAction label="دسته جدید" onClick={openCreate} />} />
+
+      <div className="px-4 pt-5 space-y-4">
+        <SegmentedControl
+          value={activeKind}
+          onChange={switchTab}
+          options={KIND_TABS.map((t) => ({ value: t.id, label: t.label }))}
+        />
+
+        {roots.length === 0 ? (
+          <EmptyState
+            icon={<Folder size={22} />}
+            title="هیچ دسته‌ای ثبت نشده."
+            actionLabel="ساخت دسته"
+            onAction={openCreate}
+          />
+        ) : (
+          <>
+            <p className="px-1 text-xs text-zinc-500">
+              برای جابجایی، دستگیره را بکش. زیرمجموعه‌ها زیر دستهٔ اصلی نمایش داده می‌شوند.
+            </p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+              <SortableContext items={roots.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
+                  {roots.map((root) => (
+                    <CategoryNode
+                      key={root.id}
+                      category={root}
+                      depth={0}
+                      childrenByParent={childrenByParent}
+                      onEdit={handleEdit}
+                      onMore={(c) => setActionCategoryId(c.id)}
+                      pendingIds={pendingCategoryIds}
+                      capsByCategoryId={capsByCategoryId}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
+        )}
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="grid grid-cols-3 gap-1.5 bg-surface-raised p-1.5 rounded-xl">
-          {KIND_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => switchTab(t.id)}
-              className={`min-h-11 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeKind === t.id
-                  ? 'bg-zinc-50 text-zinc-900'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ActionSheet
+        open={actionCategory !== null}
+        onClose={() => setActionCategoryId(null)}
+        title={actionCategory?.name}
+        actions={
+          actionCategory
+            ? [
+                { label: 'ویرایش', icon: <Edit3 size={17} />, onSelect: () => handleEdit(actionCategory) },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  disabled: pendingCategoryIds.has(actionCategory.id),
+                  onSelect: () => void handleDelete(actionCategory),
+                },
+              ]
+            : []
+        }
+      />
 
-      <form
-        onSubmit={handleSubmit}
-        className="px-4 py-4 border-b border-white/5 bg-surface-raised mt-3 mx-4 rounded-2xl"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm text-zinc-400">
-            {form.editingId ? 'ویرایش دسته' : 'دسته جدید'}
-          </h3>
-          {form.editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="category-name" className="block text-xs text-zinc-400 mb-1">
-              نام دسته
-            </label>
+      <BottomSheet open={sheetOpen} onClose={resetForm} title={form.editingId ? 'ویرایش دسته' : 'دسته جدید'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="نام" htmlFor="category-name">
             <input
               id="category-name"
               type="text"
               placeholder={namePlaceholder}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500"
+              className={fieldInputClass}
               required
               maxLength={64}
             />
-          </div>
-
-          <div className="flex flex-wrap gap-2" role="group" aria-label="رنگ دسته">
-            {CATEGORY_COLORS.map((c) => (
-              <button
-                type="button"
-                key={c}
-                onClick={() => setForm({ ...form, color: c })}
-                aria-label={`رنگ ${c}`}
-                aria-pressed={form.color === c}
-                className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-                style={{ backgroundColor: c }}
-              >
-                {form.color === c && (
-                  <Check size={18} className="text-white/90" />
-                )}
-              </button>
-            ))}
-          </div>
-
-          {activeKind !== 'asset' && (
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">
-                زیرمجموعه‌ی (اختیاری)
-              </label>
-              <button
-                type="button"
-                onClick={() => setParentPickerOpen(true)}
-                className="w-full flex items-center gap-3 bg-surface-hover border border-white/10 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
-              >
-                {selectedParent ? (
-                  <>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: selectedParent.color }}
-                    />
-                    <span className="flex-1 min-w-0 text-sm text-white truncate">
-                      {selectedParent.name}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Folder size={14} className="text-zinc-500 shrink-0" />
-                    <span className="flex-1 min-w-0 text-sm text-zinc-500">
-                      بدون والد (دسته اصلی)
-                    </span>
-                  </>
-                )}
-                <ChevronLeft
-                  size={16}
-                  className="text-zinc-500 shrink-0"
-                />
-              </button>
+          </Field>
+          <Field label="رنگ">
+            <div className="flex flex-wrap gap-2.5" role="group" aria-label="رنگ دسته">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setForm({ ...form, color: c })}
+                  aria-label={`رنگ ${c}`}
+                  aria-pressed={form.color === c}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-95 ${
+                    form.color === c ? 'ring-2 ring-zinc-50 ring-offset-2 ring-offset-surface-overlay' : ''
+                  }`}
+                  style={{ backgroundColor: c }}
+                >
+                  {form.color === c && <Check size={15} className="text-white" />}
+                </button>
+              ))}
             </div>
+          </Field>
+          {activeKind !== 'asset' && (
+            <PickerRow
+              label="زیرمجموعهٔ"
+              value={selectedParent?.name}
+              placeholder="هیچ‌کدام (دستهٔ اصلی)"
+              leading={
+                selectedParent ? (
+                  <span className="block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selectedParent.color }} />
+                ) : (
+                  <Folder size={14} />
+                )
+              }
+              onClick={() => setParentPickerOpen(true)}
+            />
           )}
-
           {activeKind === 'expense' && (
-            <div>
-              <label htmlFor="category-monthly-cap" className="block text-xs text-zinc-400 mb-1">
-                سقف هزینه ماهانه (تومان، اختیاری)
-              </label>
+            <Field
+              label="سقف هزینه ماهانه (تومان)"
+              htmlFor="category-monthly-cap"
+              hint="اختیاری. هزینهٔ زیرمجموعه‌ها هم حساب می‌شود."
+            >
               <FormattedNumberInput
                 id="category-monthly-cap"
                 value={form.monthlyCapToman}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, monthlyCapToman: value }))}
-                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500 text-left"
+                className={`${fieldInputClass} text-left`}
                 dir="ltr"
-                placeholder="مثلا ۵,۰۰۰,۰۰۰"
+                placeholder="مثلاً ۵,۰۰۰,۰۰۰"
               />
-              <p className="text-[11px] text-zinc-500 mt-1.5">
-                هزینه زیرمجموعه‌ها هم در محاسبه لحاظ می‌شود.
-              </p>
-            </div>
+            </Field>
           )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full text-white min-h-11 p-3 rounded-xl text-sm font-medium transition-colors ${
-              form.editingId
-                ? 'bg-accent-600 hover:bg-accent-500'
-                : 'bg-white/10 hover:bg-white/20'
-            } disabled:opacity-50`}
-          >
+          <PrimaryButton type="submit" disabled={isSubmitting}>
             {submitLabel}
-          </button>
-        </div>
-      </form>
-
-      <div className="px-4 pt-4 space-y-2">
-        {roots.length === 0 && (
-          <p className="text-center text-zinc-500 text-sm py-6">
-            هیچ دسته‌بندی ثبت نشده.
-          </p>
-        )}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={roots.map((r) => r.id)} strategy={verticalListSortingStrategy}>
-            {roots.map((root) => (
-              <CategoryNode
-                key={root.id}
-                category={root}
-                depth={0}
-                childrenByParent={childrenByParent}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                pendingIds={pendingCategoryIds}
-                capsByCategoryId={capsByCategoryId}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </div>
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
 
       {activeKind !== 'asset' && (
         <CategorySheetPicker
@@ -698,7 +667,7 @@ interface CategoryNodeProps {
   depth: number;
   childrenByParent: Map<string, Category[]>;
   onEdit: (c: Category) => void;
-  onDelete: (c: Category) => void;
+  onMore: (c: Category) => void;
   pendingIds: Set<string>;
   capsByCategoryId: Map<string, CategorySpendingCap>;
 }
@@ -708,71 +677,38 @@ function CategoryNode({
   depth,
   childrenByParent,
   onEdit,
-  onDelete,
+  onMore,
   pendingIds,
   capsByCategoryId,
 }: CategoryNodeProps) {
   const kids = childrenByParent.get(category.id) ?? [];
-  const compact = depth > 0;
   const pending = pendingIds.has(category.id);
   const capLimitToman = capsByCategoryId.get(category.id)?.monthly_limit_toman ?? null;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
   return (
-    <div className="space-y-2">
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        className={`bg-surface-raised ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            style={{ touchAction: 'none' }}
-            className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
-            aria-label="جابجایی"
-          >
-            <GripVertical size={compact ? 13 : 15} />
-          </button>
-          <div
-            className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} rounded-full shrink-0`}
-            style={{ backgroundColor: category.color }}
-          />
-          <span
-            className={`text-zinc-200 ${compact ? 'text-xs' : 'text-sm'} truncate`}
-          >
-            {category.name}
-          </span>
-          {capLimitToman != null && capLimitToman > 0 && (
-            <span className="text-[11px] text-amber-400/80 shrink-0">
-              سقف {Number(capLimitToman).toLocaleString('en-US')}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => onEdit(category)}
-            disabled={pending}
-            className="text-blue-400/50 hover:text-blue-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
-            aria-label="ویرایش"
-          >
-            <Edit3 size={compact ? 16 : 18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(category)}
-            disabled={pending}
-            className="text-rose-400/50 hover:text-rose-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
-            aria-label="حذف"
-          >
-            <Trash2 size={compact ? 16 : 18} />
-          </button>
-        </div>
-      </div>
+    <div>
+      <SortableListRow
+        rowRef={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition, opacity: pending ? 0.5 : undefined }}
+        handleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+        onOpen={() => onEdit(category)}
+        onMore={() => onMore(category)}
+        leading={<span className="block h-3 w-3 rounded-full" style={{ backgroundColor: category.color }} />}
+        title={category.name}
+        subtitle={
+          [
+            kids.length > 0 ? `${kids.length.toLocaleString('fa-IR')} زیرمجموعه` : null,
+            capLimitToman != null && capLimitToman > 0
+              ? `سقف ماهانه ${Number(capLimitToman).toLocaleString('en-US')}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || undefined
+        }
+      />
       {kids.length > 0 && (
-        <div className="pr-6 space-y-2 border-r border-white/5 mr-3">
+        <div className={`border-t border-white/5 divide-y divide-white/5 ${depth === 0 ? 'pr-6' : 'pr-4'}`}>
           <SortableContext items={kids.map((k) => k.id)} strategy={verticalListSortingStrategy}>
             {kids.map((kid) => (
               <CategoryNode
@@ -781,7 +717,7 @@ function CategoryNode({
                 depth={depth + 1}
                 childrenByParent={childrenByParent}
                 onEdit={onEdit}
-                onDelete={onDelete}
+                onMore={onMore}
                 pendingIds={pendingIds}
                 capsByCategoryId={capsByCategoryId}
               />

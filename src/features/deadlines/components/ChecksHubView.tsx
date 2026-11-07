@@ -1,14 +1,26 @@
 'use client';
 
-import { HeaderAction, PageHeader } from '@/shared/components/ui';
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import {
+  ActionSheet,
+  HeaderAction,
+  IconBadge,
+  ListGroup,
+  ListRow,
+  Money,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SegmentedControl,
+} from '@/shared/components/ui';
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Ban,
   CreditCard,
   Loader2,
+  Pencil,
   ReceiptText,
   Trash2,
   XCircle,
@@ -27,6 +39,13 @@ import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
 import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type FilterKey = 'pending' | 'cleared' | 'all';
+
+const STATUS_COLOR: Record<CheckStatus, string> = {
+  pending: '#a78bfa',
+  cleared: '#34d399',
+  bounced: '#fb7185',
+  cancelled: '#71717a',
+};
 
 const STATUS_LABEL: Record<CheckStatus, string> = {
   pending: 'در انتظار',
@@ -59,6 +78,7 @@ export function ChecksHubView() {
 
   const [checks, setChecks] = useState<Check[]>([]);
   const [filter, setFilter] = useState<FilterKey>('pending');
+  const [actionCheckId, setActionCheckId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [settlementTarget, setSettlementTarget] = useState<Check | null>(null);
@@ -286,161 +306,160 @@ export function ChecksHubView() {
     }
   };
 
+  const actionCheck = filteredChecks.find((c) => c.id === actionCheckId) ?? null;
+  const pendingTotal = checks
+    .filter((c) => c.status === 'pending')
+    .reduce((sum, c) => sum + displayAmount(c), 0);
+
+  const dueHint = (check: Check) => {
+    if (check.status !== 'pending') return { text: STATUS_LABEL[check.status], tone: 'text-zinc-500' };
+    const days = daysUntilDue(check.due_date_string, todayStr);
+    if (days == null) return { text: '', tone: 'text-zinc-500' };
+    if (days < 0) return { text: `${toPersianDigits(-days)} روز گذشته`, tone: 'text-rose-400' };
+    if (days === 0) return { text: 'امروز', tone: 'text-amber-300' };
+    return { text: `${toPersianDigits(days)} روز دیگر`, tone: days <= 7 ? 'text-amber-200/80' : 'text-zinc-500' };
+  };
+
   return (
-    <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
+    <div className="px-4 pb-8 space-y-5 animate-[fade-in_250ms_ease-out]">
       <PageHeader
         className="-mx-4"
         title="چک‌ها"
         actions={<HeaderAction label="چک جدید" href="/deadlines/checks/new" />}
       />
 
-      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
-        {(
-          [
-            ['pending', 'در انتظار'],
-            ['cleared', 'بسته شده'],
-            ['all', 'همه'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              filter === key ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {pendingTotal > 0 && (
+        <div className="px-1">
+          <p className="text-xs text-zinc-500">جمع چک‌های در انتظار</p>
+          <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight text-zinc-50">
+            <Money>{formatCurrency(pendingTotal, currencyMode)}</Money>
+          </p>
+        </div>
+      )}
+
+      <SegmentedControl
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: 'pending', label: 'در انتظار' },
+          { value: 'cleared', label: 'بسته‌شده' },
+          { value: 'all', label: 'همه' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="py-10 text-center text-zinc-500 animate-pulse">در حال دریافت...</div>
       ) : filteredChecks.length === 0 ? (
         <EmptyState
-          icon={<ReceiptText size={24} />}
-          title={filter === 'pending' ? 'چک در انتظاری ندارید.' : 'موردی برای نمایش نیست.'}
+          icon={<ReceiptText size={22} />}
+          title={filter === 'pending' ? 'چک در انتظاری نداری.' : 'موردی برای نمایش نیست.'}
           description={
             filter === 'pending'
-              ? 'چک‌های صادره را با تاریخ سررسید ثبت کنید تا سررسید را از دست ندهید.'
+              ? 'چک‌های صادره را با تاریخ سررسید ثبت کن تا سررسید را از دست ندهی.'
               : undefined
           }
           actionLabel={filter === 'pending' ? 'ثبت اولین چک' : undefined}
           onAction={filter === 'pending' ? () => router.push('/deadlines/checks/new') : undefined}
         />
       ) : (
-        <div className="space-y-3">
+        <ListGroup>
           {filteredChecks.map((check) => {
-            const category = check.category_id
-              ? categories.find((c) => c.id === check.category_id)
-              : null;
+            const category = check.category_id ? categories.find((c) => c.id === check.category_id) : null;
             const due = parseJalaali(check.due_date_string);
-            const days = daysUntilDue(check.due_date_string, todayStr);
-            const isOverdue = check.status === 'pending' && days != null && days < 0;
-            const isToday = check.status === 'pending' && days === 0;
-
+            const hint = dueHint(check);
             return (
-              <div
+              <ListRow
                 key={check.id}
-                className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-zinc-100 truncate">{check.title}</h3>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      {[check.bank_name, check.check_number ? `#${check.check_number}` : null, category?.name]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-lg shrink-0 ${
-                      check.status === 'pending'
-                        ? isOverdue
-                          ? 'bg-rose-500/15 text-rose-300'
-                          : isToday
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-sky-500/15 text-sky-300'
-                        : check.status === 'cleared'
-                          ? 'bg-emerald-500/15 text-emerald-300'
-                          : check.status === 'bounced'
-                            ? 'bg-rose-500/15 text-rose-300'
-                            : 'bg-zinc-500/15 text-zinc-400'
-                    }`}
-                  >
-                    {STATUS_LABEL[check.status]}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-zinc-500">مبلغ</p>
-                    <p className="text-zinc-200 mt-1" dir="ltr">
-                      {formatCurrency(displayAmount(check), currencyMode)}
-                    </p>
-                  </div>
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-zinc-500">سررسید</p>
-                    <p className="text-zinc-200 mt-1">
-                      {due ? toPersianDigits(formatJalaaliHuman(due)) : check.due_date_string}
-                    </p>
-                  </div>
-                </div>
-
-                {check.status === 'pending' && (
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openSettle(check)}
-                      disabled={isSubmitting}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition disabled:opacity-50"
-                    >
-                      <CreditCard size={13} />
-                      تسویه
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleMarkBounced(check)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition disabled:opacity-50"
-                    >
-                      <XCircle size={13} />
-                      برگشت
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleMarkCancelled(check)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-300 transition disabled:opacity-50"
-                    >
-                      <Ban size={13} />
-                      عودت
-                    </button>
-                    <Link
-                      href={`/deadlines/checks/${check.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
-                    >
-                      ویرایش
-                    </Link>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleDelete(check)}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        <Trash2 size={13} />
-                        حذف
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                onClick={check.status === 'pending' ? () => setActionCheckId(check.id) : undefined}
+                className={check.status === 'pending' ? '' : 'opacity-60'}
+                leading={
+                  <IconBadge color={STATUS_COLOR[check.status]}>
+                    <ReceiptText size={17} strokeWidth={1.9} />
+                  </IconBadge>
+                }
+                title={check.title}
+                subtitle={[
+                  due ? toPersianDigits(formatJalaaliHuman(due)) : check.due_date_string,
+                  check.bank_name,
+                  check.check_number ? `#${check.check_number}` : null,
+                  category?.name,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                trailing={<Money>{formatCurrency(displayAmount(check), currencyMode)}</Money>}
+                trailingSub={<span className={hint.tone}>{hint.text}</span>}
+              />
             );
           })}
-        </div>
+        </ListGroup>
       )}
+
+      <ActionSheet
+        open={actionCheck !== null}
+        onClose={() => setActionCheckId(null)}
+        title={actionCheck?.title}
+        actions={
+          actionCheck
+            ? [
+                { label: 'تسویه', icon: <CreditCard size={17} />, onSelect: () => openSettle(actionCheck) },
+                {
+                  label: 'برگشت خورد',
+                  icon: <XCircle size={17} />,
+                  disabled: isSubmitting,
+                  onSelect: () => void handleMarkBounced(actionCheck),
+                },
+                {
+                  label: 'عودت داده شد',
+                  icon: <Ban size={17} />,
+                  disabled: isSubmitting,
+                  onSelect: () => void handleMarkCancelled(actionCheck),
+                },
+                {
+                  label: 'ویرایش',
+                  icon: <Pencil size={17} />,
+                  onSelect: () => router.push(`/deadlines/checks/${actionCheck.id}/edit`),
+                },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  disabled: isSubmitting,
+                  onSelect: () => void handleDelete(actionCheck),
+                },
+              ]
+            : []
+        }
+      />
+
+      <BottomSheet open={settlementTarget !== null} onClose={closeSettle} title="تسویه چک">
+        {settlementTarget && (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-white/4 p-4">
+              <p className="text-sm text-zinc-300">{settlementTarget.title}</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
+                <Money>{formatCurrency(displayAmount(settlementTarget), currencyMode)}</Money>
+              </p>
+            </div>
+            <PickerRow
+              label="پرداخت از"
+              value={selectedSettlementWallet?.name}
+              placeholder="انتخاب کیف پول"
+              disabled={isSubmitting}
+              onClick={() => setIsSettlementPickerOpen(true)}
+            />
+            <PrimaryButton onClick={handleSettle} disabled={isSubmitting || !settlementWalletId}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  در حال تسویه...
+                </>
+              ) : (
+                'ثبت تسویه'
+              )}
+            </PrimaryButton>
+          </div>
+        )}
+      </BottomSheet>
 
       <ListSheetPicker
         open={isSettlementPickerOpen}
@@ -453,45 +472,6 @@ export function ChecksHubView() {
           setIsSettlementPickerOpen(false);
         }}
       />
-
-      {settlementTarget && (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSettle}
-              disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : selectedSettlementWallet ? (
-                `ثبت تسویه با ${selectedSettlementWallet.name}`
-              ) : (
-                'ثبت تسویه'
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettlementPickerOpen(true)}
-              disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
-            >
-              {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
-            </button>
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
-            >
-              انصراف
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,13 +1,25 @@
 'use client';
 
-import { HeaderAction, PageHeader } from '@/shared/components/ui';
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import {
+  ActionSheet,
+  HeaderAction,
+  IconBadge,
+  ListGroup,
+  ListRow,
+  Money,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SegmentedControl,
+} from '@/shared/components/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Pencil,
   Loader2,
   Repeat,
   RotateCcw,
@@ -27,7 +39,6 @@ import { subscriptionDueDatesInPeriod } from '@/features/plan/utils/recurring-du
 import { intervalLabel } from '@/features/transactions/utils/recurring-transaction-label';
 import { SubscriptionAmountDisplay } from '@/features/deadlines/components/SubscriptionAmountDisplay';
 import {
-  formatSubscriptionNativeAmount,
   subscriptionAmountToToman,
 } from '@/features/deadlines/utils/subscription-amount-display';
 import {
@@ -54,6 +65,7 @@ export function SubscriptionsHubView() {
 
   const [rows, setRows] = useState<Subscription[]>([]);
   const [filter, setFilter] = useState<FilterKey>('active');
+  const [actionRowId, setActionRowId] = useState<string | null>(null);
   const [summaryPeriod, setSummaryPeriod] = useState<Period>(() => currentPeriod('month'));
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -252,6 +264,10 @@ export function SubscriptionsHubView() {
     }
   };
 
+  const actionRow = filteredRows.find((r) => r.id === actionRowId) ?? null;
+  const navBtn =
+    'inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-white/6 hover:text-zinc-100';
+
   return (
     <div className="px-4 pb-8 space-y-6 animate-[fade-in_250ms_ease-out]">
       <PageHeader
@@ -260,224 +276,202 @@ export function SubscriptionsHubView() {
         actions={<HeaderAction label="اشتراک جدید" href="/deadlines/subscriptions/new" />}
       />
 
-      <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-white">هزینه ماهانه</h3>
-            <p className="text-xs text-zinc-500">جمع اشتراک‌های فعال در ماه انتخاب‌شده</p>
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3 px-1">
+          <div className="min-w-0">
+            <p className="text-xs text-zinc-500">هزینه اشتراک‌ها در {monthlySummary.label}</p>
+            <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight text-zinc-50">
+              <Money>{formatCurrency(monthlySummary.total, currencyMode)}</Money>
+            </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
               onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, -1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
-              aria-label="previous-month"
+              className={navBtn}
+              aria-label="ماه قبل"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={17} />
             </button>
-            <span className="text-xs text-zinc-300 min-w-[6rem] text-center">{monthlySummary.label}</span>
             <button
               type="button"
               onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, 1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 inline-flex items-center justify-center"
-              aria-label="next-month"
+              className={navBtn}
+              aria-label="ماه بعد"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={17} />
             </button>
           </div>
         </div>
-
-        <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5">
-          <span className="text-xs text-zinc-400">جمع</span>
-          <span className="text-sm font-semibold text-emerald-300" dir="ltr">
-            {formatCurrency(monthlySummary.total, currencyMode)}
-          </span>
-        </div>
-
-        {monthlySummary.lineItems.length === 0 ? (
-          <p className="text-xs text-zinc-500 text-center py-2">سررسیدی در این ماه نیست.</p>
-        ) : (
-          <div className="space-y-1.5">
+        {monthlySummary.lineItems.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-1">
             {monthlySummary.lineItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-2.5 py-1.5"
-              >
-                <div className="min-w-0">
-                  <p className="text-xs text-zinc-200 truncate">{item.platform}</p>
-                  <p className="text-[11px] text-zinc-500">
-                    {toPersianDigits(item.count)} بار
-                  </p>
-                </div>
-                <span className="text-xs text-zinc-300 shrink-0" dir="ltr">
-                  <p>{formatCurrency(item.displayTotal, currencyMode)}</p>
-                  {item.currency !== 'IRT' && (
-                    <p className="text-[11px] text-zinc-500">
-                      {formatSubscriptionNativeAmount(item.nativeTotal, item.currency)}
-                    </p>
-                  )}
-                </span>
-              </div>
+              <span key={item.id} className="rounded-full bg-white/6 px-2.5 py-1 text-xs text-zinc-300">
+                {item.platform}
+                {item.count > 1 ? ` ×${toPersianDigits(item.count)}` : ''} ·{' '}
+                <Money className="text-zinc-400">{formatCurrency(item.displayTotal, currencyMode)}</Money>
+              </span>
             ))}
           </div>
         )}
       </section>
 
-      <div className="grid grid-cols-3 gap-1 bg-surface-raised p-1 rounded-xl">
-        {(
-          [
-            ['active', 'فعال'],
-            ['cancelled', 'لغو شده'],
-            ['all', 'همه'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              filter === key ? 'bg-surface-active text-zinc-50' : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: 'active', label: 'فعال' },
+          { value: 'cancelled', label: 'لغوشده' },
+          { value: 'all', label: 'همه' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="text-center text-zinc-500 py-10 animate-pulse">در حال دریافت...</div>
+        <div className="py-10 text-center text-zinc-500 animate-pulse">در حال دریافت...</div>
       ) : filteredRows.length === 0 ? (
         <EmptyState
-          icon={<Repeat size={24} />}
-          title={filter === 'active' ? 'اشتراک فعالی ندارید.' : 'موردی برای نمایش نیست.'}
+          icon={<Repeat size={22} />}
+          title={filter === 'active' ? 'اشتراک فعالی نداری.' : 'موردی برای نمایش نیست.'}
           description={
-            filter === 'active'
-              ? 'اشتراک‌های دوره‌ای را ثبت کنید تا سررسید را از دست ندهید.'
-              : undefined
+            filter === 'active' ? 'اشتراک‌های دوره‌ای را ثبت کن تا سررسید را از دست ندهی.' : undefined
           }
           actionLabel={filter === 'active' ? 'ثبت اولین اشتراک' : undefined}
           onAction={filter === 'active' ? () => router.push('/deadlines/subscriptions/new') : undefined}
         />
       ) : (
-        <div className="space-y-3">
+        <ListGroup>
           {filteredRows.map((row) => {
-            const category = row.category_id
-              ? categories.find((c) => c.id === row.category_id)
-              : null;
+            const category = row.category_id ? categories.find((c) => c.id === row.category_id) : null;
             const wallet = row.wallet_id ? wallets.find((w) => w.id === row.wallet_id) : null;
             const due = parseJalaali(row.next_due_date_string);
             const days = daysBetweenJalaali(todayStr, row.next_due_date_string);
-            const isOverdue = row.status === 'active' && days != null && days < 0;
-            const isToday = row.status === 'active' && days === 0;
-
+            const active = row.status === 'active';
+            const hint = !active
+              ? { text: STATUS_LABEL[row.status], tone: 'text-zinc-500' }
+              : days == null
+                ? { text: '', tone: '' }
+                : days < 0
+                  ? { text: `${toPersianDigits(-days)} روز گذشته`, tone: 'text-rose-400' }
+                  : days === 0
+                    ? { text: 'امروز', tone: 'text-amber-300' }
+                    : { text: `${toPersianDigits(days)} روز دیگر`, tone: days <= 7 ? 'text-amber-200/80' : 'text-zinc-500' };
             return (
-              <div
+              <ListRow
                 key={row.id}
-                className="bg-surface-raised border border-white/5 p-4 rounded-2xl space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-zinc-100 truncate">{row.platform}</h3>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      {[intervalLabel(row), category?.name, wallet?.name]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-lg shrink-0 ${
-                      row.status === 'active'
-                        ? isOverdue
-                          ? 'bg-rose-500/15 text-rose-300'
-                          : isToday
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-emerald-500/15 text-emerald-300'
-                        : 'bg-zinc-500/15 text-zinc-400'
-                    }`}
-                  >
-                    {STATUS_LABEL[row.status]}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-zinc-500">مبلغ</p>
-                    <div className="mt-1">
-                      <SubscriptionAmountDisplay
-                        amount={row.amount}
-                        currency={row.currency}
-                        currencyRates={currencyRates}
-                        currencyMode={currencyMode}
-                        usdRate={usdRate}
-                        primaryClassName="text-zinc-200 text-xs"
-                      />
-                    </div>
-                  </div>
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-zinc-500">سررسید بعدی</p>
-                    <p className="text-zinc-200 mt-1">
-                      {due ? toPersianDigits(formatJalaaliHuman(due)) : row.next_due_date_string}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  {row.status === 'active' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openSettle(row)}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-zinc-50 hover:bg-white text-zinc-900 transition disabled:opacity-50"
-                      >
-                        <CreditCard size={13} />
-                        پرداخت
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => void handleCancel(row)}
-                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition disabled:opacity-50"
-                      >
-                        <XCircle size={13} />
-                        لغو
-                      </button>
-                    </>
-                  )}
-                  {row.status === 'cancelled' && (
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleReactivate(row)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition disabled:opacity-50"
-                    >
-                      <RotateCcw size={13} />
-                      فعال‌سازی
-                    </button>
-                  )}
-                  <Link
-                    href={`/deadlines/subscriptions/${row.id}/edit`}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition"
-                  >
-                    ویرایش
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => void handleDelete(row)}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      <Trash2 size={13} />
-                      حذف
-                    </span>
-                  </button>
-                </div>
-              </div>
+                onClick={() => setActionRowId(row.id)}
+                className={active ? '' : 'opacity-60'}
+                leading={
+                  <IconBadge color={active ? '#22d3ee' : undefined}>
+                    <Repeat size={17} strokeWidth={1.9} />
+                  </IconBadge>
+                }
+                title={row.platform}
+                subtitle={[
+                  due ? toPersianDigits(formatJalaaliHuman(due)) : row.next_due_date_string,
+                  intervalLabel(row),
+                  category?.name,
+                  wallet?.name,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                trailing={
+                  <SubscriptionAmountDisplay
+                    amount={row.amount}
+                    currency={row.currency}
+                    currencyRates={currencyRates}
+                    currencyMode={currencyMode}
+                    usdRate={usdRate}
+                    primaryClassName="text-sm font-semibold text-zinc-100"
+                    secondaryClassName="text-[11px] text-zinc-500"
+                    align="end"
+                  />
+                }
+                trailingSub={<span className={hint.tone}>{hint.text}</span>}
+              />
             );
           })}
-        </div>
+        </ListGroup>
       )}
+
+      <ActionSheet
+        open={actionRow !== null}
+        onClose={() => setActionRowId(null)}
+        title={actionRow?.platform}
+        actions={
+          actionRow
+            ? [
+                ...(actionRow.status === 'active'
+                  ? [
+                      { label: 'ثبت پرداخت', icon: <CreditCard size={17} />, onSelect: () => openSettle(actionRow) },
+                      {
+                        label: 'لغو اشتراک',
+                        icon: <XCircle size={17} />,
+                        disabled: isSubmitting,
+                        onSelect: () => void handleCancel(actionRow),
+                      },
+                    ]
+                  : [
+                      {
+                        label: 'فعال‌سازی دوباره',
+                        icon: <RotateCcw size={17} />,
+                        disabled: isSubmitting,
+                        onSelect: () => void handleReactivate(actionRow),
+                      },
+                    ]),
+                {
+                  label: 'ویرایش',
+                  icon: <Pencil size={17} />,
+                  onSelect: () => router.push(`/deadlines/subscriptions/${actionRow.id}/edit`),
+                },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger' as const,
+                  disabled: isSubmitting,
+                  onSelect: () => void handleDelete(actionRow),
+                },
+              ]
+            : []
+        }
+      />
+
+      <BottomSheet open={settlementTarget !== null} onClose={closeSettle} title="ثبت پرداخت اشتراک">
+        {settlementTarget && (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-white/4 p-4">
+              <p className="text-sm text-zinc-300">{settlementTarget.platform}</p>
+              <div className="mt-1">
+                <SubscriptionAmountDisplay
+                  amount={settlementTarget.amount}
+                  currency={settlementTarget.currency}
+                  currencyRates={currencyRates}
+                  currencyMode={currencyMode}
+                  usdRate={usdRate}
+                  primaryClassName="text-2xl font-semibold tracking-tight text-zinc-50"
+                  secondaryClassName="text-xs text-zinc-500"
+                />
+              </div>
+            </div>
+            <PickerRow
+              label="پرداخت از"
+              value={selectedSettlementWallet?.name}
+              placeholder="انتخاب کیف پول"
+              disabled={isSubmitting}
+              onClick={() => setIsSettlementPickerOpen(true)}
+            />
+            <PrimaryButton onClick={() => void handleSettle()} disabled={isSubmitting || !settlementWalletId}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  در حال ثبت...
+                </>
+              ) : (
+                'ثبت پرداخت'
+              )}
+            </PrimaryButton>
+          </div>
+        )}
+      </BottomSheet>
 
       <ListSheetPicker
         open={isSettlementPickerOpen}
@@ -490,45 +484,6 @@ export function SubscriptionsHubView() {
           setIsSettlementPickerOpen(false);
         }}
       />
-
-      {settlementTarget && (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-surface-overlay border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void handleSettle()}
-              disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : selectedSettlementWallet ? (
-                `ثبت پرداخت با ${selectedSettlementWallet.name}`
-              ) : (
-                'ثبت پرداخت'
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettlementPickerOpen(true)}
-              disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm disabled:opacity-50"
-            >
-              {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
-            </button>
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 text-sm"
-            >
-              انصراف
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

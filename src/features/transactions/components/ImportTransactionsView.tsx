@@ -1,8 +1,18 @@
 'use client';
 
+import {
+  FormSection,
+  ListGroup,
+  ListRow,
+  Money,
+  PageHeader,
+  PrimaryButton,
+  Section,
+  StickyFooter,
+} from '@/shared/components/ui';
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Download, FileUp, Upload } from 'lucide-react';
+import { Download, FileUp, Upload } from 'lucide-react';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -129,51 +139,49 @@ export function ImportTransactionsView() {
     }
   };
 
-  return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">ورود CSV تراکنش</h2>
-      </div>
+  const columns = ['date', 'type', 'amount', 'wallet', 'category', 'note'];
+  const canImport = !isImporting && resolution.resolved.length > 0 && allErrors.length === 0;
 
-      <div className="p-6 space-y-5">
-        <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
-          <p className="text-sm text-zinc-300 leading-relaxed">
-            فایل CSV با ستون‌های{' '}
-            <span className="text-accent-300 font-mono text-xs" dir="ltr">
-              date,type,amount,wallet,category,note
-            </span>{' '}
-            — فقط درآمد/هزینه کیف پول. حداکثر {MAX_TRANSACTION_CSV_ROWS.toLocaleString('fa-IR')}{' '}
-            ردیف.
-          </p>
-          <p className="text-xs text-zinc-500">
-            مبلغ به تومان است. نام کیف و دسته باید با اپ یکی باشد. همه ردیف‌ها یک{' '}
+  return (
+    <div className="bg-surface-shell min-h-full animate-[slide-fade-in-up_300ms_ease-out]">
+      <PageHeader title="ورود CSV" subtitle="ثبت دسته‌ای درآمد و هزینه" />
+
+      <div className="px-4 pt-5 space-y-6">
+        <FormSection title="۱. قالب فایل">
+          <div className="flex flex-wrap gap-1.5" dir="ltr">
+            {columns.map((c) => (
+              <span key={c} className="rounded-md bg-white/6 px-2 py-1 font-mono text-[11px] text-zinc-300">
+                {c}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs leading-relaxed text-zinc-500">
+            فقط درآمد و هزینه کیف پول، حداکثر {MAX_TRANSACTION_CSV_ROWS.toLocaleString('fa-IR')} ردیف. مبلغ به
+            تومان است و نام کیف پول و دسته باید با اپ یکی باشد. همه ردیف‌ها یک{' '}
             <span dir="ltr">operation_id</span> مشترک می‌گیرند.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={downloadTemplate}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-zinc-300 hover:bg-white/10"
-            >
-              <Download size={14} />
-              دانلود نمونه
-            </button>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-accent-600/20 border border-accent-500/30 text-xs text-accent-200 hover:bg-accent-600/30"
-            >
-              <Upload size={14} />
-              انتخاب فایل
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={downloadTemplate}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/6 px-3.5 text-xs font-medium text-zinc-200 hover:bg-white/10"
+          >
+            <Download size={14} />
+            دانلود فایل نمونه
+          </button>
+        </FormSection>
+
+        <FormSection title="۲. انتخاب فایل">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-white/15 bg-surface-inset py-8 text-center transition-colors hover:bg-surface-hover"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/6 text-zinc-300">
+              {fileName ? <FileUp size={20} /> : <Upload size={20} />}
+            </span>
+            <span className="text-sm font-medium text-zinc-100">{fileName ?? 'فایل CSV را انتخاب کن'}</span>
+            <span className="text-xs text-zinc-500">{fileName ? 'برای تغییر فایل بزن' : '.csv'}</span>
+          </button>
           <input
             ref={fileRef}
             type="file"
@@ -185,83 +193,61 @@ export function ImportTransactionsView() {
               e.target.value = '';
             }}
           />
-          {fileName && (
-            <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-              <FileUp size={12} />
-              {fileName}
-            </p>
-          )}
-        </div>
+        </FormSection>
 
         {allErrors.length > 0 && (
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 space-y-2">
-            <p className="text-sm font-semibold text-rose-200">خطاها</p>
+          <div className="space-y-1.5 rounded-2xl bg-rose-500/10 p-4">
+            <p className="text-sm font-semibold text-rose-200">
+              {allErrors.length.toLocaleString('fa-IR')} خطا — اول این‌ها را در فایل درست کن
+            </p>
             {allErrors.slice(0, 8).map((err) => (
               <p key={`${err.lineNumber}-${err.message}`} className="text-xs text-rose-100/90">
                 ردیف {err.lineNumber.toLocaleString('fa-IR')}: {err.message}
               </p>
             ))}
             {allErrors.length > 8 && (
-              <p className="text-[11px] text-rose-300/80">
-                و {allErrors.length - 8} خطای دیگر…
-              </p>
+              <p className="text-[11px] text-rose-300/80">و {allErrors.length - 8} خطای دیگر…</p>
             )}
           </div>
         )}
 
         {resolution.resolved.length > 0 && (
-          <div className="bg-surface-raised border border-white/5 rounded-2xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">پیش‌نمایش</p>
-              <span className="text-xs text-zinc-500">
-                {resolution.resolved.length.toLocaleString('fa-IR')} ردیف
-              </span>
-            </div>
-            <div className="max-h-80 overflow-y-auto divide-y divide-white/5">
+          <Section
+            title="۳. پیش‌نمایش"
+            description={`${resolution.resolved.length.toLocaleString('fa-IR')} ردیف آماده ثبت`}
+          >
+            <ListGroup>
               {resolution.resolved.slice(0, 20).map((row) => (
-                <div key={row.lineNumber} className="px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs text-zinc-200 truncate">
-                      {row.type === 'INCOME' ? 'درآمد' : 'هزینه'} · {row.categoryName}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {row.date} · {row.walletName}
-                      {row.note ? ` · ${row.note}` : ''}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold shrink-0 ${
-                      row.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'
-                    }`}
-                    dir="ltr"
-                  >
-                    {formatCurrency(row.amountToman, 'TOMAN')}
-                  </span>
-                </div>
+                <ListRow
+                  key={row.lineNumber}
+                  title={`${row.type === 'INCOME' ? 'درآمد' : 'هزینه'} · ${row.categoryName}`}
+                  subtitle={`${row.date} · ${row.walletName}${row.note ? ` · ${row.note}` : ''}`}
+                  trailing={
+                    <Money tone={row.type === 'INCOME' ? 'positive' : 'negative'}>
+                      {row.type === 'INCOME' ? '+' : '−'}
+                      {formatCurrency(row.amountToman, 'TOMAN')}
+                    </Money>
+                  }
+                />
               ))}
-            </div>
+            </ListGroup>
             {resolution.resolved.length > 20 && (
-              <p className="px-4 py-2 text-[11px] text-zinc-500 border-t border-white/5">
-                … و {(resolution.resolved.length - 20).toLocaleString('fa-IR')} ردیف دیگر
+              <p className="px-1 text-xs text-zinc-500">
+                و {(resolution.resolved.length - 20).toLocaleString('fa-IR')} ردیف دیگر
               </p>
             )}
-          </div>
+          </Section>
         )}
 
-        <button
-          type="button"
-          disabled={
-            isImporting ||
-            resolution.resolved.length === 0 ||
-            allErrors.length > 0
-          }
-          onClick={() => void handleImport()}
-          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-xl font-semibold transition-all disabled:opacity-50"
-        >
-          {isImporting
-            ? 'در حال ثبت…'
-            : `ثبت ${resolution.resolved.length.toLocaleString('fa-IR')} تراکنش`}
-        </button>
+        <StickyFooter>
+          <PrimaryButton disabled={!canImport} onClick={() => void handleImport()}>
+            {isImporting
+              ? 'در حال ثبت…'
+              : resolution.resolved.length > 0
+                ? `ثبت ${resolution.resolved.length.toLocaleString('fa-IR')} تراکنش`
+                : 'اول فایل را انتخاب کن'}
+          </PrimaryButton>
+        </StickyFooter>
       </div>
     </div>
   );

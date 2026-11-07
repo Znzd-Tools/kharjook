@@ -1,8 +1,19 @@
 'use client';
 
+import {
+  ChoiceChips,
+  Field,
+  FormSection,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SegmentedControl,
+  StickyFooter,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -197,176 +208,100 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
         })
       : null;
 
+  const dueLabel = parseJalaali(form.nextDueDate)
+    ? formatJalaaliHuman(parseJalaali(form.nextDueDate)!)
+    : form.nextDueDate;
+
   return (
-    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">
-          {isEdit ? 'ویرایش اشتراک' : 'ثبت اشتراک جدید'}
-        </h2>
-      </div>
+    <div className="bg-surface-shell min-h-full animate-[slide-fade-in-up_300ms_ease-out]">
+      <PageHeader title={isEdit ? 'ویرایش اشتراک' : 'اشتراک جدید'} />
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">پلتفرم / سرویس</label>
-          <input
-            value={form.platform}
-            onChange={(e) => setForm((prev) => ({ ...prev, platform: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
-            placeholder="مثال: Netflix"
-            required
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setWalletOpen(true)}
-          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-        >
-          <div>
-            <p className="text-xs text-zinc-500">کیف پول پیش‌فرض</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {selectedWallet
-                ? `${selectedWallet.name} · ${selectedWallet.currency}`
-                : 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-zinc-500" />
-        </button>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">مبلغ</label>
-          <FormattedNumberInput
-            value={form.amount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
-          {selectedWallet && (
-            <p className="text-xs text-zinc-500 mt-1">ارز: {selectedWallet.currency}</p>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCategoryOpen(true)}
-          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-        >
-          <div>
-            <p className="text-xs text-zinc-500">دسته هزینه</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {expenseCategories.find((c) => c.id === form.categoryId)?.name ?? 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-zinc-500" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition"
-        >
-          <Calendar size={16} className="text-accent-400" />
-          <div className="flex-1">
-            <p className="text-xs text-zinc-500">سررسید بعدی</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {parseJalaali(form.nextDueDate)
-                ? formatJalaaliHuman(parseJalaali(form.nextDueDate)!)
-                : form.nextDueDate}
-            </p>
-          </div>
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">فاصله تکرار</label>
-            <FormattedNumberInput
-              value={form.intervalNumber}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
-              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-              dir="ltr"
+      <form onSubmit={handleSubmit} className="px-4 pt-5 space-y-6">
+        <FormSection title="سرویس">
+          <Field label="نام پلتفرم یا سرویس">
+            <input
+              value={form.platform}
+              onChange={(e) => setForm((prev) => ({ ...prev, platform: e.target.value }))}
+              className={fieldInputClass}
+              placeholder="مثلاً Netflix"
               required
             />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">واحد</label>
-            <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl h-[46px]">
-              {INTERVAL_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, intervalPeriod: option.id }))}
-                  className={`text-xs rounded-lg transition ${
-                    form.intervalPeriod === option.id
-                      ? 'bg-zinc-50 text-zinc-900'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+          </Field>
+          <PickerRow
+            label="کیف پول پرداخت"
+            value={selectedWallet ? `${selectedWallet.name} · ${selectedWallet.currency}` : null}
+            onClick={() => setWalletOpen(true)}
+          />
+          <Field label="مبلغ هر دوره" hint={selectedWallet ? `به ${selectedWallet.currency}` : undefined}>
+            <FormattedNumberInput
+              value={form.amount}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
+              className={`${fieldInputClass} text-left text-lg font-semibold`}
+              dir="ltr"
+              placeholder="0"
+              required
+            />
+          </Field>
+          <PickerRow
+            label="دسته هزینه"
+            value={expenseCategories.find((c) => c.id === form.categoryId)?.name}
+            onClick={() => setCategoryOpen(true)}
+          />
+        </FormSection>
+
+        <FormSection title="زمان‌بندی" description={previewInterval ? `تکرار: ${previewInterval}` : undefined}>
+          <PickerRow label="سررسید بعدی" value={dueLabel} leading={<Calendar size={16} />} onClick={() => setDueDateOpen(true)} />
+          <Field label="تکرار">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-400">هر</span>
+              <FormattedNumberInput
+                value={form.intervalNumber}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
+                className={`${fieldInputClass} w-16! text-center`}
+                dir="ltr"
+                required
+              />
+              <SegmentedControl
+                className="flex-1"
+                value={form.intervalPeriod}
+                onChange={(intervalPeriod) => setForm((prev) => ({ ...prev, intervalPeriod }))}
+                options={INTERVAL_OPTIONS.map((option) => ({ value: option.id, label: option.label }))}
+              />
             </div>
-          </div>
-        </div>
+          </Field>
+        </FormSection>
 
-        {previewInterval && (
-          <p className="text-xs text-zinc-500">تکرار: {previewInterval}</p>
-        )}
+        <FormSection title="یادآوری تلگرام" description="علاوه بر روز سررسید، این روزها هم پیام می‌گیری.">
+          <ChoiceChips
+            multiple
+            value={form.reminderDaysBefore}
+            onChange={(days) =>
+              setForm((prev) => ({
+                ...prev,
+                reminderDaysBefore: prev.reminderDaysBefore.includes(days)
+                  ? prev.reminderDaysBefore.filter((d) => d !== days)
+                  : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
+              }))
+            }
+            options={LOAN_REMINDER_DAY_OPTIONS.map((days) => ({ value: days, label: `${days} روز قبل` }))}
+          />
+        </FormSection>
 
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
-          <div className="flex flex-wrap gap-2">
-            {LOAN_REMINDER_DAY_OPTIONS.map((days) => {
-              const active = form.reminderDaysBefore.includes(days);
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      reminderDaysBefore: active
-                        ? prev.reminderDaysBefore.filter((d) => d !== days)
-                        : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    active
-                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
-                >
-                  {days} روز قبل
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">یادداشت</label>
+        <FormSection title="یادداشت">
           <textarea
             value={form.note}
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={2}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none resize-none"
+            placeholder="اختیاری"
+            className={`${fieldInputClass} resize-none`}
           />
-        </div>
+        </FormSection>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 font-semibold transition disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت اشتراک'}
-        </button>
+        <StickyFooter>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت اشتراک'}
+          </PrimaryButton>
+        </StickyFooter>
       </form>
 
       <CategorySheetPicker

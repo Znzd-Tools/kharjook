@@ -1,7 +1,18 @@
 'use client';
 
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import {
+  Card,
+  Field,
+  ListGroup,
+  Money,
+  PrimaryButton,
+  ProgressBar,
+  Section,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, PiggyBank, Plus, Trash2, X } from 'lucide-react';
+import { Check, PiggyBank } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
@@ -214,206 +225,169 @@ export function WalletSavingsPotsSection({
     }
   };
 
+  const fmt = (v: number) => `${meta.symbol}${formatCurrencyAmount(v, wallet.currency as Currency)}`;
+  const nudgeBtn =
+    'flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-xs text-zinc-300 hover:bg-white/10 disabled:opacity-40';
+
   return (
-    <section className="bg-surface-raised rounded-2xl border border-white/5 p-4 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <PiggyBank size={16} className="text-emerald-400 shrink-0" />
-          <div>
-            <h3 className="text-sm font-semibold text-white">قلک‌ها</h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              تخصیص مجازی داخل این کیف — تراکنش جدا ثبت نمی‌شود
-            </p>
-          </div>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 shrink-0"
-          >
-            <Plus size={14} />
-            جدید
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-zinc-500">تخصیص‌شده</p>
-          <p className="text-zinc-200 mt-1" dir="ltr">
-            {meta.symbol} {formatCurrencyAmount(allocated, wallet.currency as Currency)}
-          </p>
-        </div>
-        <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-zinc-500">آزاد</p>
-          <p className="text-zinc-200 mt-1" dir="ltr">
-            {meta.symbol} {formatCurrencyAmount(freeBalance, wallet.currency as Currency)}
-          </p>
-        </div>
-      </div>
-
+    <Section
+      title={
+        <span className="flex items-center gap-1.5">
+          <PiggyBank size={15} className="text-zinc-400" />
+          قلک‌ها
+        </span>
+      }
+      description={
+        <>
+          آزاد <Money className="text-zinc-300">{fmt(freeBalance)}</Money> · تخصیص‌شده{' '}
+          <Money className="text-zinc-300">{fmt(allocated)}</Money>
+        </>
+      }
+      action={{ label: 'قلک جدید', onClick: openCreate }}
+    >
       {allocated > walletBalance + 1e-6 && (
-        <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+        <p className="rounded-xl bg-amber-400/8 px-3 py-2 text-xs text-amber-200">
           جمع قلک‌ها از موجودی فعلی کیف پول بیشتر است. یکی از قلک‌ها را کم کن.
         </p>
       )}
 
-      {formOpen && (
-        <form onSubmit={handleSubmit} className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-zinc-400">{form.editingId ? 'ویرایش قلک' : 'قلک جدید'}</p>
-            <button type="button" onClick={resetForm} className="text-zinc-500 hover:text-white">
-              <X size={14} />
-            </button>
-          </div>
-          <input
-            value={form.name}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="نام (مثلا: سفر، اضطراری)"
-            className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
-            maxLength={64}
-            required
-          />
-          <div className="flex gap-1.5 flex-wrap">
-            {CATEGORY_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, color }))}
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: color }}
-              >
-                {form.color === color && <Check size={12} className="text-white/90" />}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] text-zinc-500 mb-1">تخصیص فعلی</label>
-              <FormattedNumberInput
-                value={form.currentAmount}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
-                className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-zinc-500 mb-1">هدف (اختیاری)</label>
-              <FormattedNumberInput
-                value={form.targetAmount}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
-                className="w-full bg-surface-hover border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
-                dir="ltr"
-                placeholder="—"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50"
-          >
-            {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره' : 'افزودن قلک'}
-          </button>
-        </form>
-      )}
-
       {isLoading ? (
-        <p className="text-center text-zinc-500 text-xs py-4 animate-pulse">در حال دریافت...</p>
+        <p className="py-4 text-center text-xs text-zinc-500 animate-pulse">در حال دریافت...</p>
       ) : pots.length === 0 ? (
-        <p className="text-center text-zinc-500 text-xs py-4">
-          هنوز قلکی نساخته‌ای. برای بودجه‌بندی مجازی داخل همین کیف، یک قلک بساز.
-        </p>
+        <Card>
+          <p className="text-xs leading-relaxed text-zinc-500">
+            قلک یک تخصیص مجازی داخل همین کیف پول است (مثلاً سفر یا اضطراری). تراکنش جدایی ثبت نمی‌شود.
+          </p>
+        </Card>
       ) : (
-        <div className="space-y-3">
+        <ListGroup>
           {pots.map((pot) => {
             const progress = potProgressPercent(pot);
-            const width = progress != null ? Math.min(Math.max(progress, 0), 100) : 0;
             return (
-              <div
-                key={pot.id}
-                className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: pot.color }}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm text-zinc-100 truncate">{pot.name}</p>
-                      <p className="text-xs text-zinc-400 mt-0.5" dir="ltr">
-                        {meta.symbol}{' '}
-                        {formatCurrencyAmount(pot.current_amount, wallet.currency as Currency)}
-                        {pot.target_amount != null && (
-                          <>
-                            {' '}
-                            / {formatCurrencyAmount(pot.target_amount, wallet.currency as Currency)}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => openEdit(pot)}
-                      className="text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300"
-                    >
-                      ویرایش
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleArchive(pot)}
-                      className="p-1.5 rounded-lg text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/10"
-                      aria-label="حذف"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {progress != null && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] text-zinc-500">
-                      <span>پیشرفت هدف</span>
-                      <span>{toPersianDigits(Math.round(progress))}٪</span>
-                    </div>
-                    <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 right-0 rounded-full bg-emerald-500 transition-[width]"
-                        style={{ width: `${width > 0 ? Math.max(width, 4) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
+              <div key={pot.id} className="space-y-2.5 px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: pot.color }} />
                   <button
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => void nudgeAllocation(pot, -Math.max(walletBalance * 0.05, 1))}
-                    className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-zinc-300 disabled:opacity-50"
+                    onClick={() => openEdit(pot)}
+                    className="min-w-0 flex-1 text-right"
                   >
-                    −۵٪
+                    <span className="block truncate text-sm font-medium text-zinc-100">{pot.name}</span>
+                    <span className="mt-0.5 block text-xs text-zinc-500">
+                      <Money>{fmt(pot.current_amount)}</Money>
+                      {pot.target_amount != null && (
+                        <>
+                          {' '}
+                          از <Money>{fmt(pot.target_amount)}</Money>
+                        </>
+                      )}
+                    </span>
                   </button>
-                  <button
-                    type="button"
-                    disabled={isSubmitting || freeBalance <= 0}
-                    onClick={() => void nudgeAllocation(pot, Math.min(freeBalance, Math.max(walletBalance * 0.05, 1)))}
-                    className="flex-1 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-xs text-emerald-300 disabled:opacity-50"
-                  >
-                    +۵٪
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label="کم کردن ۵٪"
+                      disabled={isSubmitting}
+                      onClick={() => void nudgeAllocation(pot, -Math.max(walletBalance * 0.05, 1))}
+                      className={nudgeBtn}
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="افزودن ۵٪"
+                      disabled={isSubmitting || freeBalance <= 0}
+                      onClick={() =>
+                        void nudgeAllocation(pot, Math.min(freeBalance, Math.max(walletBalance * 0.05, 1)))
+                      }
+                      className={nudgeBtn}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
+                {progress != null && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <ProgressBar value={progress} tone={progress >= 100 ? 'positive' : 'accent'} />
+                    </div>
+                    <span className="shrink-0 text-[11px] text-zinc-500">{toPersianDigits(Math.round(progress))}٪</span>
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
+        </ListGroup>
       )}
-    </section>
+
+      <BottomSheet open={formOpen} onClose={resetForm} title={form.editingId ? 'ویرایش قلک' : 'قلک جدید'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="نام">
+            <input
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="مثلاً سفر یا اضطراری"
+              className={fieldInputClass}
+              maxLength={64}
+              required
+            />
+          </Field>
+          <Field label="رنگ">
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={color}
+                  onClick={() => setForm((prev) => ({ ...prev, color }))}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    form.color === color ? 'ring-2 ring-zinc-50 ring-offset-2 ring-offset-surface-overlay' : ''
+                  }`}
+                  style={{ backgroundColor: color }}
+                >
+                  {form.color === color && <Check size={13} className="text-white" />}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="تخصیص فعلی">
+              <FormattedNumberInput
+                value={form.currentAmount}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
+                className={`${fieldInputClass} text-left`}
+                dir="ltr"
+              />
+            </Field>
+            <Field label="هدف">
+              <FormattedNumberInput
+                value={form.targetAmount}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
+                className={`${fieldInputClass} text-left`}
+                dir="ltr"
+                placeholder="اختیاری"
+              />
+            </Field>
+          </div>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره' : 'افزودن قلک'}
+          </PrimaryButton>
+          {form.editingId && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                const pot = pots.find((p) => p.id === form.editingId);
+                if (pot) void handleArchive(pot);
+              }}
+              className="w-full text-center text-sm text-rose-400 hover:text-rose-300"
+            >
+              حذف قلک
+            </button>
+          )}
+        </form>
+      </BottomSheet>
+    </Section>
   );
 }

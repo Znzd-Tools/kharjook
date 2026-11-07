@@ -86,7 +86,7 @@ export function IconPicker({
   return (
     <div className="flex items-center gap-4">
       <div
-        className="relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/10"
+        className="relative w-14 h-14 rounded-full flex items-center justify-center overflow-hidden shrink-0 bg-white/5"
         style={{ backgroundColor: bgColor ?? 'rgba(148, 163, 184, 0.12)' }}
       >
         {value ? (
@@ -108,13 +108,13 @@ export function IconPicker({
       </div>
 
       <div className="flex flex-col gap-2 min-w-0 flex-1">
-        {label && <span className="text-xs text-zinc-400">{label}</span>}
+        {label && <span className="text-xs font-medium text-zinc-400">{label}</span>}
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isUploading}
-            className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-zinc-200 text-xs px-3 py-2 rounded-lg transition-colors"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/6 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10 disabled:opacity-40"
           >
             <Camera size={14} />
             {value ? 'تغییر آیکون' : 'بارگذاری آیکون'}
@@ -124,7 +124,7 @@ export function IconPicker({
               type="button"
               onClick={() => onChange(null)}
               disabled={disabled}
-              className="inline-flex items-center gap-1 text-rose-300/70 hover:text-rose-300 text-xs px-2 py-2 rounded-lg transition-colors"
+              className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs text-rose-400 transition-colors hover:bg-rose-500/10"
               aria-label="حذف آیکون"
             >
               <Trash2 size={14} />

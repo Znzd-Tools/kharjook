@@ -1,8 +1,20 @@
 'use client';
 
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import {
+  ActionSheet,
+  Field,
+  HeaderAction,
+  IconBadge,
+  Money,
+  PageHeader,
+  PrimaryButton,
+  SortableListRow,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Edit3, GripVertical, Plus, Trash2, UserRound, X } from 'lucide-react';
+import { Edit3, Trash2, UserRound } from 'lucide-react';
 import {
   DndContext,
   PointerSensor,
@@ -37,6 +49,9 @@ export function ManagePersonsView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [actionPersonId, setActionPersonId] = useState<string | null>(null);
+
 
   const balances = useMemo(() => {
     const map = new Map<string, number>();
@@ -56,6 +71,13 @@ export function ManagePersonsView() {
   const reset = () => {
     setEditingId(null);
     setName('');
+    setSheetOpen(false);
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setName('');
+    setSheetOpen(true);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -139,6 +161,7 @@ export function ManagePersonsView() {
   const handleEdit = (person: Person) => {
     setEditingId(person.id);
     setName(person.name);
+    setSheetOpen(true);
   };
 
   const handleDelete = async (person: Person) => {
@@ -162,158 +185,126 @@ export function ManagePersonsView() {
     }
   };
 
+  const actionPerson = persons.find((p) => p.id === actionPersonId) ?? null;
+
   return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">اشخاص</h2>
-      </div>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader
+        title="طلب و بدهی اشخاص"
+        actions={<HeaderAction label="شخص جدید" onClick={openCreate} />}
+      />
 
-      <form
-        onSubmit={onSubmit}
-        className="p-6 space-y-4 border-b border-white/5 bg-surface-raised"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-accent-400">
-            {editingId ? 'ویرایش شخص' : 'ثبت شخص جدید'}
-          </h3>
-          {editingId && (
-            <button
-              type="button"
-              onClick={reset}
-              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
-
-        <input
-          type="text"
-          placeholder="نام شخص"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-zinc-600 focus:border-accent-500 outline-none"
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-3 rounded-xl font-semibold transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
-        >
-          <Plus size={16} />
-          {isSubmitting ? 'در حال ثبت...' : editingId ? 'ثبت تغییرات' : 'ذخیره شخص'}
-        </button>
-      </form>
-
-      <div className="p-6 space-y-3">
-        <h3 className="text-sm font-semibold text-zinc-400 mb-4">لیست اشخاص</h3>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={persons.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-            {persons.map((person) => {
-          const balance = balances.get(person.id) ?? 0;
-          const status =
-            balance > 0 ? 'بدهکار' : balance < 0 ? 'بستانکار' : 'تسویه';
-          const tone =
-            balance > 0
-              ? 'text-amber-300'
-              : balance < 0
-                ? 'text-cyan-300'
-                : 'text-zinc-400';
-          return (
-            <SortablePersonRow
-              key={person.id}
-              person={person}
-              isEditing={editingId === person.id}
-              status={status}
-              tone={tone}
-              balance={balance}
-              onOpen={() => router.push(`/deadlines/persons/${person.id}`)}
-              onEdit={() => handleEdit(person)}
-              onDelete={() => void handleDelete(person)}
-            />
-          );
-            })}
-          </SortableContext>
-        </DndContext>
-        {persons.length === 0 && (
+      <div className="px-4 pt-5 space-y-3">
+        {persons.length === 0 ? (
           <EmptyState
-            icon={<UserRound size={24} />}
+            icon={<UserRound size={22} />}
             title="هنوز شخصی ثبت نشده."
-            description="از فرم بالا اولین شخص را اضافه کن."
+            description="کسی که به او قرض می‌دهی یا از او قرض می‌گیری را اضافه کن تا مانده‌ات را دنبال کنی."
+            actionLabel="افزودن شخص"
+            onAction={openCreate}
           />
+        ) : (
+          <>
+            <p className="px-1 text-xs text-zinc-500">برای جابجایی، دستگیره را بکش.</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={persons.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
+                  {persons.map((person) => {
+                    const balance = balances.get(person.id) ?? 0;
+                    return (
+                      <SortablePersonRow
+                        key={person.id}
+                        person={person}
+                        balance={balance}
+                        onOpen={() => router.push(`/deadlines/persons/${person.id}`)}
+                        onMore={() => setActionPersonId(person.id)}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
+
+      <ActionSheet
+        open={actionPerson !== null}
+        onClose={() => setActionPersonId(null)}
+        title={actionPerson?.name}
+        actions={
+          actionPerson
+            ? [
+                { label: 'تغییر نام', icon: <Edit3 size={17} />, onSelect: () => handleEdit(actionPerson) },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  onSelect: () => void handleDelete(actionPerson),
+                },
+              ]
+            : []
+        }
+      />
+
+      <BottomSheet open={sheetOpen} onClose={reset} title={editingId ? 'تغییر نام' : 'شخص جدید'}>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field label="نام">
+            <input
+              type="text"
+              placeholder="مثلاً رضا"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={fieldInputClass}
+              data-autofocus
+              required
+            />
+          </Field>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ثبت...' : editingId ? 'ذخیره' : 'افزودن'}
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
     </div>
   );
 }
 
 function SortablePersonRow({
   person,
-  isEditing,
-  status,
-  tone,
   balance,
   onOpen,
-  onEdit,
-  onDelete,
+  onMore,
 }: {
   person: Person;
-  isEditing: boolean;
-  status: string;
-  tone: string;
   balance: number;
   onOpen: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onMore: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: person.id });
+  const status = balance > 0 ? 'بدهکار' : balance < 0 ? 'بستانکار' : 'تسویه';
+  const tone = balance > 0 ? 'text-amber-300' : balance < 0 ? 'text-cyan-300' : 'text-zinc-500';
   return (
-    <div
-      ref={setNodeRef}
+    <SortableListRow
+      rowRef={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-surface-raised p-4 rounded-xl border flex items-center justify-between ${isEditing ? 'border-accent-500/50 bg-accent-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''}`}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          style={{ touchAction: 'none' }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
-          aria-label="جابجایی"
-        >
-          <GripVertical size={16} />
-        </button>
-        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-300 flex items-center justify-center shrink-0">
-          <UserRound size={18} />
-        </div>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="min-w-0 flex-1 text-right"
-        >
-          <p className="text-zinc-200 font-medium text-sm truncate">{person.name}</p>
-          <p className={`text-xs mt-1 ${tone}`} dir="ltr">
-            {status} · {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
-          </p>
-        </button>
-      </div>
-      <div className="flex flex-col gap-2">
-        <button type="button" onClick={onEdit} className="text-blue-400/60 hover:text-blue-400 p-1.5 bg-blue-500/10 rounded-lg transition-colors">
-          <Edit3 size={14} />
-        </button>
-        <button type="button" onClick={onDelete} className="text-rose-400/60 hover:text-rose-400 p-1.5 bg-rose-500/10 rounded-lg transition-colors">
-          <Trash2 size={14} />
-        </button>
-      </div>
-    </div>
+      handleProps={{ ...attributes, ...listeners }}
+      isDragging={isDragging}
+      onOpen={onOpen}
+      onMore={onMore}
+      leading={
+        <IconBadge color="#22d3ee">
+          <UserRound size={17} strokeWidth={1.9} />
+        </IconBadge>
+      }
+      title={person.name}
+      subtitle={<span className={tone}>{status}</span>}
+      trailing={
+        balance !== 0 ? (
+          <Money className={`text-sm font-semibold ${tone}`}>
+            {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+          </Money>
+        ) : undefined
+      }
+    />
   );
 }

@@ -256,7 +256,7 @@ export function PriceSourceCatalogSection() {
           <button
             type="button"
             onClick={startAdd}
-            className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-300 hover:text-zinc-50"
           >
             <Plus size={14} />
             افزودن
@@ -273,7 +273,7 @@ export function PriceSourceCatalogSection() {
         {visibleSources.map((source) => (
           <div
             key={source.slug}
-            className="flex items-start gap-2 bg-surface-hover border border-white/5 rounded-xl p-3"
+            className="flex items-start gap-2 bg-white/4 rounded-xl p-3"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{source.label}</p>
@@ -306,14 +306,14 @@ export function PriceSourceCatalogSection() {
       </div>
 
       {showForm && (
-        <div className="bg-surface-hover border border-white/10 rounded-2xl p-4 space-y-3">
+        <div className="bg-white/4 rounded-2xl p-4 space-y-3">
           <p className="text-sm text-zinc-200">
             {adding ? 'منبع جدید' : 'ویرایش منبع'}
           </p>
 
           {adding && (
             <div className="space-y-1.5">
-              <p className="text-xs text-zinc-500">ارائه‌دهنده</p>
+              <p className="text-xs font-medium text-zinc-400">ارائه‌دهنده</p>
               <div className="grid grid-cols-2 gap-2">
                 {PROVIDER_OPTIONS.map((option) => (
                   <button
@@ -328,8 +328,8 @@ export function PriceSourceCatalogSection() {
                     }
                     className={`rounded-xl py-2 text-xs font-medium ${
                       form.provider === option.value
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-surface-raised text-zinc-400 border border-white/5'
+                        ? 'bg-zinc-50 text-zinc-900'
+                        : 'bg-white/5 text-zinc-400'
                     }`}
                   >
                     {option.label}
@@ -340,30 +340,30 @@ export function PriceSourceCatalogSection() {
           )}
 
           <div className="space-y-1.5">
-            <p className="text-xs text-zinc-500">نام نمایشی</p>
+            <p className="text-xs font-medium text-zinc-400">نام نمایشی</p>
             <input
               value={form.label}
               onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+              className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10"
             />
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-zinc-500">کلید دریافت (fetch key)</p>
+            <p className="text-xs font-medium text-zinc-400">کلید دریافت (fetch key)</p>
             <input
               value={form.fetchKey}
               onChange={(e) =>
                 handleFetchKeyChange(e.target.value, form.provider)
               }
               disabled={fetchKeyLocked}
-              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
+              className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 disabled:opacity-60"
               dir="ltr"
             />
           </div>
 
           {adding && (
             <div className="space-y-1.5">
-              <p className="text-xs text-zinc-500">شناسه (slug)</p>
+              <p className="text-xs font-medium text-zinc-400">شناسه (slug)</p>
               <input
                 value={form.slug}
                 onChange={(e) =>
@@ -372,7 +372,7 @@ export function PriceSourceCatalogSection() {
                     slug: e.target.value.trim().toLowerCase(),
                   }))
                 }
-                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+                className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10"
                 dir="ltr"
               />
             </div>
@@ -383,7 +383,7 @@ export function PriceSourceCatalogSection() {
               type="button"
               onClick={() => void (adding ? saveNew() : saveEdit())}
               disabled={isSaving}
-              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+              className="flex-1 h-11 bg-zinc-50 hover:bg-white text-zinc-900 rounded-xl text-sm font-semibold disabled:opacity-40"
             >
               {isSaving ? 'در حال ذخیره...' : 'ذخیره'}
             </button>
@@ -391,7 +391,7 @@ export function PriceSourceCatalogSection() {
               type="button"
               onClick={cancelForm}
               disabled={isSaving}
-              className="px-4 bg-surface-raised border border-white/10 text-zinc-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
+              className="h-11 px-4 bg-white/6 text-zinc-300 rounded-xl text-sm disabled:opacity-50"
             >
               انصراف
             </button>

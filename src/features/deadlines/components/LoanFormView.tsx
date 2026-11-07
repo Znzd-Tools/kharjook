@@ -1,9 +1,21 @@
 'use client';
 
+import {
+  ChoiceChips,
+  Field,
+  FormSection,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SegmentedControl,
+  StickyFooter,
+  SwitchVisual,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -432,408 +444,235 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         })
       : [];
 
+  const human = (v: string) => (parseJalaali(v) ? formatJalaaliHuman(parseJalaali(v)!) : v);
+  const unitSuffix = form.denomination === 'asset' && amountUnitLabel ? ` (${amountUnitLabel})` : '';
+
   return (
-    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">
-          {isEdit ? 'ویرایش وام' : 'ثبت وام جدید'}
-        </h2>
-      </div>
+    <div className="bg-surface-shell min-h-full animate-[slide-fade-in-up_300ms_ease-out]">
+      <PageHeader
+        title={isEdit ? 'ویرایش وام' : 'وام جدید'}
+        subtitle={isEdit ? 'فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است' : undefined}
+      />
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">عنوان</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
-            placeholder="مثال: خرید لپ‌تاپ"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">نوع وام</label>
-          <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl">
-            <button
-              type="button"
-              disabled={isEdit}
-              onClick={() => setForm((prev) => ({ ...prev, type: 'expense' }))}
-              className={`py-2 text-xs font-semibold rounded-lg transition ${
-                form.type === 'expense'
-                  ? 'bg-zinc-50 text-zinc-900'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              } disabled:opacity-60`}
-            >
-              خرید اعتباری
-            </button>
-            <button
-              type="button"
-              disabled={isEdit}
-              onClick={() => setForm((prev) => ({ ...prev, type: 'loan' }))}
-              className={`py-2 text-xs font-semibold rounded-lg transition ${
-                form.type === 'loan'
-                  ? 'bg-zinc-50 text-zinc-900'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              } disabled:opacity-60`}
-            >
-              وام نقدی
-            </button>
+      <form onSubmit={handleSubmit} className="px-4 pt-5 space-y-6">
+        <FormSection title="نوع وام">
+          <Field label="عنوان">
+            <input
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              className={fieldInputClass}
+              placeholder="مثلاً خرید لپ‌تاپ"
+              required
+            />
+          </Field>
+          <div className={isEdit ? 'pointer-events-none opacity-60' : ''}>
+            <SegmentedControl
+              value={form.type}
+              onChange={(type) => setForm((prev) => ({ ...prev, type }))}
+              options={[
+                { value: 'expense', label: 'خرید اعتباری' },
+                { value: 'loan', label: 'وام نقدی' },
+              ]}
+            />
           </div>
-        </div>
-
-        {!isEdit && (
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">واحد وام</label>
-            <div className="grid grid-cols-2 gap-1 bg-surface-raised p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    denomination: 'currency',
-                    assetId: null,
-                    autoIncomeOnCreate: false,
-                    autoIncomeWalletId: null,
-                  }))
+          {!isEdit && (
+            <Field label="واحد وام">
+              <SegmentedControl
+                size="sm"
+                value={form.denomination}
+                onChange={(denomination) =>
+                  setForm((prev) =>
+                    denomination === 'currency'
+                      ? { ...prev, denomination, assetId: null, autoIncomeOnCreate: false, autoIncomeWalletId: null }
+                      : { ...prev, denomination, currencyWalletId: null, autoIncomeWalletId: null }
+                  )
                 }
-                className={`py-2 text-xs font-semibold rounded-lg transition ${
-                  form.denomination === 'currency'
-                    ? 'bg-zinc-50 text-zinc-900'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                ارز
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    denomination: 'asset',
-                    currencyWalletId: null,
-                    autoIncomeWalletId: null,
-                  }))
-                }
-                className={`py-2 text-xs font-semibold rounded-lg transition ${
-                  form.denomination === 'asset'
-                    ? 'bg-zinc-50 text-zinc-900'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                دارایی
-              </button>
-            </div>
-          </div>
-        )}
+                options={[
+                  { value: 'currency', label: 'پول (ارز)' },
+                  { value: 'asset', label: 'دارایی' },
+                ]}
+              />
+            </Field>
+          )}
+          {!isEdit && form.denomination === 'currency' && (
+            <PickerRow
+              label="کیف پول مبنا"
+              value={currencyWallet ? `${currencyWallet.name} · ${currencyWallet.currency}` : null}
+              onClick={() => setCurrencyWalletOpen(true)}
+            />
+          )}
+          {!isEdit && form.denomination === 'asset' && (
+            <PickerRow
+              label="دارایی وام"
+              value={selectedAsset ? `${selectedAsset.name} · ${selectedAsset.unit}` : null}
+              onClick={() => setAssetOpen(true)}
+            />
+          )}
+          {isEdit && form.denomination === 'asset' && selectedAsset && (
+            <PickerRow label="دارایی وام" value={`${selectedAsset.name} · ${selectedAsset.unit}`} disabled onClick={() => {}} />
+          )}
+          {form.type === 'expense' && (
+            <PickerRow
+              label="دسته هزینه"
+              value={form.categoryId ? expenseCategories.find((c) => c.id === form.categoryId)?.name : null}
+              disabled={isEdit}
+              onClick={() => setCategoryOpen(true)}
+            />
+          )}
+        </FormSection>
 
-        {!isEdit && form.denomination === 'currency' && (
-          <button
-            type="button"
-            onClick={() => setCurrencyWalletOpen(true)}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-          >
-            <div>
-              <p className="text-xs text-zinc-500">کیف پول مبنا (ارز وام)</p>
-              <p className="text-sm text-zinc-100 mt-1">
-                {currencyWallet
-                  ? `${currencyWallet.name} · ${currencyWallet.currency}`
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-zinc-500" />
-          </button>
-        )}
-
-        {!isEdit && form.denomination === 'asset' && (
-          <button
-            type="button"
-            onClick={() => setAssetOpen(true)}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-          >
-            <div>
-              <p className="text-xs text-zinc-500">دارایی وام</p>
-              <p className="text-sm text-zinc-100 mt-1">
-                {selectedAsset
-                  ? `${selectedAsset.name} · ${selectedAsset.unit}`
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-zinc-500" />
-          </button>
-        )}
-
-        {isEdit && form.denomination === 'asset' && selectedAsset && (
-          <div className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-right">
-            <p className="text-xs text-zinc-500">دارایی وام</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {selectedAsset.name} · {selectedAsset.unit}
-            </p>
-          </div>
-        )}
-
-        {form.type === 'expense' && (
-          <button
-            type="button"
-            disabled={isEdit}
-            onClick={() => setCategoryOpen(true)}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition disabled:opacity-60"
-          >
-            <div>
-              <p className="text-xs text-zinc-500">دسته هزینه</p>
-              <p className="text-sm text-zinc-100 mt-1">
-                {form.categoryId
-                  ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
-                    'انتخاب کنید'
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-zinc-500" />
-          </button>
-        )}
-
-        {form.type === 'loan' && (
-          <>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">
-                {form.denomination === 'asset'
-                  ? `مقدار کل وام${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
-                  : 'مبلغ کل وام'}
-              </label>
+        <FormSection title="مبلغ">
+          {form.type === 'loan' && (
+            <Field label={`${form.denomination === 'asset' ? 'مقدار' : 'مبلغ'} کل وام${unitSuffix}`}>
               <FormattedNumberInput
                 value={form.totalAmount}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, totalAmount: value }))
-                }
-                className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
+                onValueChange={(value) => setForm((prev) => ({ ...prev, totalAmount: value }))}
+                className={`${fieldInputClass} text-left`}
                 dir="ltr"
+                placeholder="0"
                 disabled={isEdit}
               />
-            </div>
+            </Field>
+          )}
+          <Field label={`${form.denomination === 'asset' ? 'مقدار' : 'مبلغ'} هر قسط${unitSuffix}`}>
+            <FormattedNumberInput
+              value={form.installmentAmount}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
+              className={`${fieldInputClass} text-left text-lg font-semibold`}
+              dir="ltr"
+              placeholder="0"
+              required
+              disabled={isEdit}
+            />
+          </Field>
+          {form.type === 'loan' && !isEdit && (
+            <>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.autoIncomeOnCreate}
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    autoIncomeOnCreate: !prev.autoIncomeOnCreate,
+                    autoIncomeWalletId: !prev.autoIncomeOnCreate ? prev.autoIncomeWalletId : null,
+                  }))
+                }
+                className="flex w-full items-center justify-between gap-3 rounded-xl bg-white/4 px-4 py-3 text-right"
+              >
+                <span className="text-sm text-zinc-200">
+                  {form.denomination === 'asset' ? 'ثبت خودکار دریافت دارایی' : 'ثبت خودکار درآمد وام'}
+                </span>
+                <SwitchVisual checked={form.autoIncomeOnCreate} />
+              </button>
+              {form.autoIncomeOnCreate && form.denomination === 'currency' && (
+                <PickerRow
+                  label="کیف پول دریافت"
+                  value={autoIncomeWallet ? `${autoIncomeWallet.name} · ${autoIncomeWallet.currency}` : null}
+                  onClick={() => setAutoWalletOpen(true)}
+                />
+              )}
+              {form.autoIncomeOnCreate && form.denomination === 'asset' && (
+                <p className="text-xs leading-relaxed text-zinc-500">
+                  کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.
+                </p>
+              )}
+            </>
+          )}
+        </FormSection>
 
-            {!isEdit && (
-              <>
-                <label className="flex items-center justify-between bg-surface-raised border border-white/10 rounded-xl p-3 cursor-pointer">
-                  <span className="text-sm text-zinc-200">
-                    {form.denomination === 'asset'
-                      ? 'ثبت دریافت دارایی خودکار'
-                      : 'ثبت تراکنش درآمد خودکار'}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={form.autoIncomeOnCreate}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        autoIncomeOnCreate: e.target.checked,
-                        autoIncomeWalletId: e.target.checked ? prev.autoIncomeWalletId : null,
-                      }))
-                    }
-                    className="accent-accent-600 w-4 h-4"
-                  />
-                </label>
-
-                {form.autoIncomeOnCreate && form.denomination === 'currency' && (
-                  <button
-                    type="button"
-                    onClick={() => setAutoWalletOpen(true)}
-                    className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-                  >
-                    <div>
-                      <p className="text-xs text-zinc-500">کیف پول دریافت</p>
-                      <p className="text-sm text-zinc-100 mt-1">
-                        {autoIncomeWallet
-                          ? `${autoIncomeWallet.name} · ${autoIncomeWallet.currency}`
-                          : 'انتخاب کنید'}
-                      </p>
-                    </div>
-                    <ChevronLeft size={16} className="text-zinc-500" />
-                  </button>
-                )}
-
-                {form.autoIncomeOnCreate && form.denomination === 'asset' && (
-                  <p className="text-xs text-zinc-500 leading-relaxed">
-                    کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.
-                  </p>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">
-            {form.denomination === 'asset'
-              ? `مقدار هر قسط${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
-              : 'مبلغ هر قسط'}
-          </label>
-          <FormattedNumberInput
-            value={form.installmentAmount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-            dir="ltr"
-            required
-            disabled={isEdit}
-          />
-        </div>
-
-        <button
-          type="button"
-          disabled={isEdit}
-          onClick={() => setLoanStartDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition disabled:opacity-60"
-        >
-          <Calendar size={16} className="text-accent-400" />
-          <div className="flex-1">
-            <p className="text-xs text-zinc-500">تاریخ شروع وام</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {parseJalaali(form.loanStartDate)
-                ? formatJalaaliHuman(parseJalaali(form.loanStartDate)!)
-                : form.loanStartDate}
-            </p>
+        <FormSection title="زمان‌بندی">
+          <div className="grid grid-cols-2 gap-3">
+            <PickerRow
+              label="شروع وام"
+              value={human(form.loanStartDate)}
+              leading={<Calendar size={15} />}
+              disabled={isEdit}
+              onClick={() => setLoanStartDateOpen(true)}
+            />
+            <PickerRow
+              label="اولین قسط"
+              value={human(form.firstDueDate)}
+              leading={<Calendar size={15} />}
+              disabled={isEdit}
+              onClick={() => setFirstDueDateOpen(true)}
+            />
           </div>
-        </button>
-
-        <button
-          type="button"
-          disabled={isEdit}
-          onClick={() => setFirstDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition disabled:opacity-60"
-        >
-          <Calendar size={16} className="text-accent-400" />
-          <div className="flex-1">
-            <p className="text-xs text-zinc-500">تاریخ اولین قسط</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {parseJalaali(form.firstDueDate)
-                ? formatJalaaliHuman(parseJalaali(form.firstDueDate)!)
-                : form.firstDueDate}
-            </p>
-          </div>
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">تعداد اقساط</label>
+          <Field label="تعداد اقساط">
             <FormattedNumberInput
               value={form.repeatCount}
               onValueChange={(value) => setForm((prev) => ({ ...prev, repeatCount: value }))}
-              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
+              className={`${fieldInputClass} text-left`}
               dir="ltr"
               required
               disabled={isEdit}
             />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">فاصله تکرار</label>
-            <FormattedNumberInput
-              value={form.intervalNumber}
-              onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, intervalNumber: value }))
-              }
-              className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-              dir="ltr"
-              required
-              disabled={isEdit}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">واحد فاصله</label>
-          <div className="grid grid-cols-4 gap-1 bg-surface-raised p-1 rounded-xl">
-            {INTERVAL_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
+          </Field>
+          <Field label="فاصله اقساط">
+            <div className={`flex items-center gap-2 ${isEdit ? 'pointer-events-none opacity-60' : ''}`}>
+              <span className="text-sm text-zinc-400">هر</span>
+              <FormattedNumberInput
+                value={form.intervalNumber}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
+                className={`${fieldInputClass} w-16! text-center`}
+                dir="ltr"
+                required
                 disabled={isEdit}
-                onClick={() => setForm((prev) => ({ ...prev, intervalPeriod: option.id }))}
-                className={`py-2 text-xs rounded-lg transition ${
-                  form.intervalPeriod === option.id
-                    ? 'bg-zinc-50 text-zinc-900'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                } disabled:opacity-60`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
-          <p className="text-xs text-zinc-500 mb-2 leading-relaxed">
-            علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیرید.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {LOAN_REMINDER_DAY_OPTIONS.map((days) => {
-              const active = form.reminderDaysBefore.includes(days);
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      reminderDaysBefore: active
-                        ? prev.reminderDaysBefore.filter((d) => d !== days)
-                        : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    active
-                      ? 'bg-accent-600/25 border-accent-500/50 text-accent-200'
-                      : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
-                >
-                  {days} روز قبل
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {previewDates.length > 0 && (
-          <div className="bg-surface-raised border border-white/5 rounded-xl p-3">
-            <p className="text-xs text-zinc-500 mb-2">پیش‌نمایش سررسیدها</p>
-            <div className="space-y-1">
-              {previewDates.map((date) => (
-                <p key={date} className="text-sm text-zinc-200">
-                  {parseJalaali(date) ? formatJalaaliHuman(parseJalaali(date)!) : date}
-                </p>
-              ))}
+              />
+              <SegmentedControl
+                size="sm"
+                className="flex-1"
+                value={form.intervalPeriod}
+                onChange={(intervalPeriod) => setForm((prev) => ({ ...prev, intervalPeriod }))}
+                options={INTERVAL_OPTIONS.map((option) => ({ value: option.id, label: option.label }))}
+              />
             </div>
-          </div>
-        )}
+          </Field>
+          {previewDates.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-zinc-500">سررسیدهای اول</p>
+              <div className="flex flex-wrap gap-1.5">
+                {previewDates.map((date) => (
+                  <span key={date} className="rounded-full bg-white/6 px-2.5 py-1 text-xs text-zinc-300">
+                    {human(date)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </FormSection>
 
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">توضیحات</label>
+        <FormSection title="یادآوری تلگرام" description="علاوه بر روز سررسید، این روزها هم پیام می‌گیری.">
+          <ChoiceChips
+            multiple
+            value={form.reminderDaysBefore}
+            onChange={(days) =>
+              setForm((prev) => ({
+                ...prev,
+                reminderDaysBefore: prev.reminderDaysBefore.includes(days)
+                  ? prev.reminderDaysBefore.filter((d) => d !== days)
+                  : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
+              }))
+            }
+            options={LOAN_REMINDER_DAY_OPTIONS.map((days) => ({ value: days, label: `${days} روز قبل` }))}
+          />
+        </FormSection>
+
+        <FormSection title="توضیحات">
           <textarea
             value={form.description}
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none min-h-[80px]"
+            rows={3}
+            placeholder="اختیاری"
+            className={`${fieldInputClass} resize-none`}
           />
-        </div>
+        </FormSection>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-xl font-semibold transition-all disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ثبت...' : isEdit ? 'ثبت تغییرات' : 'ایجاد وام'}
-        </button>
-
-        {isEdit && (
-          <p className="text-xs text-zinc-500 text-center">
-            بعد از ثبت وام فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است.
-          </p>
-        )}
+        <StickyFooter>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ثبت...' : isEdit ? 'ذخیره تغییرات' : 'ایجاد وام'}
+          </PrimaryButton>
+        </StickyFooter>
       </form>
 
       <CategorySheetPicker

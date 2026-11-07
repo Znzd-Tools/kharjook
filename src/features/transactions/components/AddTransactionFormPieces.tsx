@@ -54,17 +54,13 @@ export function DirectionCard({
   const name = wallet?.name ?? asset?.name ?? person?.name ?? 'انتخاب کنید';
   const unit = wallet ? `${CURRENCY_META[wallet.currency].symbol} ${wallet.currency}` : asset?.unit ?? '';
 
-  const borderClass = insufficient
-    ? 'border-rose-500/50'
-    : filled
-      ? 'border-white/10'
-      : 'border-dashed border-white/15';
+  const borderClass = insufficient ? 'border-rose-500/50' : 'border-white/8';
 
   return (
     <button
       type="button"
       onClick={onTap}
-      className={`w-full bg-surface-raised border ${borderClass} rounded-xl p-3 flex items-center gap-3 text-right hover:bg-surface-hover active:scale-[0.99] transition`}
+      className={`w-full bg-surface-inset border ${borderClass} rounded-xl px-3.5 py-3 flex items-center gap-3 text-right hover:bg-surface-hover transition-colors`}
     >
       <EntityIcon
         iconUrl={wallet?.icon_url ?? asset?.icon_url ?? null}
@@ -75,18 +71,12 @@ export function DirectionCard({
               ? <Coins size={18} />
               : <UserRound size={18} />
         }
-        bgColor={
-          kind === 'asset'
-            ? 'rgba(251, 191, 36, 0.12)'
-            : kind === 'person'
-              ? 'rgba(56, 189, 248, 0.12)'
-              : 'rgba(168, 85, 247, 0.12)'
-        }
-        color={kind === 'asset' ? '#fbbf24' : kind === 'person' ? '#7dd3fc' : '#a5a9fc'}
-        className="w-10 h-10 shrink-0"
+        bgColor="rgba(255,255,255,0.06)"
+        color={filled ? '#e4e4e7' : '#71717a'}
+        className="w-10 h-10 shrink-0 rounded-full!"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-zinc-500 uppercase tracking-widest">
+        <p className="text-[11px] text-zinc-500">
           {label}
           {optional ? ' · اختیاری' : ''}
         </p>
@@ -121,10 +111,10 @@ export function DateChip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+      className={`h-8 px-3.5 text-xs font-medium rounded-full border transition-colors ${
         active
-          ? 'bg-white/10 text-white'
-          : 'bg-white/5 text-zinc-400 hover:bg-white/10'
+          ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+          : 'border-white/8 text-zinc-400 hover:text-zinc-200'
       }`}
     >
       {label}
@@ -179,7 +169,7 @@ export function PrimaryAmountField({
     <div>
       <label
         htmlFor={inputId}
-        className={`block text-xs mb-1 ${showError ? 'text-rose-400' : 'text-zinc-400'}`}
+        className={`mb-1.5 block text-xs font-medium text-zinc-400 ${showError ? 'text-rose-400' : 'text-zinc-400'}`}
       >
         {label}
       </label>
@@ -292,14 +282,14 @@ export function CrossCurrencyTargetField({
   const inputId = useId();
   return (
     <div>
-      <label htmlFor={inputId} className="block text-xs text-zinc-400 mb-1">
+      <label htmlFor={inputId} className="mb-1.5 block text-xs font-medium text-zinc-400">
         {`مقدار دریافتی${unit ? ` (${unit})` : ''}`}
       </label>
       <FormattedNumberInput
         id={inputId}
         value={value}
         onValueChange={onChange}
-        className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
+        className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 text-left"
         dir="ltr"
         required
       />
@@ -330,12 +320,12 @@ export function PriceFields({
     <div className="space-y-3">
       {showTomanPrice && (
         <div>
-          <label htmlFor={priceId} className="block text-xs text-zinc-400 mb-1">{priceLabel || 'قیمت واحد (تومان)'}</label>
+          <label htmlFor={priceId} className="mb-1.5 block text-xs font-medium text-zinc-400">{priceLabel || 'قیمت واحد (تومان)'}</label>
           <FormattedNumberInput
             id={priceId}
             value={priceToman}
             onValueChange={onPriceToman}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
+            className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 text-left"
             dir="ltr"
             required
           />
@@ -343,12 +333,12 @@ export function PriceFields({
       )}
       {showUsdRate && (
         <div>
-          <label htmlFor={usdId} className="block text-xs text-zinc-400 mb-1">نرخ دلار در لحظه (تومان)</label>
+          <label htmlFor={usdId} className="mb-1.5 block text-xs font-medium text-zinc-400">نرخ دلار در لحظه (تومان)</label>
           <FormattedNumberInput
             id={usdId}
             value={usdRate}
             onValueChange={onUsdRate}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-sm  focus:border-accent-500 outline-none text-left"
+            className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 text-left"
             dir="ltr"
             required
           />
@@ -374,7 +364,7 @@ export function CategoryField({
 
   return (
     <div>
-      <label id={labelId} className="block text-xs text-zinc-400 mb-1">
+      <label id={labelId} className="mb-1.5 block text-xs font-medium text-zinc-400">
         {kind === 'income' ? 'دسته درآمد' : 'دسته هزینه'}
       </label>
       <button
@@ -382,7 +372,7 @@ export function CategoryField({
         onClick={onOpen}
         aria-labelledby={labelId}
         aria-haspopup="dialog"
-        className={`w-full flex items-center gap-3 bg-surface-raised border rounded-xl p-3 text-right transition hover:bg-surface-hover ${
+        className={`w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-right transition-colors hover:bg-surface-hover flex items-center gap-3 ${
           selected ? 'border-white/10' : 'border-white/10'
         }`}
       >
@@ -399,7 +389,7 @@ export function CategoryField({
         ) : (
           <>
             <Folder size={14} className="text-zinc-500" />
-            <span className="flex-1 min-w-0 text-sm text-zinc-500">— انتخاب کنید —</span>
+            <span className="flex-1 min-w-0 text-sm text-zinc-500">انتخاب کنید</span>
           </>
         )}
         <ChevronLeft size={16} className="text-zinc-500 shrink-0" />
@@ -436,7 +426,7 @@ export function CollapsedRow({
   const summary = summarizeForm(form, wallets, assets, categories, persons);
   return (
     <div
-      className={`rounded-2xl border ${style.accentBorder} bg-surface-raised p-3 flex items-center gap-3`}
+      className="rounded-2xl border border-white/5 bg-surface-raised p-3 flex items-center gap-3"
     >
       <span className={`text-xs font-semibold shrink-0 ${style.accentText}`}>#{rowIndex + 1}</span>
       <button

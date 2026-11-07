@@ -1,17 +1,31 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { BottomSheet } from '@/shared/components/BottomSheet';
 import {
-  ArrowRight,
+  ActionSheet,
+  Card,
+  Field,
+  IconBadge,
+  ListGroup,
+  ListRow,
+  Money,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  Section,
+  Stat,
+  fieldInputClass,
+} from '@/shared/components/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
   Calculator,
   ChevronLeft,
   ChevronRight,
+  Edit3,
   Loader2,
   Plus,
   Sparkles,
   Trash2,
-  X,
 } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -82,8 +96,10 @@ function monthStartString(period: Period): string {
   return formatJalaali(period.start);
 }
 
+/** Suggestions shown before "show all"; the full list can be long (every installment). */
+const SUGGESTION_PREVIEW = 5;
+
 export function ExpensePlanView() {
-  const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
   const { assets, categories, currencyRates, transactions, wallets } = useData();
@@ -92,6 +108,8 @@ export function ExpensePlanView() {
   const [targetPeriod, setTargetPeriod] = useState<Period>(() =>
     shiftPeriod(currentPeriod('month'), 1)
   );
+  const [actionItemId, setActionItemId] = useState<string | null>(null);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [items, setItems] = useState<ExpensePlanItem[]>([]);
   const [installments, setInstallments] = useState<LoanInstallment[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -483,312 +501,209 @@ export function ExpensePlanView() {
     targetPeriod.start.jy === todayJalaali().jy &&
     targetPeriod.start.jm === todayJalaali().jm;
 
+  const actionItem = items.find((i) => i.id === actionItemId) ?? null;
+  const closeManual = () => {
+    setManualFormOpen(false);
+    setManualForm(emptyManualForm());
+  };
+  const navBtn =
+    'inline-flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 hover:bg-white/6 hover:text-zinc-100';
+
   return (
-    <div className="px-5 pb-8 space-y-5">
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white"
-          aria-label="بازگشت"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold text-white">برنامه هزینه</h1>
-          <p className="text-xs text-zinc-500">پیش‌بینی هزینه‌های ماهانه</p>
-        </div>
-        <div className="w-10 h-10 rounded-2xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
-          <Calculator size={18} />
-        </div>
-      </div>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="برنامه هزینه" subtitle="پیش‌بینی هزینه‌های ماه" />
 
-      <div className="flex items-center justify-between bg-surface-raised border border-white/5 rounded-2xl px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setTargetPeriod((p) => shiftPeriod(p, -1))}
-          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-300 hover:text-white"
-          aria-label="ماه قبل"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <div className="text-center">
-          <p className="text-sm font-semibold text-white">{formatPeriodLabel(targetPeriod)}</p>
-          <p className="text-[11px] text-zinc-500">
-            {isCurrentMonth ? 'ماه جاری' : 'ماه هدف'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setTargetPeriod((p) => shiftPeriod(p, 1))}
-          className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-300 hover:text-white"
-          aria-label="ماه بعد"
-        >
-          <ChevronLeft size={18} />
-        </button>
-      </div>
-
-      <section className="bg-surface-raised border border-white/5 rounded-2xl p-5 text-center space-y-3">
-        <div className="space-y-1">
-          <p className="text-xs text-accent-200/80">جمع برآورد هزینه</p>
-          <p className="text-3xl font-semibold text-white" dir="ltr">
-            {displayAmount(totalToman)}
-          </p>
-          <p className="text-xs text-zinc-400">
-            {items.length} آیتم
-            {suggestions.length > 0 ? ` · ${suggestions.length} پیشنهاد` : ''}
-          </p>
-        </div>
-        {capsTotalToman > 0 ? (
-          <div className="pt-3 border-t border-accent-500/20 space-y-1">
-            <p className="text-xs text-accent-200/70">جمع سقف دسته‌های هزینه</p>
-            <p className="text-xl font-semibold text-accent-100" dir="ltr">
-              {displayAmount(capsTotalToman)}
-            </p>
-            <p className="text-[11px] text-zinc-500">
-              برآورد بر اساس سقف‌های تنظیم‌شده در دسته‌بندی‌ها
-            </p>
-          </div>
-        ) : null}
-        {actualExpenseToman != null ? (
-          <div className="pt-3 border-t border-accent-500/20 grid grid-cols-2 gap-3 text-right">
-            <div>
-              <p className="text-xs text-zinc-400">هزینه واقعی</p>
-              <p className="text-lg font-semibold text-white" dir="ltr">
-                {displayAmount(actualExpenseToman)}
+      <div className="px-4 pt-5 space-y-7">
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3 px-1">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500">
+                برآورد هزینهٔ {formatPeriodLabel(targetPeriod)}
+                {isCurrentMonth ? ' · ماه جاری' : ''}
+              </p>
+              <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight text-zinc-50">
+                <Money>{displayAmount(totalToman)}</Money>
               </p>
             </div>
-            <div>
-              <p className="text-xs text-zinc-400">اختلاف (برنامه − واقعی)</p>
-              <p
-                className={`text-lg font-semibold ${(varianceToman ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
-                dir="ltr"
-              >
-                {displayAmount(varianceToman ?? 0)}
-              </p>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      {isLoading ? (
-        <div className="flex justify-center py-16 text-zinc-400">
-          <Loader2 className="animate-spin" size={28} />
-        </div>
-      ) : (
-        <>
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">آیتم‌های برنامه</h2>
-              <button
-                type="button"
-                onClick={openNewManual}
-                className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-1"
-              >
-                <Plus size={14} />
-                افزودن
+            <div className="flex shrink-0 items-center">
+              <button type="button" onClick={() => setTargetPeriod((p) => shiftPeriod(p, -1))} className={navBtn} aria-label="ماه قبل">
+                <ChevronRight size={17} />
+              </button>
+              <button type="button" onClick={() => setTargetPeriod((p) => shiftPeriod(p, 1))} className={navBtn} aria-label="ماه بعد">
+                <ChevronLeft size={17} />
               </button>
             </div>
+          </div>
+          {(capsTotalToman > 0 || actualExpenseToman != null) && (
+            <Card className="grid grid-cols-3 gap-3">
+              <Stat label="سقف دسته‌ها" value={capsTotalToman > 0 ? displayAmount(capsTotalToman) : '—'} />
+              <Stat label="هزینهٔ واقعی" value={actualExpenseToman != null ? displayAmount(actualExpenseToman) : '—'} />
+              <Stat
+                label="اختلاف"
+                value={actualExpenseToman != null ? displayAmount(varianceToman ?? 0) : '—'}
+                tone={actualExpenseToman == null ? 'neutral' : (varianceToman ?? 0) >= 0 ? 'positive' : 'negative'}
+                hint="برنامه − واقعی"
+              />
+            </Card>
+          )}
+        </section>
 
-            {items.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-500">
-                هنوز آیتمی اضافه نشده. دستی اضافه کنید یا از پیشنهادها انتخاب کنید.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {items.map((item) => {
-                  const category = item.category_id
-                    ? categoryById.get(item.category_id)
-                    : null;
-                  const isPending = pendingIds.has(item.id);
-                  const sourceLabel =
-                    item.source_type !== 'manual'
-                      ? SOURCE_LABELS[item.source_type]
-                      : null;
+        {isLoading ? (
+          <div className="flex justify-center py-16 text-zinc-400">
+            <Loader2 className="animate-spin" size={26} />
+          </div>
+        ) : (
+          <>
+            <Section
+              title="آیتم‌های برنامه"
+              description={items.length > 0 ? `${items.length.toLocaleString('fa-IR')} آیتم` : undefined}
+              action={{ label: 'افزودن', onClick: openNewManual }}
+            >
+              {items.length === 0 ? (
+                <Card>
+                  <p className="text-center text-sm leading-relaxed text-zinc-500">
+                    هنوز آیتمی نیست. دستی اضافه کن یا از پیشنهادهای پایین انتخاب کن.
+                  </p>
+                </Card>
+              ) : (
+                <ListGroup>
+                  {items.map((item) => {
+                    const category = item.category_id ? categoryById.get(item.category_id) : null;
+                    const sourceLabel = item.source_type !== 'manual' ? SOURCE_LABELS[item.source_type] : null;
+                    return (
+                      <ListRow
+                        key={item.id}
+                        onClick={() => setActionItemId(item.id)}
+                        className={pendingIds.has(item.id) ? 'opacity-50' : ''}
+                        leading={
+                          <IconBadge color={category?.color}>
+                            <Calculator size={16} strokeWidth={1.9} />
+                          </IconBadge>
+                        }
+                        title={item.title}
+                        subtitle={[sourceLabel, category?.name, item.note].filter(Boolean).join(' · ') || undefined}
+                        trailing={<Money>{displayAmount(Number(item.amount_toman))}</Money>}
+                      />
+                    );
+                  })}
+                </ListGroup>
+              )}
+            </Section>
 
-                  return (
-                    <div
-                      key={item.id}
-                      className={`rounded-2xl border border-white/5 bg-surface-raised p-4 space-y-2 ${isPending ? 'opacity-60' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (item.source_type === 'manual') openEditManual(item);
-                          }}
-                          className={`min-w-0 text-right flex-1 ${item.source_type === 'manual' ? 'hover:opacity-90' : ''}`}
-                          disabled={item.source_type !== 'manual'}
-                        >
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-white truncate">
-                              {item.title}
-                            </p>
-                            {sourceLabel ? (
-                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 shrink-0">
-                                {sourceLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                          {item.note ? (
-                            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
-                              {item.note}
-                            </p>
-                          ) : null}
-                          {category ? (
-                            <p className="text-[11px] text-zinc-500 mt-1">{category.name}</p>
-                          ) : null}
-                        </button>
-                        <div className="text-left shrink-0 space-y-2">
-                          <p className="text-sm font-semibold text-rose-300" dir="ltr">
-                            {displayAmount(Number(item.amount_toman))}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(item.id)}
-                            disabled={isSubmitting}
-                            className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center hover:bg-rose-500/20"
-                            aria-label="حذف"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {suggestions.length > 0 ? (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-amber-400" />
-                <h2 className="text-sm font-semibold text-white">پیشنهادها</h2>
-              </div>
-              <p className="text-xs text-zinc-500">
-                اقساط باقی‌مانده، چک‌های در انتظار و هزینه‌های دوره‌ای این ماه
-              </p>
-              <div className="space-y-2">
-                {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.key}
-                    className="rounded-2xl border border-amber-500/10 bg-amber-500/5 p-4 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-white truncate">
-                          {suggestion.title}
-                        </p>
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 shrink-0">
-                          {SOURCE_LABELS[suggestion.sourceType]}
-                        </span>
-                      </div>
-                      {suggestion.subtitle ? (
-                        <p className="text-xs text-zinc-500 mt-1" dir="ltr">
-                          {suggestion.subtitle}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="shrink-0 text-left space-y-2">
-                      <p className="text-sm font-semibold text-amber-200" dir="ltr">
-                        {displayAmount(suggestion.amountToman)}
-                      </p>
+            {suggestions.length > 0 && (
+              <Section
+                title={
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-400" />
+                    پیشنهادها
+                  </span>
+                }
+                description="اقساط مانده، چک‌های در انتظار و هزینه‌های دوره‌ای این ماه"
+              >
+                <ListGroup>
+                  {(showAllSuggestions ? suggestions : suggestions.slice(0, SUGGESTION_PREVIEW)).map((suggestion) => (
+                    <div key={suggestion.key} className="flex items-center gap-3 px-4 py-3">
                       <button
                         type="button"
                         onClick={() => void handleAddSuggestion(suggestion)}
                         disabled={isSubmitting}
-                        className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-200 text-xs font-medium hover:bg-amber-500/30"
+                        aria-label={`افزودن ${suggestion.title}`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/6 text-zinc-200 hover:bg-white/10 disabled:opacity-40"
                       >
-                        افزودن
+                        <Plus size={17} />
                       </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-zinc-100">{suggestion.title}</p>
+                        <p className="mt-0.5 truncate text-xs text-zinc-500">
+                          {SOURCE_LABELS[suggestion.sourceType]}
+                          {suggestion.subtitle ? <span dir="ltr"> · {suggestion.subtitle}</span> : null}
+                        </p>
+                      </div>
+                      <Money className="shrink-0 text-sm font-semibold text-zinc-300">
+                        {displayAmount(suggestion.amountToman)}
+                      </Money>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </>
-      )}
+                  ))}
+                </ListGroup>
+                {suggestions.length > SUGGESTION_PREVIEW && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllSuggestions((v) => !v)}
+                    className="h-10 w-full rounded-xl bg-white/5 text-sm font-medium text-zinc-300 hover:bg-white/8"
+                  >
+                    {showAllSuggestions
+                      ? 'نمایش کمتر'
+                      : `نمایش همه (${suggestions.length.toLocaleString('fa-IR')})`}
+                  </button>
+                )}
+              </Section>
+            )}
+          </>
+        )}
+      </div>
 
-      {manualFormOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-          <form
-            onSubmit={(e) => void handleManualSubmit(e)}
-            className="w-full sm:max-w-md bg-surface-raised border border-white/10 rounded-2xl p-5 space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">
-                {manualForm.editingId ? 'ویرایش آیتم' : 'آیتم جدید'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setManualFormOpen(false);
-                  setManualForm(emptyManualForm());
-                }}
-                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-zinc-400"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      <ActionSheet
+        open={actionItem !== null}
+        onClose={() => setActionItemId(null)}
+        title={actionItem?.title}
+        actions={
+          actionItem
+            ? [
+                ...(actionItem.source_type === 'manual'
+                  ? [{ label: 'ویرایش', icon: <Edit3 size={17} />, onSelect: () => openEditManual(actionItem) }]
+                  : []),
+                {
+                  label: 'حذف از برنامه',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger' as const,
+                  disabled: isSubmitting,
+                  onSelect: () => void handleDelete(actionItem.id),
+                },
+              ]
+            : []
+        }
+      />
 
-            <label className="block space-y-1.5">
-              <span className="text-xs text-zinc-400">عنوان</span>
-              <input
-                value={manualForm.title}
-                onChange={(e) => setManualForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50"
-                placeholder="مثلاً خرید هفتگی، شهریه کلاس …"
-                autoFocus
-              />
-            </label>
-
-            <label className="block space-y-1.5">
-              <span className="text-xs text-zinc-400">مبلغ (تومان)</span>
-              <FormattedNumberInput
-                value={manualForm.amountToman}
-                onValueChange={(value) => setManualForm((f) => ({ ...f, amountToman: value }))}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50"
-                placeholder="۰"
-              />
-            </label>
-
-            <label className="block space-y-1.5">
-              <span className="text-xs text-zinc-400">یادداشت (اختیاری)</span>
-              <textarea
-                value={manualForm.note}
-                onChange={(e) => setManualForm((f) => ({ ...f, note: e.target.value }))}
-                rows={2}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-accent-500/50 resize-none"
-                placeholder="توضیح کوتاه …"
-              />
-            </label>
-
-            <div className="space-y-1.5">
-              <span className="text-xs text-zinc-400">دسته (اختیاری)</span>
-              <button
-                type="button"
-                onClick={() => setCategoryPickerOpen(true)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-right text-zinc-200"
-              >
-                {manualForm.categoryId
-                  ? (categoryById.get(manualForm.categoryId)?.name ?? 'دسته')
-                  : 'بدون دسته'}
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={!canSubmitManual || isSubmitting}
-              className="w-full rounded-xl bg-zinc-50 hover:bg-white disabled:opacity-50 text-zinc-900 font-semibold py-3"
-            >
-              {manualForm.editingId ? 'ذخیره' : 'افزودن به برنامه'}
-            </button>
-          </form>
-        </div>
-      ) : null}
+      <BottomSheet open={manualFormOpen} onClose={closeManual} title={manualForm.editingId ? 'ویرایش آیتم' : 'آیتم جدید'}>
+        <form onSubmit={(e) => void handleManualSubmit(e)} className="space-y-4">
+          <Field label="عنوان">
+            <input
+              value={manualForm.title}
+              onChange={(e) => setManualForm((f) => ({ ...f, title: e.target.value }))}
+              className={fieldInputClass}
+              placeholder="مثلاً خرید هفتگی یا شهریه"
+              data-autofocus
+            />
+          </Field>
+          <Field label="مبلغ (تومان)">
+            <FormattedNumberInput
+              value={manualForm.amountToman}
+              onValueChange={(value) => setManualForm((f) => ({ ...f, amountToman: value }))}
+              className={`${fieldInputClass} text-left text-lg font-semibold`}
+              dir="ltr"
+              placeholder="0"
+            />
+          </Field>
+          <PickerRow
+            label="دسته"
+            value={manualForm.categoryId ? categoryById.get(manualForm.categoryId)?.name : null}
+            placeholder="بدون دسته"
+            onClick={() => setCategoryPickerOpen(true)}
+          />
+          <Field label="یادداشت">
+            <textarea
+              value={manualForm.note}
+              onChange={(e) => setManualForm((f) => ({ ...f, note: e.target.value }))}
+              rows={2}
+              className={`${fieldInputClass} resize-none`}
+              placeholder="اختیاری"
+            />
+          </Field>
+          <PrimaryButton type="submit" disabled={!canSubmitManual || isSubmitting}>
+            {manualForm.editingId ? 'ذخیره' : 'افزودن به برنامه'}
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
 
       <CategorySheetPicker
         open={categoryPickerOpen}

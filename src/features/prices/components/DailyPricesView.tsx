@@ -1,9 +1,20 @@
 'use client';
 
+import {
+  Card,
+  IconBadge,
+  IconButton,
+  ListGroup,
+  PageHeader,
+  PrimaryButton,
+  Section,
+  StickyFooter,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, AlertCircle, ChevronDown, RefreshCw } from 'lucide-react';
+import { AlertCircle, ChevronDown, RefreshCw } from 'lucide-react';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -443,195 +454,143 @@ export function DailyPricesView() {
     }
   };
 
-  return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">قیمت‌ها و نرخ‌ها</h2>
-        <button
-          onClick={() => void handleRefreshProviders()}
-          disabled={isRefreshingProviders}
-          className="p-2 bg-white/5 rounded-full text-zinc-300 hover:bg-white/10 disabled:opacity-50"
-          aria-label="refresh-provider-prices"
-        >
-          <RefreshCw
-            size={18}
-            className={isRefreshingProviders ? 'animate-spin' : undefined}
-          />
-        </button>
-      </div>
+  const compactInput = `${fieldInputClass} h-10 min-h-10! py-2 text-left`;
 
-      <div className="p-6 space-y-6">
+  return (
+    <div className="bg-surface-shell min-h-full animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader
+        title="قیمت‌ها و نرخ‌ها"
+        actions={
+          <IconButton label="دریافت قیمت‌های زنده" onClick={() => void handleRefreshProviders()}>
+            <RefreshCw size={18} strokeWidth={1.75} className={isRefreshingProviders ? 'animate-spin' : undefined} />
+          </IconButton>
+        }
+      />
+
+      <div className="px-4 pt-5 space-y-7">
         {refreshableAssets.length > 0 && (
           <div
-            className={`flex items-start gap-2 rounded-xl px-3 py-2.5 border ${
-              autoPriceHealth.isHealthy
-                ? 'bg-emerald-500/10 border-emerald-500/20'
-                : 'bg-amber-500/10 border-amber-500/20'
+            className={`flex items-start gap-2.5 rounded-2xl px-4 py-3 ${
+              autoPriceHealth.isHealthy ? 'bg-emerald-500/8' : 'bg-amber-400/8'
             }`}
           >
             {autoPriceHealth.isHealthy ? (
-              <RefreshCw size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+              <RefreshCw size={15} className="mt-0.5 shrink-0 text-emerald-400" />
             ) : (
-              <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+              <AlertCircle size={15} className="mt-0.5 shrink-0 text-amber-400" />
             )}
-            <p
-              className={`text-xs leading-relaxed ${
-                autoPriceHealth.isHealthy ? 'text-emerald-200' : 'text-amber-200'
-              }`}
-            >
+            <p className={`text-xs leading-relaxed ${autoPriceHealth.isHealthy ? 'text-emerald-200' : 'text-amber-200'}`}>
               {autoPriceHealth.isHealthy
-                ? `قیمت خودکار ${autoPriceHealth.syncedTodayCount.toLocaleString('fa-IR')} دارایی امروز دریافت شده (بروزرسانی روزانه ~۰۹:۰۰).`
-                : `قیمت خودکار ${autoPriceHealth.missingTodayCount.toLocaleString('fa-IR')} از ${autoPriceHealth.autoAssetCount.toLocaleString('fa-IR')} دارایی امروز دریافت نشده — دکمه بروزرسانی را بزنید یا منبع قیمت را بررسی کنید.`}
+                ? `قیمت خودکار ${autoPriceHealth.syncedTodayCount.toLocaleString('fa-IR')} دارایی امروز دریافت شده.`
+                : `قیمت خودکار ${autoPriceHealth.missingTodayCount.toLocaleString('fa-IR')} از ${autoPriceHealth.autoAssetCount.toLocaleString('fa-IR')} دارایی امروز دریافت نشده. دکمهٔ رفرش بالا را بزن.`}
             </p>
           </div>
         )}
 
-        <div className="bg-accent-900/20 border border-accent-500/30 p-5 rounded-2xl">
-          <label className="block text-sm text-accent-300 mb-2 font-medium">
-            نرخ دلار (تومان)
-          </label>
-          <FormattedNumberInput
-            value={localUsd}
-            onValueChange={handleUsdRateChange}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-white text-left focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none transition-all"
-            dir="ltr"
-          />
-        </div>
-
-        {otherCurrencies.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-zinc-300">نرخ ارزهای کیف پول</p>
+        <Section title="نرخ ارز" description="قیمت هر واحد به تومان">
+          <ListGroup>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <IconBadge size="sm">
+                <span className="text-xs font-semibold" dir="ltr">$</span>
+              </IconBadge>
+              <span className="min-w-0 flex-1 text-sm font-medium text-zinc-100">دلار</span>
+              <div className="w-40 shrink-0">
+                <FormattedNumberInput value={localUsd} onValueChange={handleUsdRateChange} className={compactInput} dir="ltr" />
+              </div>
+            </div>
             {otherCurrencies.map((c) => {
               const meta = CURRENCY_META[c];
               return (
-                <div
-                  key={c}
-                  className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300 text-sm font-semibold"
+                <div key={c} className="flex items-center gap-3 px-4 py-3">
+                  <IconBadge size="sm">
+                    <span className="text-xs font-semibold" dir="ltr">{meta.symbol}</span>
+                  </IconBadge>
+                  <span className="min-w-0 flex-1 text-sm font-medium text-zinc-100">{meta.label}</span>
+                  <div className="w-40 shrink-0">
+                    <FormattedNumberInput
+                      value={localOtherRates[c] ?? ''}
+                      onValueChange={(canonical) => setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))}
+                      className={compactInput}
                       dir="ltr"
-                    >
-                      {meta.symbol}
-                    </div>
-                    <div>
-                      <p className="text-zinc-200 text-sm font-medium">{meta.label}</p>
-                      <p className="text-zinc-500 text-xs" dir="ltr">
-                        1 {c} = ? تومان
-                      </p>
-                    </div>
+                      placeholder="0"
+                    />
                   </div>
-                  <FormattedNumberInput
-                    value={localOtherRates[c] ?? ''}
-                    onValueChange={(canonical) =>
-                      setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))
-                    }
-                    className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-accent-500 text-left"
-                    dir="ltr"
-                    placeholder="0"
-                  />
                 </div>
               );
             })}
-          </div>
-        )}
+          </ListGroup>
+        </Section>
 
-        <div className="bg-white/5 border border-white/8 p-4 rounded-2xl text-sm text-zinc-300">
-          دریافت قیمت زنده با دکمهٔ رفرش یا رفرش داشبورد انجام می‌شود.
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-zinc-300">قیمت دارایی‌ها</p>
-          {visibleAssets.map((asset) => (
-            <div
-              key={asset.id}
-              className="bg-surface-raised p-4 rounded-2xl border border-white/5 space-y-4"
-            >
-              <h3 className="font-semibold text-white">{asset.name}</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1">دلار</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
-                      $
-                    </span>
-                    <FormattedNumberInput
-                      value={localPrices[asset.id]?.usd || ''}
-                      onValueChange={(c) => handlePriceChange(asset.id, 'usd', c)}
-                      className="w-full bg-surface-hover border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-accent-500 outline-none transition-all"
-                      dir="ltr"
-                    />
+        <Section title="قیمت دارایی‌ها" description="فقط دارایی‌هایی که مقداری از آن‌ها داری. رفرش، قیمت‌های خودکار را پر می‌کند.">
+          {visibleAssets.length === 0 ? (
+            <Card>
+              <p className="text-center text-sm text-zinc-500">دارایی با مقدار بیشتر از صفر وجود ندارد.</p>
+            </Card>
+          ) : (
+            <ListGroup>
+              {visibleAssets.map((asset) => (
+                <div key={asset.id} className="space-y-2.5 px-4 py-3.5">
+                  <p className="text-sm font-medium text-zinc-100">
+                    {asset.name}
+                    {asset.unit && <span className="font-normal text-zinc-500"> · هر {asset.unit}</span>}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">ت</span>
+                      <FormattedNumberInput
+                        value={localPrices[asset.id]?.toman || ''}
+                        onValueChange={(c) => handlePriceChange(asset.id, 'toman', c)}
+                        className={`${compactInput} pl-7`}
+                        dir="ltr"
+                        aria-label={`${asset.name} به تومان`}
+                      />
+                    </div>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">$</span>
+                      <FormattedNumberInput
+                        value={localPrices[asset.id]?.usd || ''}
+                        onValueChange={(c) => handlePriceChange(asset.id, 'usd', c)}
+                        className={`${compactInput} pl-7`}
+                        dir="ltr"
+                        aria-label={`${asset.name} به دلار`}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1">تومان</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">
-                      ت
-                    </span>
-                    <FormattedNumberInput
-                      value={localPrices[asset.id]?.toman || ''}
-                      onValueChange={(c) => handlePriceChange(asset.id, 'toman', c)}
-                      className="w-full bg-surface-hover border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-accent-500 outline-none transition-all"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-          {visibleAssets.length === 0 && (
-            <div className="bg-surface-raised p-6 rounded-2xl border border-white/5 text-center text-zinc-500 text-sm">
-              دارایی با مقدار بیشتر از صفر برای بروزرسانی قیمت وجود ندارد.
-            </div>
+              ))}
+            </ListGroup>
           )}
-        </div>
+        </Section>
 
-        <div className="border border-white/5 rounded-2xl overflow-hidden">
+        <section className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised">
           <button
             type="button"
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="w-full flex items-center justify-between p-4 bg-surface-raised text-right hover:bg-surface-hover transition-colors"
+            className="flex w-full items-center justify-between px-4 py-3.5 text-right hover:bg-surface-hover"
           >
-            <span className="text-sm font-medium text-zinc-300">تنظیمات پیشرفته</span>
-            <ChevronDown
-              size={18}
-              className={`text-zinc-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
-            />
+            <span>
+              <span className="block text-sm font-medium text-zinc-100">تنظیمات پیشرفته</span>
+              <span className="mt-0.5 block text-xs text-zinc-500">منابع قیمت و ضرایب تبدیل</span>
+            </span>
+            <ChevronDown size={18} className={`text-zinc-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
           </button>
           {advancedOpen && (
-            <div className="p-4 pt-0 bg-surface-raised border-t border-white/5 space-y-6">
+            <div className="space-y-6 border-t border-white/5 p-4">
               <PriceSourceCatalogSection />
               <div className="border-t border-white/5 pt-4">
-                <p className="text-xs font-medium text-zinc-400 mb-3">ضرایب تبدیل</p>
-                <PriceSourceAdvancedSection
-                  slugs={boundSlugs}
-                  control={priceSourceControl}
-                />
+                <p className="mb-3 text-xs font-medium text-zinc-400">ضرایب تبدیل</p>
+                <PriceSourceAdvancedSection slugs={boundSlugs} control={priceSourceControl} />
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </section>
 
-      <button
-        onClick={handleSavePrices}
-        disabled={isSaving}
-        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-zinc-50 hover:bg-white text-zinc-900 p-4 rounded-2xl font-semibold transition-all flex justify-center items-center gap-2 z-30 disabled:opacity-50"
-      >
-        {isSaving ? (
-          <RefreshCw className="animate-spin" size={20} />
-        ) : (
-          'ذخیره'
-        )}
-      </button>
+        <StickyFooter>
+          <PrimaryButton onClick={handleSavePrices} disabled={isSaving}>
+            {isSaving ? <RefreshCw className="animate-spin" size={18} /> : 'ذخیره قیمت‌ها و نرخ‌ها'}
+          </PrimaryButton>
+        </StickyFooter>
+      </div>
     </div>
   );
 }

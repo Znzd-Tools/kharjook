@@ -7,8 +7,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ChevronLeft, Plus } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowRight, ChevronLeft, GripVertical, MoreHorizontal, Plus } from 'lucide-react';
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode, Ref } from 'react';
+import { BottomSheet } from '@/shared/components/BottomSheet';
 import { haptic } from '@/shared/utils/haptics';
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -428,5 +429,292 @@ export function SwitchVisual({ checked }: { checked: boolean }) {
         }`}
       />
     </span>
+  );
+}
+
+// ─── Forms ───────────────────────────────────────────────────────────────────
+
+/** Class for text inputs, selects and textareas. Use everywhere a value is typed. */
+export const fieldInputClass =
+  'w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 disabled:opacity-50';
+
+/** Class for buttons that open a picker (sheet, date, icon) and look like a field. */
+export const fieldButtonClass =
+  'w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-right transition-colors hover:bg-surface-hover disabled:opacity-50';
+
+export const fieldLabelClass = 'mb-1.5 block text-xs font-medium text-zinc-400';
+
+/** Label + control + optional hint/error, with consistent spacing. */
+export function Field({
+  label,
+  hint,
+  error,
+  htmlFor,
+  children,
+  className = '',
+}: {
+  label?: ReactNode;
+  hint?: ReactNode;
+  error?: ReactNode;
+  htmlFor?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {label && (
+        <label htmlFor={htmlFor} className={fieldLabelClass}>
+          {label}
+        </label>
+      )}
+      {children}
+      {error ? (
+        <p className="mt-1.5 text-xs text-rose-400">{error}</p>
+      ) : hint ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Titled group of related fields inside one card. */
+export function FormSection({
+  title,
+  description,
+  children,
+  className = '',
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`space-y-2 ${className}`}>
+      {(title || description) && (
+        <div className="px-1">
+          {title && <h3 className="text-xs font-semibold text-zinc-400">{title}</h3>}
+          {description && <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{description}</p>}
+        </div>
+      )}
+      <div className="space-y-4 rounded-2xl border border-white/5 bg-surface-raised p-4">{children}</div>
+    </section>
+  );
+}
+
+/** Bottom bar that keeps the primary action reachable while a long form scrolls. */
+export function StickyFooter({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-white/5 bg-surface-shell/90 px-4 pt-3 pb-safe backdrop-blur-md">
+      {children}
+    </div>
+  );
+}
+
+const PRIMARY_BUTTON =
+  'flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-50 text-sm font-semibold text-zinc-900 transition hover:bg-white active:scale-[0.99] disabled:opacity-40';
+
+export function PrimaryButton({
+  children,
+  type = 'button',
+  className = '',
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button type={type} className={`${PRIMARY_BUTTON} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}
+
+/** Pill group for picking one of a few options (wraps when it doesn't fit). */
+export function ChoiceChips<T extends string | number>({
+  value,
+  onChange,
+  options,
+  multiple,
+}: {
+  value: T | T[];
+  onChange: (value: T) => void;
+  options: readonly { value: T; label: ReactNode }[];
+  multiple?: boolean;
+}) {
+  const isOn = (v: T) => (multiple && Array.isArray(value) ? value.includes(v) : value === v);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          aria-pressed={isOn(opt.value)}
+          onClick={() => onChange(opt.value)}
+          className={`h-9 rounded-full border px-3.5 text-xs font-medium transition-colors ${
+            isOn(opt.value)
+              ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+              : 'border-white/8 text-zinc-400 hover:border-white/15 hover:text-zinc-200'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export type SheetAction = {
+  label: string;
+  icon?: ReactNode;
+  onSelect: () => void;
+  tone?: 'default' | 'danger';
+  disabled?: boolean;
+};
+
+/** Row-level actions in one sheet, instead of a strip of buttons on every card. */
+export function ActionSheet({
+  open,
+  onClose,
+  title,
+  actions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title?: ReactNode;
+  actions: SheetAction[];
+}) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title={title}>
+      <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            disabled={action.disabled}
+            onClick={() => {
+              onClose();
+              action.onSelect();
+            }}
+            className={`flex w-full items-center gap-3 px-4 py-3.5 text-right text-sm font-medium transition-colors hover:bg-surface-hover disabled:opacity-40 ${
+              action.tone === 'danger' ? 'text-rose-400' : 'text-zinc-100'
+            }`}
+          >
+            {action.icon && <span className="shrink-0 opacity-80">{action.icon}</span>}
+            {action.label}
+          </button>
+        ))}
+      </div>
+    </BottomSheet>
+  );
+}
+
+/** Field-styled button that opens a picker sheet: label, chosen value, chevron. */
+export function PickerRow({
+  label,
+  value,
+  placeholder = 'انتخاب کنید',
+  leading,
+  onClick,
+  disabled,
+}: {
+  label: ReactNode;
+  value?: ReactNode | null;
+  placeholder?: string;
+  leading?: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Field label={label}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={`${fieldButtonClass} flex items-center gap-2.5`}
+      >
+        {leading && <span className="shrink-0 text-zinc-500">{leading}</span>}
+        <span className={`min-w-0 flex-1 truncate text-sm ${value ? 'text-zinc-100' : 'text-zinc-500'}`}>
+          {value || placeholder}
+        </span>
+        <ChevronLeft size={15} className="shrink-0 text-zinc-500" />
+      </button>
+    </Field>
+  );
+}
+
+/**
+ * Row for drag-to-reorder lists (manage pages). The caller owns useSortable
+ * and passes its ref/style/handle props; this only renders.
+ */
+export function SortableListRow({
+  rowRef,
+  style,
+  handleProps,
+  isDragging,
+  highlighted,
+  leading,
+  title,
+  subtitle,
+  trailing,
+  onOpen,
+  onMore,
+  moreLabel = 'گزینه‌ها',
+}: {
+  rowRef: Ref<HTMLDivElement>;
+  style?: CSSProperties;
+  handleProps: Record<string, unknown>;
+  isDragging?: boolean;
+  highlighted?: boolean;
+  leading?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  trailing?: ReactNode;
+  onOpen?: () => void;
+  onMore?: () => void;
+  moreLabel?: string;
+}) {
+  const body = (
+    <>
+      {leading && <span className="shrink-0">{leading}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-zinc-100">{title}</span>
+        {subtitle && <span className="mt-0.5 block truncate text-xs text-zinc-500">{subtitle}</span>}
+      </span>
+      {trailing && <span className="shrink-0 text-left">{trailing}</span>}
+    </>
+  );
+  return (
+    <div
+      ref={rowRef}
+      style={style}
+      className={`relative flex items-center gap-1 bg-surface-raised py-1.5 pr-1.5 pl-1.5 ${
+        isDragging ? 'z-10 rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10' : ''
+      } ${highlighted ? 'bg-white/4' : ''}`}
+    >
+      <button
+        type="button"
+        {...handleProps}
+        style={{ touchAction: 'none' }}
+        aria-label="جابجایی"
+        className="flex h-10 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-300 active:cursor-grabbing"
+      >
+        <GripVertical size={16} />
+      </button>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 py-1.5 text-right">
+          {body}
+        </button>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3 py-1.5">{body}</div>
+      )}
+      {onMore && (
+        <button
+          type="button"
+          onClick={onMore}
+          aria-label={moreLabel}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-white/6 hover:text-zinc-200"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      )}
+    </div>
   );
 }

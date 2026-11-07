@@ -1,25 +1,21 @@
 'use client';
 
+import { IconBadge, ListGroup, ListRow, Money, PageHeader, Section } from '@/shared/components/ui';
+import { formatJalaaliHuman, parseJalaali } from '@/shared/utils/jalali';
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowDownRight,
   ArrowLeftRight,
-  ArrowRight,
   ArrowUpRight,
-  Edit3,
   HandCoins,
-  Trash2,
   UserRound,
 } from 'lucide-react';
-import { supabase } from '@/shared/lib/supabase/client';
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { EmptyState } from '@/shared/components/EmptyState';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
-import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import {
   buildPersonSettleTransactionUrl,
   pickDefaultSettleWallet,
@@ -40,8 +36,7 @@ export interface PersonDetailViewProps {
 export function PersonDetailView({ personId }: PersonDetailViewProps) {
   const router = useRouter();
   const toast = useToast();
-  const { confirm } = useConfirm();
-  const { persons, wallets, assets, categories, transactions, setTransactions } = useData();
+  const { persons, wallets, assets, categories, transactions } = useData();
 
   const person = persons.find((p) => p.id === personId);
   const defaultWallet = useMemo(() => pickDefaultSettleWallet(wallets), [wallets]);
@@ -89,79 +84,59 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
     router.push(url);
   };
 
-  const deleteTx = async (id: string) => {
-    if (!(await confirm({ message: 'این تراکنش حذف شود؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
-    try {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (error) throw error;
-      setTransactions((prev) => prev.filter((tx) => tx.id !== id));
-      toast.success('تراکنش حذف شد.');
-    } catch (error) {
-      console.error(error);
-      toast.error('خطا در حذف تراکنش.');
-    }
-  };
 
   return (
-    <div className="bg-surface-inset min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">{person.name}</h2>
-      </div>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title={person.name} subtitle="حساب شخص" />
 
-      <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-surface-raised rounded-2xl border border-white/5">
-          <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-300 flex items-center justify-center">
-              <UserRound size={24} />
-            </div>
+      <div className="px-4 pt-5 space-y-7">
+        <section className="px-1">
+          <div className="flex items-center gap-3">
+            <IconBadge color="#22d3ee">
+              <UserRound size={18} strokeWidth={1.9} />
+            </IconBadge>
+            <p className={`text-xs ${tone}`}>{status}</p>
           </div>
-          <p className="text-zinc-400 text-sm mb-2">مانده حساب</p>
-          <p className={`text-3xl font-semibold ${tone}`} dir="ltr">
-            {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+          <p className="mt-4 text-[2.25rem] leading-tight font-semibold tracking-tight text-zinc-50">
+            <Money className={balance === 0 ? '' : tone}>
+              {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+            </Money>
           </p>
-          <p className={`text-sm mt-2 ${tone}`}>{status}</p>
           {balance !== 0 && (
             <button
               type="button"
               onClick={openSettle}
-              className="mt-4 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              className="mt-5 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-900 hover:bg-white"
             >
-              <HandCoins size={16} />
+              <HandCoins size={17} />
               {balance > 0 ? 'دریافت تسویه' : 'پرداخت تسویه'}
             </button>
           )}
-        </div>
+        </section>
 
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-400">تراکنش‌ها</h3>
+        <Section title="تاریخچه">
           {personTxs.length === 0 ? (
             <EmptyState
-              icon={<ArrowLeftRight size={24} />}
+              icon={<ArrowLeftRight size={22} />}
               title="تراکنشی با این شخص نیست."
-              description="از ثبت تراکنش، این شخص را در مبدأ یا مقصد انتخاب کن."
+              description="موقع ثبت تراکنش، این شخص را در مبدأ یا مقصد انتخاب کن."
             />
           ) : (
-            personTxs.map((tx) => (
-              <PersonTxRow
-                key={tx.id}
-                tx={tx}
-                personId={person.id}
-                wallets={wallets}
-                assets={assets}
-                categories={categories}
-                onEdit={() => router.push(`/transactions/${tx.id}/edit`)}
-                onDelete={() => void deleteTx(tx.id)}
-              />
-            ))
+            <ListGroup>
+              {personTxs.map((tx) => (
+                <PersonTxRow
+                  key={tx.id}
+                  tx={tx}
+                  personId={person.id}
+                  wallets={wallets}
+                  assets={assets}
+                  categories={categories}
+                  href={`/transactions/${tx.id}/edit`}
+                />
+              ))}
+            </ListGroup>
           )}
-        </div>
+        </Section>
       </div>
     </div>
   );
@@ -173,72 +148,37 @@ function PersonTxRow({
   wallets,
   assets,
   categories,
-  onEdit,
-  onDelete,
+  href,
 }: {
   tx: Transaction;
   personId: string;
   wallets: { id: string; name: string }[];
   assets: { id: string; name: string }[];
   categories: { id: string; name: string }[];
-  onEdit: () => void;
-  onDelete: () => void;
+  href: string;
 }) {
-  const isSource = tx.source_person_id === personId;
-  const amount = isSource ? Number(tx.source_amount) : Number(tx.target_amount);
-  const isOut = isSource;
-  const accent = isOut ? 'bg-rose-500' : 'bg-emerald-500';
-  const tone = isOut ? 'text-rose-400' : 'text-emerald-400';
+  const isOut = tx.source_person_id === personId;
+  const amount = isOut ? Number(tx.source_amount) : Number(tx.target_amount);
   const Icon = tx.type === 'TRANSFER' ? ArrowLeftRight : isOut ? ArrowUpRight : ArrowDownRight;
   const counterparty = describePersonCounterparty(tx, personId, wallets, assets, categories);
-
+  const parsed = parseJalaali(tx.date_string);
   return (
-    <div className="bg-surface-raised p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center ${tone} shrink-0`}
-          >
-            <Icon size={16} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-zinc-200 text-sm font-medium">{TYPE_LABELS[tx.type]}</p>
-            <p className="text-zinc-500 text-xs mt-0.5 truncate">{counterparty}</p>
-          </div>
-        </div>
-        <div className="text-left shrink-0">
-          <p className={`text-sm font-semibold ${tone}`} dir="ltr">
-            {isOut ? '-' : '+'}
-            {Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 6 })}
-          </p>
-          <p className="text-xs text-zinc-500 mt-0.5">{latinizeDigits(tx.date_string)}</p>
-        </div>
-      </div>
-      <div className="flex justify-between items-center pt-2 border-t border-white/5">
-        <span className="text-[11px] text-zinc-600 truncate" dir="ltr">
-          {tx.note || ''}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-blue-400/50 hover:text-blue-400 transition-colors p-1.5"
-            aria-label="ویرایش"
-          >
-            <Edit3 size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-rose-400/50 hover:text-rose-400 transition-colors p-1.5"
-            aria-label="حذف"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
-    </div>
+    <ListRow
+      href={href}
+      leading={
+        <IconBadge color={isOut ? '#fb7185' : '#34d399'}>
+          <Icon size={17} strokeWidth={1.9} />
+        </IconBadge>
+      }
+      title={tx.note?.trim() || TYPE_LABELS[tx.type]}
+      subtitle={[counterparty, parsed ? formatJalaaliHuman(parsed) : tx.date_string].filter(Boolean).join(' · ')}
+      trailing={
+        <Money tone={isOut ? 'negative' : 'positive'}>
+          {isOut ? '−' : '+'}
+          {Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+        </Money>
+      }
+    />
   );
 }
 

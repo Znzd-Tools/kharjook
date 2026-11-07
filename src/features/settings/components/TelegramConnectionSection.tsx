@@ -1,5 +1,6 @@
 'use client';
 
+import { IconBadge } from '@/shared/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, Link2, Unlink } from 'lucide-react';
 import { useToast } from '@/shared/components/Toast';
@@ -65,61 +66,58 @@ export function TelegramConnectionSection() {
 
   const connected = connection?.is_active !== false && !!connection;
 
-  return (
-    <section className="bg-surface-raised border border-white/5 rounded-2xl p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
-          <Link2 size={20} />
-        </div>
-        <div>
-          <h3 className="font-semibold text-white">تلگرام</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">دریافت گزارش و یادآور اقساط</p>
-        </div>
-      </div>
+  const pill =
+    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-colors disabled:opacity-50';
 
-      {isLoading ? (
-        <p className="text-sm text-zinc-500 animate-pulse">در حال بارگذاری...</p>
-      ) : connected ? (
-        <div className="space-y-3">
-          <div className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">
-            ✅ متصل
-            {connection.telegram_username ? (
-              <span className="text-zinc-300 mr-2" dir="ltr">
-                @{connection.telegram_username}
-              </span>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => void handleDisconnect()}
-            className="w-full flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 text-rose-400 py-3 rounded-2xl text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Unlink size={16} />
-            قطع اتصال
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            برای دریافت پیام‌های خصوصی، ربات را در تلگرام فعال کنید.
+  return (
+    <div className="px-4 py-3.5">
+      <div className="flex items-center gap-3">
+        <IconBadge color="#38bdf8">
+          <Link2 size={17} strokeWidth={1.9} />
+        </IconBadge>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-100">تلگرام</p>
+          <p className="mt-0.5 truncate text-xs text-zinc-500">
+            {isLoading ? (
+              'در حال بارگذاری...'
+            ) : connected ? (
+              <>
+                <span className="text-emerald-400">متصل</span>
+                {connection.telegram_username ? <span dir="ltr"> · @{connection.telegram_username}</span> : null}
+              </>
+            ) : (
+              'گزارش، یادآور اقساط و ثبت سریع در تلگرام'
+            )}
           </p>
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => void handleConnect()}
-            className="w-full flex items-center justify-center gap-2 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 py-3 rounded-2xl text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <ExternalLink size={16} />
-            اتصال تلگرام
-          </button>
-          {linkUrl ? (
-            <p className="text-xs text-zinc-500 break-all" dir="ltr">
-              {linkUrl}
-            </p>
-          ) : null}
         </div>
-      )}
-    </section>
+        {!isLoading &&
+          (connected ? (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void handleDisconnect()}
+              className={`${pill} text-rose-400 hover:bg-rose-500/10`}
+            >
+              <Unlink size={14} />
+              قطع
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void handleConnect()}
+              className={`${pill} bg-zinc-50 text-zinc-900 hover:bg-white`}
+            >
+              <ExternalLink size={14} />
+              اتصال
+            </button>
+          ))}
+      </div>
+      {!connected && linkUrl ? (
+        <p className="mt-2 break-all pr-13 text-xs text-zinc-500" dir="ltr">
+          {linkUrl}
+        </p>
+      ) : null}
+    </div>
   );
 }

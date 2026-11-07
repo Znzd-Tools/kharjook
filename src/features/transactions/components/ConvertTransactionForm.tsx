@@ -67,7 +67,7 @@ export function ConvertTransactionForm({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-violet-500/20 bg-surface-raised p-4 space-y-4">
+      <div className="rounded-2xl border border-white/5 bg-surface-raised p-4 space-y-4">
         <div className="flex items-center gap-2 text-violet-300">
           <ArrowLeftRight size={16} />
           <p className="text-sm font-semibold text-white">تبدیل دارایی</p>
@@ -80,7 +80,7 @@ export function ConvertTransactionForm({
         <button
           type="button"
           onClick={() => setDateOpen(true)}
-          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-right"
+          className="w-full min-h-11 flex items-center justify-between rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-right hover:bg-surface-hover transition-colors"
         >
           <span className="text-xs text-zinc-400">تاریخ</span>
           <span className="flex items-center gap-2 text-sm text-white">
@@ -91,8 +91,8 @@ export function ConvertTransactionForm({
           </span>
         </button>
 
-        <section className="space-y-3 rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
-          <p className="text-xs font-semibold text-amber-300">فروش (مبدأ)</p>
+        <section className="space-y-3 rounded-xl bg-white/3 p-3">
+          <p className="text-xs font-semibold text-zinc-300">فروش · مبدأ</p>
           <EndpointButton
             label="دارایی مبدأ"
             value={sourceAsset?.name ?? 'انتخاب دارایی'}
@@ -135,8 +135,8 @@ export function ConvertTransactionForm({
           />
         </section>
 
-        <section className="space-y-3 rounded-xl border border-accent-500/15 bg-accent-500/5 p-3">
-          <p className="text-xs font-semibold text-accent-300">خرید (مقصد)</p>
+        <section className="space-y-3 rounded-xl bg-white/3 p-3">
+          <p className="text-xs font-semibold text-zinc-300">خرید · مقصد</p>
           <EndpointButton
             label="دارایی مقصد"
             value={targetAsset?.name ?? 'انتخاب دارایی'}
@@ -188,13 +188,13 @@ export function ConvertTransactionForm({
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="rounded-lg bg-white/5 px-2.5 py-2">
               <p className="text-zinc-500 mb-0.5">ارزش فروش</p>
-              <p className="text-amber-200 font-semibold" dir="ltr">
+              <p className="text-zinc-100 font-semibold" dir="ltr">
                 {formatCurrency(sellTotal, 'TOMAN')}
               </p>
             </div>
             <div className="rounded-lg bg-white/5 px-2.5 py-2">
               <p className="text-zinc-500 mb-0.5">ارزش خرید</p>
-              <p className="text-accent-200 font-semibold" dir="ltr">
+              <p className="text-zinc-100 font-semibold" dir="ltr">
                 {formatCurrency(buyTotal, 'TOMAN')}
               </p>
             </div>
@@ -210,7 +210,7 @@ export function ConvertTransactionForm({
           onChange={(e) => update('note', e.target.value)}
           placeholder="یادداشت (اختیاری)"
           rows={2}
-          className="w-full rounded-xl border border-white/10 bg-background/60 px-3 py-2 text-sm text-white placeholder:text-zinc-600 resize-none"
+          className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 resize-none"
         />
       </div>
 
@@ -308,7 +308,7 @@ function EndpointButton({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-right"
+      className="w-full min-h-11 flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-right hover:bg-surface-hover transition-colors"
     >
       <div className="flex items-center gap-3 min-w-0">
         {icon}
@@ -377,7 +377,7 @@ function NumberField({
         value={value}
         onValueChange={onChange}
         disabled={disabled}
-        className="w-full rounded-xl border border-white/10 bg-background/60 px-3 py-2.5 text-sm text-white disabled:opacity-50"
+        className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition focus:border-accent-400 disabled:opacity-50"
       />
     </div>
   );

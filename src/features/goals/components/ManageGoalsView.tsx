@@ -1,17 +1,31 @@
 'use client';
 
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import { EmptyState } from '@/shared/components/EmptyState';
+import {
+  ActionSheet,
+  Card,
+  Field,
+  HeaderAction,
+  IconBadge,
+  ListGroup,
+  Money,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  ProgressBar,
+  SegmentedControl,
+  Section,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Activity,
-  ArrowRight,
-  ChevronDown,
   Edit3,
+  MoreHorizontal,
   Folder,
-  Percent,
   TargetIcon,
   Trash2,
-  X,
 } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Goal, GoalScope, GoalTargetKind } from '@/shared/types/domain';
@@ -73,7 +87,6 @@ function makeGoalPayload(userId: string, form: FormState) {
 }
 
 export function ManageGoalsView() {
-  const router = useRouter();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { user } = useAuth();
@@ -81,6 +94,8 @@ export function ManageGoalsView() {
   const { currencyMode, usdRate } = useUI();
 
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [actionGoalId, setActionGoalId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
@@ -256,7 +271,15 @@ export function ManageGoalsView() {
     });
   };
 
-  const resetForm = () => setForm(emptyForm);
+  const resetForm = () => {
+    setForm(emptyForm);
+    setSheetOpen(false);
+  };
+
+  const openCreate = () => {
+    setForm(emptyForm);
+    setSheetOpen(true);
+  };
 
   const duplicateGoal = () => {
     const targetKind = effectiveTargetKind;
@@ -388,7 +411,7 @@ export function ManageGoalsView() {
       targetKind: goal.target_kind,
       targetValue: String(goal.target_quantity ?? goal.target_percent ?? ''),
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSheetOpen(true);
   };
 
   const handleDelete = async (goal: Goal) => {
@@ -436,130 +459,177 @@ export function ManageGoalsView() {
 
   if (!user) return null;
 
+  const actionGoal = goals.find((g) => g.id === actionGoalId) ?? null;
+  const goalName = (goal: Goal) =>
+    goal.scope === 'asset'
+      ? (goal.asset_id ? assetById.get(goal.asset_id)?.name : undefined) ?? 'دارایی حذف‌شده'
+      : (goal.category_id ? categoryById.get(goal.category_id)?.name : undefined) ?? 'گروه حذف‌شده';
+
+  const budgetSummary = (
+    <div className="space-y-3">
+      <BudgetProgressRow
+        label="هدف‌های گروهی"
+        used={budgetValidation.parentSum}
+        total={100}
+        tone={budgetValidation.parentSum > 100 ? 'danger' : 'normal'}
+      />
+      <BudgetProgressRow
+        label="هدف‌های دارایی"
+        used={budgetValidation.childSum}
+        total={100}
+        tone={budgetValidation.childSum > 100 ? 'danger' : 'normal'}
+      />
+    </div>
+  );
+
   return (
-    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-          aria-label="بازگشت"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">هدف‌ها</h2>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="اهداف تخصیص" actions={<HeaderAction label="هدف جدید" onClick={openCreate} />} />
+
+      <div className="px-4 pt-5 space-y-7">
+        <Section title="بودجه درصدی" description="جمع درصدها نباید از ۱۰۰ بیشتر شود.">
+          <Card className="space-y-4">
+            {budgetSummary}
+            {budgetValidation.categoryRows.length > 0 && (
+              <div className="space-y-2.5 border-t border-white/5 pt-4">
+                <p className="text-xs text-zinc-500">سهم دارایی‌ها از هدف هر گروه</p>
+                {budgetValidation.categoryRows.slice(0, 6).map((row) => (
+                  <div key={row.categoryId} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="truncate text-zinc-300">{row.categoryName}</span>
+                      {row.parentTarget == null ? (
+                        <span className="text-amber-300">هدف گروه ندارد</span>
+                      ) : (
+                        <span dir="ltr" className={row.childrenSum > row.parentTarget ? 'text-rose-300' : 'text-zinc-400'}>
+                          {row.childrenSum.toFixed(1)} / {row.parentTarget.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    {row.parentTarget != null && (
+                      <ProgressBar
+                        value={row.childrenSum}
+                        max={row.parentTarget || 1}
+                        tone={row.childrenSum > row.parentTarget ? 'negative' : 'accent'}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </Section>
+
+        <Section title="هدف‌ها" description={goals.length > 0 ? `${goals.length.toLocaleString('fa-IR')} هدف فعال` : undefined}>
+          {sortedGoals.length === 0 ? (
+            <EmptyState
+              icon={<TargetIcon size={22} />}
+              title="هنوز هدفی نگذاشته‌ای."
+              description="برای یک دارایی یا گروه درصد سبد یا مقدار هدف بگذار."
+              actionLabel="تعریف هدف"
+              onAction={openCreate}
+            />
+          ) : (
+            <ListGroup>
+              {sortedGoals.map((goal) => (
+                <GoalRow
+                  key={goal.id}
+                  goal={goal}
+                  name={goalName(goal)}
+                  assetUnit={goal.asset_id ? assetById.get(goal.asset_id)?.unit : undefined}
+                  pending={pendingGoalIds.has(goal.id)}
+                  progress={
+                    goal.scope === 'asset'
+                      ? calculateAssetGoalProgress(goal, snapshots, totalValueToman)
+                      : calculateGroupGoalProgress(goal, snapshots, totalValueToman)
+                  }
+                  onOpen={() => handleEdit(goal)}
+                  onMore={() => setActionGoalId(goal.id)}
+                />
+              ))}
+            </ListGroup>
+          )}
+        </Section>
       </div>
 
-      <div className="p-6 space-y-6">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-surface-raised border border-white/5 rounded-2xl p-5 space-y-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-accent-300">
-              <TargetIcon size={18} />
-              <span className="font-semibold">
-                {form.editingId ? 'ویرایش هدف' : 'هدف جدید'}
-              </span>
-            </div>
-            {form.editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="text-xs text-zinc-400 hover:text-white inline-flex items-center gap-1"
-              >
-                <X size={14} />
-                لغو
-              </button>
-            )}
-          </div>
+      <ActionSheet
+        open={actionGoal !== null}
+        onClose={() => setActionGoalId(null)}
+        title={actionGoal ? goalName(actionGoal) : undefined}
+        actions={
+          actionGoal
+            ? [
+                { label: 'ویرایش', icon: <Edit3 size={17} />, onSelect: () => handleEdit(actionGoal) },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  disabled: pendingGoalIds.has(actionGoal.id),
+                  onSelect: () => void handleDelete(actionGoal),
+                },
+              ]
+            : []
+        }
+      />
 
-          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-surface-inset p-1">
-            <button
-              type="button"
-              onClick={() => switchScope('asset')}
-              className={`rounded-xl py-2 text-sm transition ${
-                form.scope === 'asset'
-                  ? 'bg-accent-500 text-white'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              دارایی
-            </button>
-            <button
-              type="button"
-              onClick={() => switchScope('asset_group')}
-              className={`rounded-xl py-2 text-sm transition ${
-                form.scope === 'asset_group'
-                  ? 'bg-accent-500 text-white'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              گروه دارایی
-            </button>
-          </div>
-
+      <BottomSheet open={sheetOpen} onClose={resetForm} title={form.editingId ? 'ویرایش هدف' : 'هدف جدید'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <SegmentedControl
+            value={form.scope}
+            onChange={switchScope}
+            options={[
+              { value: 'asset', label: 'یک دارایی' },
+              { value: 'asset_group', label: 'یک گروه' },
+            ]}
+          />
           {form.scope === 'asset' ? (
-            <PickerButton
+            <PickerRow
               label="دارایی"
-              value={selectedAsset?.name ?? 'انتخاب دارایی'}
-              empty={!selectedAsset}
-              icon={<Activity size={16} />}
+              value={selectedAsset?.name}
+              placeholder="انتخاب دارایی"
+              leading={<Activity size={15} />}
               onClick={() => setAssetPickerOpen(true)}
             />
           ) : (
-            <PickerButton
-              label="گروه دارایی"
-              value={selectedCategory?.name ?? 'انتخاب گروه'}
-              empty={!selectedCategory}
-              icon={<Folder size={16} />}
+            <PickerRow
+              label="گروه"
+              value={selectedCategory?.name}
+              placeholder="انتخاب گروه"
+              leading={<Folder size={15} />}
               onClick={() => setCategoryPickerOpen(true)}
             />
           )}
-
           {form.scope === 'asset' && (
-            <div className="grid grid-cols-2 gap-2">
-              <TargetKindButton
-                selected={form.targetKind === 'allocation_percent'}
-                icon={<Percent size={15} />}
-                label="درصد از سبد"
-                onClick={() =>
-                  setForm((prev) => ({ ...prev, targetKind: 'allocation_percent' }))
-                }
+            <Field label="نوع هدف">
+              <SegmentedControl
+                size="sm"
+                value={form.targetKind}
+                onChange={(targetKind) => setForm((prev) => ({ ...prev, targetKind }))}
+                options={[
+                  { value: 'allocation_percent', label: 'درصد از سبد' },
+                  { value: 'quantity', label: 'مقدار' },
+                ]}
               />
-              <TargetKindButton
-                selected={form.targetKind === 'quantity'}
-                icon={<Activity size={15} />}
-                label="تعداد/مقدار"
-                onClick={() => setForm((prev) => ({ ...prev, targetKind: 'quantity' }))}
-              />
-            </div>
+            </Field>
           )}
-
-          <label className="block space-y-2">
-            <span className="text-xs text-zinc-400">
-              {effectiveTargetKind === 'quantity' ? 'هدف مقداری' : 'هدف درصدی'}
-            </span>
+          <Field
+            label={effectiveTargetKind === 'quantity' ? 'مقدار هدف' : 'درصد هدف'}
+            error={percentInvalid && form.targetValue.trim() !== '' ? 'درصد باید بین ۰ و ۱۰۰ باشد.' : undefined}
+          >
             <div className="relative">
               <FormattedNumberInput
                 value={form.targetValue}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))}
-                placeholder={effectiveTargetKind === 'quantity' ? 'مثلا 2.5' : 'مثلا 25'}
-                className="w-full bg-surface-inset border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:border-accent-500 outline-none"
+                placeholder={effectiveTargetKind === 'quantity' ? 'مثلاً 2.5' : 'مثلاً 25'}
+                className={`${fieldInputClass} text-left text-lg font-semibold`}
+                dir="ltr"
               />
               {effectiveTargetKind === 'allocation_percent' && (
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
-                  %
-                </span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-zinc-500">%</span>
               )}
             </div>
-            {percentInvalid && (
-              <span className="text-xs text-rose-300">درصد باید بین ۰ و ۱۰۰ باشد.</span>
-            )}
-          </label>
-
+          </Field>
           {budgetValidation.issues.length > 0 && (
-            <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 space-y-1">
+            <div className="space-y-1 rounded-xl bg-rose-500/10 px-3 py-2">
               {budgetValidation.issues.map((issue) => (
                 <p key={issue} className="text-xs text-rose-200">
                   {issue}
@@ -567,117 +637,15 @@ export function ManageGoalsView() {
               ))}
             </div>
           )}
-
-          <div className="rounded-2xl border border-white/10 bg-surface-inset p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-zinc-300">خلاصه بودجه درصدی</p>
-              <p className="text-[11px] text-zinc-500">محاسبه زنده با پیش‌نمایش فرم فعلی</p>
-            </div>
-
-            <BudgetProgressRow
-              label="مجموع هدف‌های گروهی"
-              used={budgetValidation.parentSum}
-              total={100}
-              tone={budgetValidation.parentSum > 100 ? 'danger' : 'normal'}
-            />
-            <BudgetProgressRow
-              label="مجموع هدف‌های دارایی"
-              used={budgetValidation.childSum}
-              total={100}
-              tone={budgetValidation.childSum > 100 ? 'danger' : 'normal'}
-            />
-
-            {budgetValidation.categoryRows.length > 0 && (
-              <div className="space-y-2 pt-1">
-                <p className="text-xs text-zinc-400">نسبت فرزندها به والد هر گروه</p>
-                {budgetValidation.categoryRows.slice(0, 6).map((row) => (
-                  <div key={row.categoryId} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-300 truncate">{row.categoryName}</span>
-                      {row.parentTarget == null ? (
-                        <span className="text-amber-300">والد ندارد</span>
-                      ) : (
-                        <span
-                          dir="ltr"
-                          className={
-                            row.childrenSum > row.parentTarget
-                              ? 'text-rose-300'
-                              : 'text-zinc-400'
-                          }
-                        >
-                          {row.childrenSum.toFixed(1)} / {row.parentTarget.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
-                    {row.parentTarget != null && (
-                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            row.childrenSum > row.parentTarget
-                              ? 'bg-rose-400'
-                              : 'bg-accent-400'
-                          }`}
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              row.parentTarget > 0
-                                ? (row.childrenSum / row.parentTarget) * 100
-                                : 0
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="rounded-xl bg-white/4 p-3">
+            <p className="mb-3 text-xs text-zinc-500">با این هدف</p>
+            {budgetSummary}
           </div>
-
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="w-full bg-zinc-50 hover:bg-white disabled:opacity-50 disabled:hover:bg-zinc-50 text-zinc-900 rounded-xl py-3 font-semibold transition"
-          >
+          <PrimaryButton type="submit" disabled={!canSubmit}>
             {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره تغییرات' : 'افزودن هدف'}
-          </button>
+          </PrimaryButton>
         </form>
-
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-300">هدف‌های فعال</h3>
-            <span className="text-xs text-zinc-500">{goals.length.toLocaleString('fa-IR')}</span>
-          </div>
-
-          {sortedGoals.length === 0 ? (
-            <div className="text-center text-zinc-500 text-sm py-8 bg-surface-raised border border-white/5 rounded-2xl">
-              هنوز هدفی ثبت نشده است.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {sortedGoals.map((goal) => (
-                <GoalRow
-                  key={goal.id}
-                  goal={goal}
-                  assetName={goal.asset_id ? assetById.get(goal.asset_id)?.name : undefined}
-                  assetUnit={goal.asset_id ? assetById.get(goal.asset_id)?.unit : undefined}
-                  categoryName={
-                    goal.category_id ? categoryById.get(goal.category_id)?.name : undefined
-                  }
-                  pending={pendingGoalIds.has(goal.id)}
-                  progress={
-                    goal.scope === 'asset'
-                      ? calculateAssetGoalProgress(goal, snapshots, totalValueToman)
-                      : calculateGroupGoalProgress(goal, snapshots, totalValueToman)
-                  }
-                  onEdit={() => handleEdit(goal)}
-                  onDelete={() => void handleDelete(goal)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+      </BottomSheet>
 
       <ListSheetPicker
         open={assetPickerOpen}
@@ -712,154 +680,60 @@ function BudgetProgressRow({
   tone: 'normal' | 'danger';
 }) {
   const remaining = Math.max(0, total - used);
-  const width = Math.min(100, total > 0 ? (used / total) * 100 : 0);
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-zinc-400">{label}</span>
-        <span dir="ltr" className={tone === 'danger' ? 'text-rose-300' : 'text-zinc-300'}>
-          {used.toFixed(1)}% used / {remaining.toFixed(1)}% free
+        <span className="text-zinc-300">{label}</span>
+        <span className={tone === 'danger' ? 'text-rose-300' : 'text-zinc-500'}>
+          <Money className={tone === 'danger' ? '' : 'text-zinc-200'}>{used.toFixed(1)}%</Money> استفاده ·{' '}
+          <Money>{remaining.toFixed(1)}%</Money> آزاد
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${
-            tone === 'danger' ? 'bg-rose-400' : 'bg-accent-400'
-          }`}
-          style={{ width: `${width}%` }}
-        />
-      </div>
+      <ProgressBar value={used} max={total} tone={tone === 'danger' ? 'negative' : 'accent'} />
     </div>
-  );
-}
-
-function PickerButton({
-  label,
-  value,
-  empty,
-  icon,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  empty: boolean;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full bg-surface-inset border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-right hover:border-accent-500/40 transition"
-    >
-      <span className="text-zinc-500">{icon}</span>
-      <span className="flex-1 min-w-0">
-        <span className="block text-xs text-zinc-500">{label}</span>
-        <span className={`block text-sm truncate ${empty ? 'text-zinc-500' : 'text-white'}`}>
-          {value}
-        </span>
-      </span>
-      <ChevronDown size={16} className="text-zinc-600" />
-    </button>
-  );
-}
-
-function TargetKindButton({
-  selected,
-  icon,
-  label,
-  onClick,
-}: {
-  selected: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-xl border p-3 text-sm flex items-center justify-center gap-2 transition ${
-        selected
-          ? 'bg-accent-500/10 border-accent-500/40 text-accent-200'
-          : 'bg-surface-inset border-white/10 text-zinc-400 hover:text-white'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
 function GoalRow({
   goal,
-  assetName,
+  name,
   assetUnit,
-  categoryName,
   pending,
   progress,
-  onEdit,
-  onDelete,
+  onOpen,
+  onMore,
 }: {
   goal: Goal;
-  assetName?: string;
+  name: string;
   assetUnit?: string;
-  categoryName?: string;
   pending: boolean;
   progress: GoalProgress | null;
-  onEdit: () => void;
-  onDelete: () => void;
+  onOpen: () => void;
+  onMore: () => void;
 }) {
-  const name = goal.scope === 'asset' ? (assetName ?? 'دارایی حذف‌شده') : (categoryName ?? 'گروه حذف‌شده');
   const kind = goalValueKindFromGoal(goal.target_kind);
-
   return (
-    <div
-      className={`bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3 ${
-        pending ? 'opacity-60' : ''
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-accent-500/10 text-accent-300 flex items-center justify-center shrink-0">
-              {goal.scope === 'asset' ? <Activity size={15} /> : <Folder size={15} />}
+    <div className={`px-4 py-3.5 space-y-3 ${pending ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-right">
+          <IconBadge size="sm">{goal.scope === 'asset' ? <Activity size={15} /> : <Folder size={15} />}</IconBadge>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-zinc-100">{name}</span>
+            <span className="block text-xs text-zinc-500">
+              {goal.scope === 'asset' ? 'دارایی' : 'گروه'} · {goal.target_kind === 'quantity' ? 'هدف مقداری' : 'درصد سبد'}
             </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{name}</p>
-              <p className="text-xs text-zinc-500">
-                {goal.target_kind === 'quantity' ? 'هدف مقداری' : 'هدف درصدی'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="w-8 h-8 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 flex items-center justify-center"
-            aria-label="ویرایش هدف"
-          >
-            <Edit3 size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center"
-            aria-label="حذف هدف"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onMore}
+          aria-label="گزینه‌ها"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-white/6 hover:text-zinc-200"
+        >
+          <MoreHorizontal size={18} />
+        </button>
       </div>
-
-      <GoalProgressDisplay
-        label=""
-        kind={kind}
-        unit={assetUnit ?? ''}
-        progress={progress}
-        showIcon={false}
-      />
+      <GoalProgressDisplay label="" kind={kind} unit={assetUnit ?? ''} progress={progress} showIcon={false} />
     </div>
   );
 }

@@ -1,8 +1,18 @@
 'use client';
 
+import {
+  Field,
+  FormSection,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  StickyFooter,
+  fieldButtonClass,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -174,132 +184,90 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
     label: `${wallet.name} · ${wallet.currency}`,
   }));
 
+  const dueLabel = parseJalaali(form.dueDate) ? formatJalaaliHuman(parseJalaali(form.dueDate)!) : form.dueDate;
+  const categoryName = form.categoryId
+    ? expenseCategories.find((category) => category.id === form.categoryId)?.name
+    : null;
+
   return (
-    <div className="bg-surface-inset min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">
-          {isEdit ? 'ویرایش چک' : 'ثبت چک جدید'}
-        </h2>
-      </div>
+    <div className="bg-surface-shell min-h-full animate-[slide-fade-in-up_300ms_ease-out]">
+      <PageHeader title={isEdit ? 'ویرایش چک' : 'چک جدید'} />
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">عنوان / دریافت‌کننده</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
-            placeholder="مثال: اجاره دفتر"
-            required
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="px-4 pt-5 space-y-6">
+        <FormSection title="مبلغ و سررسید">
+          <Field label="مبلغ چک">
+            <FormattedNumberInput
+              value={form.amount}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
+              className={`${fieldInputClass} h-14 text-left text-2xl font-semibold tracking-tight`}
+              dir="ltr"
+              placeholder="0"
+              required
+            />
+          </Field>
+          <Field label="تاریخ سررسید">
+            <button type="button" onClick={() => setDueDateOpen(true)} className={`${fieldButtonClass} flex items-center gap-2.5`}>
+              <Calendar size={16} className="shrink-0 text-zinc-500" />
+              <span className="text-sm text-zinc-100">{dueLabel}</span>
+            </button>
+          </Field>
+        </FormSection>
 
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">نام بانک</label>
-          <input
-            value={form.bankName}
-            onChange={(e) => setForm((prev) => ({ ...prev, bankName: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none"
-            placeholder="اختیاری"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">شماره چک</label>
-          <input
-            value={form.checkNumber}
-            onChange={(e) => setForm((prev) => ({ ...prev, checkNumber: e.target.value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-            dir="ltr"
-            placeholder="اختیاری"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">مبلغ چک</label>
-          <FormattedNumberInput
-            value={form.amount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setWalletOpen(true)}
-          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-        >
-          <div>
-            <p className="text-xs text-zinc-500">کیف پول (ارز و تسویه پیش‌فرض)</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {selectedWallet
-                ? `${selectedWallet.name} · ${selectedWallet.currency}`
-                : 'انتخاب کنید'}
-            </p>
+        <FormSection title="مشخصات چک">
+          <Field label="عنوان یا دریافت‌کننده">
+            <input
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              className={fieldInputClass}
+              placeholder="مثلاً اجاره دفتر"
+              required
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="بانک">
+              <input
+                value={form.bankName}
+                onChange={(e) => setForm((prev) => ({ ...prev, bankName: e.target.value }))}
+                className={fieldInputClass}
+                placeholder="اختیاری"
+              />
+            </Field>
+            <Field label="شماره چک">
+              <input
+                value={form.checkNumber}
+                onChange={(e) => setForm((prev) => ({ ...prev, checkNumber: e.target.value }))}
+                className={`${fieldInputClass} text-left`}
+                dir="ltr"
+                placeholder="اختیاری"
+              />
+            </Field>
           </div>
-          <ChevronLeft size={16} className="text-zinc-500" />
-        </button>
+        </FormSection>
 
-        <button
-          type="button"
-          onClick={() => setCategoryOpen(true)}
-          className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-surface-hover transition"
-        >
-          <div>
-            <p className="text-xs text-zinc-500">دسته هزینه</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {form.categoryId
-                ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
-                  'انتخاب کنید'
-                : 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-zinc-500" />
-        </button>
+        <FormSection title="تسویه" description="کیف پول ارز چک را مشخص می‌کند و موقع تسویه پیش‌فرض است.">
+          <PickerRow
+            label="کیف پول"
+            value={selectedWallet ? `${selectedWallet.name} · ${selectedWallet.currency}` : null}
+            onClick={() => setWalletOpen(true)}
+          />
+          <PickerRow label="دسته هزینه" value={categoryName} onClick={() => setCategoryOpen(true)} />
+        </FormSection>
 
-        <button
-          type="button"
-          onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-surface-raised border border-white/10 rounded-xl p-3 text-right hover:bg-surface-hover transition"
-        >
-          <Calendar size={16} className="text-accent-400" />
-          <div className="flex-1">
-            <p className="text-xs text-zinc-500">تاریخ سررسید</p>
-            <p className="text-sm text-zinc-100 mt-1">
-              {parseJalaali(form.dueDate)
-                ? formatJalaaliHuman(parseJalaali(form.dueDate)!)
-                : form.dueDate}
-            </p>
-          </div>
-        </button>
-
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1">یادداشت</label>
+        <FormSection title="یادداشت">
           <textarea
             value={form.note}
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={3}
-            className="w-full bg-surface-raised border border-white/10 rounded-xl p-3 text-sm text-white focus:border-accent-500 outline-none resize-none"
+            className={`${fieldInputClass} resize-none`}
             placeholder="اختیاری"
           />
-        </div>
+        </FormSection>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-zinc-50 hover:bg-white text-zinc-900 font-medium disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت چک'}
-        </button>
+        <StickyFooter>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت چک'}
+          </PrimaryButton>
+        </StickyFooter>
       </form>
 
       <CategorySheetPicker

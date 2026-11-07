@@ -34,16 +34,16 @@ export function PeriodComparisonCard({
   if (metrics.length === 0) return null;
 
   return (
-    <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised">
       <div>
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        <p className="text-xs text-zinc-500 mt-0.5">{subtitle}</p>
+        <h3 className="px-4 pt-3.5 text-sm font-medium text-zinc-100">{title}</h3>
+        {subtitle ? <p className="px-4 text-xs text-zinc-500 mt-0.5">{subtitle}</p> : null}
       </div>
-      <div className="space-y-2">
+      <div className="mt-2 divide-y divide-white/5 border-t border-white/5">
         {metrics.map((metric) => (
           <div
             key={metric.key}
-            className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5"
+            className="flex items-center justify-between gap-3 px-4 py-3"
           >
             <div className="min-w-0">
               <p className="text-xs text-zinc-300">{metric.label}</p>

@@ -129,7 +129,7 @@ function PickerBody({ value, onChange, onClose, minYear, maxYear }: IOSDatePicke
         <button
           type="button"
           onClick={goToday}
-          className="px-3 py-2 text-xs font-semibold rounded-xl bg-white/5 text-zinc-300 hover:bg-white/10"
+          className="h-10 px-4 text-xs font-semibold rounded-full bg-white/6 text-zinc-200 hover:bg-white/10"
         >
           امروز
         </button>
@@ -137,14 +137,14 @@ function PickerBody({ value, onChange, onClose, minYear, maxYear }: IOSDatePicke
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm rounded-xl bg-white/5 text-zinc-300 hover:bg-white/10"
+          className="h-10 px-4 text-sm rounded-full text-zinc-300 hover:bg-white/6"
         >
           انصراف
         </button>
         <button
           type="button"
           onClick={confirm}
-          className="px-5 py-2 text-sm font-semibold rounded-xl bg-zinc-50 text-zinc-900 hover:bg-white"
+          className="h-10 px-6 text-sm font-semibold rounded-full bg-zinc-50 text-zinc-900 hover:bg-white"
         >
           تایید
         </button>

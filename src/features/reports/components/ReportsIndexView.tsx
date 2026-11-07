@@ -1,15 +1,11 @@
 'use client';
 
+import { IconBadge, Money, PageHeader, SegmentedControl, Section, Stat } from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
-  BarChart3,
   ChevronLeft,
-  ChevronRight,
   Coins,
-  TrendingDown,
-  TrendingUp,
   Wallet as WalletIcon,
 } from 'lucide-react';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
@@ -38,7 +34,6 @@ import {
 const REPORT_SCOPES: PeriodKind[] = ['month', 'year', 'all'];
 
 export function ReportsIndexView() {
-  const router = useRouter();
   const { transactions, categories, wallets, assets, dailyPrices } = useData();
   const { usdRate, currencyMode } = useUI();
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
@@ -237,132 +232,91 @@ export function ReportsIndexView() {
   const cashflowHref = buildReportHref('cashflow', cashflow.period);
   const assetsHref = buildReportHref('assets', assetsSummary.period);
 
+  const tileCls =
+    'block rounded-2xl border border-white/5 bg-surface-raised p-4 transition-colors hover:bg-surface-hover';
+
   return (
-    <div className="bg-surface-shell min-h-full">
-      <header className="sticky top-0 z-10 bg-surface-shell/85 backdrop-blur-md border-b border-white/5 px-3 pt-safe pb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-base font-semibold text-white flex items-center gap-2">
-            <BarChart3 size={18} className="text-accent-400" />
-            گزارش‌ها
-          </h1>
-        </div>
-      </header>
+    <div className="bg-surface-shell min-h-full pb-10">
+      <PageHeader title="گزارش‌ها" subtitle={scopeLabel} />
 
-      <main className="p-4 space-y-4 pb-24">
-        <div className="flex gap-2">
-          {REPORT_SCOPES.map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => setScope(kind)}
-              className={`flex-1 rounded-xl py-2 text-xs font-semibold border transition ${
-                scope === kind
-                  ? 'bg-accent-500/20 border-accent-500/40 text-white'
-                  : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
-              }`}
-            >
-              {formatCurrentPeriodLabel(kind)}
-            </button>
-          ))}
-        </div>
+      <div className="px-4 pt-5 space-y-6">
+        <SegmentedControl
+          value={scope}
+          onChange={setScope}
+          options={REPORT_SCOPES.map((kind) => ({ value: kind, label: formatCurrentPeriodLabel(kind) }))}
+        />
 
-        <Link
-          href={cashflowHref}
-          className="block bg-surface-raised border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <WalletIcon size={16} />
-              <span className="text-sm font-semibold text-white">درآمد و هزینه</span>
+        <div className="space-y-3">
+          <Link href={cashflowHref} className={tileCls}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2.5">
+                <IconBadge size="sm" color="#34d399">
+                  <WalletIcon size={15} />
+                </IconBadge>
+                <span className="text-sm font-medium text-zinc-100">درآمد و هزینه</span>
+              </span>
+              <ChevronLeft size={17} className="text-zinc-600" />
             </div>
-            <ChevronLeft
-              size={18}
-              className="text-zinc-600 group-hover:text-emerald-400 shrink-0"
-            />
-          </div>
-          <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
-          <p
-            className={`mt-3 text-2xl font-semibold ${
-              cashflow.net >= 0 ? 'text-emerald-400' : 'text-rose-400'
-            }`}
-            dir="ltr"
-          >
-            {cashflow.net >= 0 ? '+' : ''}
-            {formatCurrency(cashflow.net, currencyMode)}
-          </p>
-          <p className="text-xs text-zinc-500 mt-2" dir="ltr">
-            درآمد {formatCurrency(cashflow.income, currencyMode)} · هزینه{' '}
-            {formatCurrency(cashflow.expense, currencyMode)}
-          </p>
-        </Link>
-
-        <Link
-          href={assetsHref}
-          className="block bg-surface-raised border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2 text-amber-300">
-              <Coins size={16} />
-              <span className="text-sm font-semibold text-white">سود/زیان دارایی‌ها</span>
-            </div>
-            <ChevronLeft
-              size={18}
-              className="text-zinc-600 group-hover:text-amber-400 shrink-0"
-            />
-          </div>
-          <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
-          <AssetsTotalLine
-            totalToman={assetsSummary.totalToman}
-            totalUsd={assetsSummary.totalUsd}
-            currencyMode={currencyMode}
-          />
-          {assetsSummary.unrealizedMissingCount > 0 && (
-            <p className="text-[11px] text-amber-400/80 mt-2">
-              {assetsSummary.unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون
-              قیمت پایان دوره — جمع ناقص است.
+            <p className="mt-4 text-xs text-zinc-500">خالص</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              <Money tone={cashflow.net >= 0 ? 'positive' : 'negative'}>
+                {cashflow.net >= 0 ? '+' : ''}
+                {formatCurrency(cashflow.net, currencyMode)}
+              </Money>
             </p>
-          )}
-        </Link>
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/5 pt-3">
+              <Stat label="درآمد" value={formatCurrency(cashflow.income, currencyMode)} tone="positive" />
+              <Stat label="هزینه" value={formatCurrency(cashflow.expense, currencyMode)} tone="negative" />
+            </div>
+          </Link>
+
+          <Link href={assetsHref} className={tileCls}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2.5">
+                <IconBadge size="sm" color="#fbbf24">
+                  <Coins size={15} />
+                </IconBadge>
+                <span className="text-sm font-medium text-zinc-100">سود و زیان دارایی‌ها</span>
+              </span>
+              <ChevronLeft size={17} className="text-zinc-600" />
+            </div>
+            <AssetsTotalLine
+              totalToman={assetsSummary.totalToman}
+              totalUsd={assetsSummary.totalUsd}
+              currencyMode={currencyMode}
+            />
+            {assetsSummary.unrealizedMissingCount > 0 && (
+              <p className="mt-2 text-[11px] text-amber-400/80">
+                {assetsSummary.unrealizedMissingCount.toLocaleString('fa-IR')} دارایی بدون قیمت پایان دوره — جمع ناقص است.
+              </p>
+            )}
+            {convertCount > 0 && (
+              <p className="mt-3 border-t border-white/5 pt-3 text-xs text-zinc-500">
+                {convertCount.toLocaleString('fa-IR')} عملیات تبدیل در این دوره
+              </p>
+            )}
+          </Link>
+        </div>
 
         {periodComparison && (
-          <>
-            <PeriodComparisonCard
-              title="مقایسه جریان نقد"
-              subtitle={periodComparison.subtitle}
-              metrics={periodComparison.cashflowMetrics}
-              currencyMode={currencyMode}
-            />
-            <PeriodComparisonCard
-              title="مقایسه سود/زیان دارایی"
-              subtitle={periodComparison.subtitle}
-              metrics={periodComparison.assetsMetrics}
-              currencyMode={currencyMode}
-            />
-          </>
-        )}
-
-        {convertCount > 0 && (
-          <div className="bg-surface-raised border border-violet-500/15 rounded-2xl p-4">
-            <div className="flex items-center gap-2 text-violet-300">
-              <Coins size={16} />
-              <span className="text-sm font-semibold text-white">تبدیل دارایی</span>
+          <Section title="مقایسه با دورهٔ قبل" description={periodComparison.subtitle}>
+            <div className="space-y-3">
+              <PeriodComparisonCard
+                title="جریان نقد"
+                subtitle=""
+                metrics={periodComparison.cashflowMetrics}
+                currencyMode={currencyMode}
+              />
+              <PeriodComparisonCard
+                title="سود و زیان دارایی"
+                subtitle=""
+                metrics={periodComparison.assetsMetrics}
+                currencyMode={currencyMode}
+              />
             </div>
-            <p className="text-xs text-zinc-500 mt-1">{scopeLabel}</p>
-            <p className="mt-2 text-2xl font-semibold text-violet-300">
-              {convertCount.toLocaleString('fa-IR')}
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">عملیات تبدیل ثبت‌شده</p>
-          </div>
+          </Section>
         )}
-      </main>
+      </div>
     </div>
   );
 }
@@ -387,18 +341,13 @@ function AssetsTotalLine({
   const total = currencyMode === 'USD' ? totalUsd : totalToman;
   const positive = total >= 0;
   return (
-    <div className="mt-3 flex items-center gap-2">
-      {positive ? (
-        <TrendingUp size={18} className="text-emerald-400" />
-      ) : (
-        <TrendingDown size={18} className="text-rose-400" />
-      )}
-      <p
-        className={`text-2xl font-semibold ${positive ? 'text-emerald-400' : 'text-rose-400'}`}
-        dir="ltr"
-      >
-        {total > 0 ? '+' : ''}
-        {formatCurrency(total, currencyMode)}
+    <div className="mt-4">
+      <p className="text-xs text-zinc-500">کل دوره</p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight">
+        <Money tone={positive ? 'positive' : 'negative'}>
+          {total > 0 ? '+' : ''}
+          {formatCurrency(total, currencyMode)}
+        </Money>
       </p>
     </div>
   );

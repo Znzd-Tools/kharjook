@@ -16,7 +16,7 @@ export function ReportExportButton({
       disabled={disabled}
       aria-label="خروجی CSV"
       title="خروجی CSV"
-      className="w-9 h-9 rounded-xl bg-surface-raised border border-white/5 flex items-center justify-center text-zinc-300 hover:bg-white/5 hover:text-white transition disabled:opacity-40 disabled:pointer-events-none"
+      className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-300 hover:bg-white/6 hover:text-white transition disabled:opacity-40 disabled:pointer-events-none"
     >
       <Download size={16} />
     </button>

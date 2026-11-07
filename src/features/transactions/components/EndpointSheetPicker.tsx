@@ -142,7 +142,7 @@ export function EndpointSheetPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو..."
-            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-zinc-500 focus:border-accent-500 outline-none"
+            className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 pr-9 pl-3"
             autoFocus
           />
         </div>
@@ -267,13 +267,13 @@ function Section({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-2">
+      <p className="mb-2 px-1 text-xs font-semibold text-zinc-400">
         {label}
       </p>
       {empty ? (
         <p className="text-xs text-zinc-500 py-4 text-center">{empty}</p>
       ) : (
-        <div className="space-y-1.5">{children}</div>
+        <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">{children}</div>
       )}
     </div>
   );
@@ -302,14 +302,14 @@ function PickerRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 bg-surface-raised border border-white/5 hover:bg-surface-hover active:scale-[0.99] transition rounded-xl p-3 text-right"
+      className="w-full flex items-center gap-3 px-4 py-3 text-right transition-colors hover:bg-white/4"
     >
       <EntityIcon
         iconUrl={iconUrl}
         fallback={fallback}
         bgColor={iconBg}
         color={iconColor}
-        className="w-10 h-10 shrink-0"
+        className="w-10 h-10 shrink-0 rounded-full!"
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-zinc-100 truncate">{title}</p>

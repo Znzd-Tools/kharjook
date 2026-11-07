@@ -88,36 +88,36 @@ export function ListSheetPicker({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="جستجو..."
-              className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-zinc-500 focus:border-accent-500 outline-none"
+              className="w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 pr-9 pl-3"
               autoFocus
             />
           </div>
         ) : undefined
       }
     >
-      <div className="space-y-1.5">
+      <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
         {allowNone && (
           <button
             type="button"
             onClick={() => commit(null)}
-            className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+            className={`w-full flex items-center gap-3 px-4 py-3 text-right transition-colors ${
               value === null
-                ? 'bg-accent-500/10 border-accent-500/40'
-                : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                ? 'bg-white/5'
+                : 'hover:bg-white/4'
             }`}
           >
-            <span className={value === null ? 'text-accent-300' : 'text-zinc-500'}>
+            <span className={value === null ? 'text-zinc-100' : 'text-zinc-500'}>
               {noneLeading ?? <Ban size={14} />}
             </span>
             <span
               className={`flex-1 min-w-0 text-sm truncate ${
-                value === null ? 'text-white font-semibold' : 'text-zinc-200'
+                value === null ? 'text-zinc-50 font-semibold' : 'text-zinc-200'
               }`}
             >
               {noneLabel}
             </span>
             {value === null && (
-              <Check size={14} className="text-accent-300 shrink-0" />
+              <Check size={14} className="text-zinc-100 shrink-0" />
             )}
           </button>
         )}
@@ -133,16 +133,16 @@ export function ListSheetPicker({
                 type="button"
                 disabled={it.disabled}
                 onClick={() => commit(it.id)}
-                className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+                className={`w-full flex items-center gap-3 px-4 py-3 text-right transition-colors ${
                   selected
-                    ? 'bg-accent-500/10 border-accent-500/40'
-                    : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                    ? 'bg-white/5'
+                    : 'hover:bg-white/4'
                 } ${it.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {it.leading && (
                   <span
                     className={`shrink-0 ${
-                      selected ? 'text-accent-300' : 'text-zinc-500'
+                      selected ? 'text-zinc-100' : 'text-zinc-500'
                     }`}
                   >
                     {it.leading}
@@ -151,7 +151,7 @@ export function ListSheetPicker({
                 <div className="flex-1 min-w-0 text-right">
                   <div
                     className={`text-sm truncate ${
-                      selected ? 'text-white font-semibold' : 'text-zinc-200'
+                      selected ? 'text-zinc-50 font-semibold' : 'text-zinc-200'
                     }`}
                   >
                     {it.label}
@@ -164,7 +164,7 @@ export function ListSheetPicker({
                 </div>
                 {it.trailing}
                 {selected && (
-                  <Check size={14} className="text-accent-300 shrink-0" />
+                  <Check size={14} className="text-zinc-100 shrink-0" />
                 )}
               </button>
             );

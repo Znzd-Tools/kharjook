@@ -1,5 +1,6 @@
 'use client';
 
+import { IconBadge } from '@/shared/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { Fingerprint, Loader2, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -89,47 +90,37 @@ export function PasskeySettingsSection() {
   if (!supported) return null;
 
   return (
-    <section className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-400">
-            <Fingerprint size={18} />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-white">ورود بیومتریک</h3>
-            <p className="text-xs text-zinc-500">Face ID، Touch ID یا اثر انگشت</p>
-          </div>
+    <div className="px-4 py-3.5">
+      <div className="flex items-center gap-3">
+        <IconBadge color="#a78bfa">
+          <Fingerprint size={17} strokeWidth={1.9} />
+        </IconBadge>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-100">ورود بیومتریک</p>
+          <p className="mt-0.5 truncate text-xs text-zinc-500">
+            {isLoading
+              ? 'در حال بارگذاری...'
+              : passkeys.length > 0
+                ? `${passkeys.length.toLocaleString('fa-IR')} دستگاه ثبت‌شده`
+                : 'Face ID، Touch ID یا اثر انگشت — بدون رمز'}
+          </p>
         </div>
         <button
           type="button"
           onClick={() => void handleRegister()}
           disabled={isSubmitting}
-          className="text-xs text-accent-400 hover:text-accent-300 inline-flex items-center gap-1 disabled:opacity-50"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/6 px-3.5 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-50"
         >
-          <Plus size={14} />
+          {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           افزودن
         </button>
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-4 text-zinc-400">
-          <Loader2 className="animate-spin" size={20} />
-        </div>
-      ) : passkeys.length === 0 ? (
-        <p className="text-xs text-zinc-500">
-          هنوز کلید بیومتریک ثبت نشده. بعد از افزودن می‌توانی بدون رمز وارد شوی.
-        </p>
-      ) : (
-        <div className="space-y-2">
+      {!isLoading && passkeys.length > 0 && (
+        <div className="mt-3 space-y-1 pr-13">
           {passkeys.map((passkey) => (
-            <div
-              key={passkey.id}
-              className="flex items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/5 px-3 py-2.5"
-            >
+            <div key={passkey.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/4 py-2 pr-3 pl-1.5">
               <div className="min-w-0">
-                <p className="text-sm text-white truncate">
-                  {passkey.friendly_name?.trim() || 'دستگاه ثبت‌شده'}
-                </p>
+                <p className="truncate text-sm text-zinc-200">{passkey.friendly_name?.trim() || 'دستگاه ثبت‌شده'}</p>
                 {passkey.last_used_at ? (
                   <p className="text-[11px] text-zinc-500" dir="ltr">
                     آخرین استفاده: {passkey.last_used_at}
@@ -140,7 +131,7 @@ export function PasskeySettingsSection() {
                 type="button"
                 onClick={() => void handleDelete(passkey.id)}
                 disabled={isSubmitting}
-                className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center hover:bg-rose-500/20 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-rose-400 hover:bg-rose-500/10 disabled:opacity-50"
                 aria-label="حذف کلید بیومتریک"
               >
                 <Trash2 size={14} />
@@ -149,6 +140,6 @@ export function PasskeySettingsSection() {
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

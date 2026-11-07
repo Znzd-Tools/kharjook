@@ -1,18 +1,27 @@
 'use client';
 
+import { BottomSheet } from '@/shared/components/BottomSheet';
+import { EmptyState } from '@/shared/components/EmptyState';
+import {
+  ActionSheet,
+  Field,
+  HeaderAction,
+  PageHeader,
+  PickerRow,
+  PrimaryButton,
+  SortableListRow,
+  SwitchVisual,
+  fieldInputClass,
+} from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
-  ArrowRight,
-  ChevronLeft,
   ChevronDown,
   Edit3,
   Folder,
-  GripVertical,
   Link2,
   Trash2,
-  X,
 } from 'lucide-react';
 import {
   DndContext,
@@ -117,6 +126,8 @@ export function ManageAssetsView() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } })
   );
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [actionAssetId, setActionAssetId] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -309,11 +320,12 @@ export function ManageAssetsView() {
     setShowAdvanced(
       decimalPlaces !== 4 || !includeInProfitLoss || !includeInBalance
     );
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSheetOpen(true);
   };
 
   const resetForm = () => {
     setEditingId(null);
+    setSheetOpen(false);
     setShowAdvanced(false);
     setFormData({
       name: '',
@@ -381,40 +393,92 @@ export function ManageAssetsView() {
     }
   };
 
+  const openCreate = () => {
+    resetForm();
+    setSheetOpen(true);
+  };
+  const actionAsset = assets.find((a) => a.id === actionAssetId) ?? null;
+
+  const toggle = (checked: boolean, label: string, hint: string, onToggle: () => void) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onToggle}
+      className="flex w-full items-center justify-between gap-3 rounded-xl bg-white/4 px-4 py-3 text-right"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm text-zinc-200">{label}</span>
+        <span className="mt-0.5 block text-xs text-zinc-500">{hint}</span>
+      </span>
+      <SwitchVisual checked={checked} />
+    </button>
+  );
+
   return (
-    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/85 backdrop-blur-md px-3 pt-safe pb-3 flex items-center gap-2 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ArrowRight size={20} strokeWidth={1.75} />
-        </button>
-        <h2 className="text-base font-semibold text-zinc-50 flex-1 truncate">مدیریت دارایی‌ها</h2>
+    <div className="bg-surface-shell min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <PageHeader title="مدیریت دارایی‌ها" actions={<HeaderAction label="دارایی جدید" onClick={openCreate} />} />
+
+      <div className="px-4 pt-5 space-y-3">
+        {assets.length === 0 ? (
+          <EmptyState
+            icon={<Activity size={22} />}
+            title="هیچ دارایی تعریف نشده."
+            description="طلا، ارز، رمزارز یا هر چیزی که قیمت دارد."
+            actionLabel="تعریف دارایی"
+            onAction={openCreate}
+          />
+        ) : (
+          <>
+            <p className="px-1 text-xs text-zinc-500">ترتیب این لیست، ترتیب نمایش در سبد است. برای جابجایی، دستگیره را بکش.</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+              <SortableContext items={assets.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
+                  {assets.map((asset) => {
+                    const cat = categories.find((c) => c.id === asset.category_id);
+                    const source = findPriceSourceInCatalog(asset.price_source_id, priceSourceCatalog);
+                    return (
+                      <SortableAssetRow
+                        key={asset.id}
+                        asset={asset}
+                        catName={cat ? cat.name : 'بدون دسته'}
+                        color={cat ? cat.color : '#64748b'}
+                        sourceLabel={source?.label ?? null}
+                        onOpen={() => handleEdit(asset)}
+                        onMore={() => setActionAssetId(asset.id)}
+                        pending={pendingAssetIds.has(asset.id)}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
+        )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="px-4 py-4 space-y-3 border-b border-white/5 bg-surface-raised"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-accent-400">
-            {editingId ? 'ویرایش دارایی' : 'تعریف دارایی جدید'}
-          </h3>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-zinc-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
+      <ActionSheet
+        open={actionAsset !== null}
+        onClose={() => setActionAssetId(null)}
+        title={actionAsset?.name}
+        actions={
+          actionAsset
+            ? [
+                { label: 'ویرایش', icon: <Edit3 size={17} />, onSelect: () => handleEdit(actionAsset) },
+                {
+                  label: 'حذف',
+                  icon: <Trash2 size={17} />,
+                  tone: 'danger',
+                  disabled: pendingAssetIds.has(actionAsset.id),
+                  onSelect: () => void handleDelete(actionAsset.id),
+                },
+              ]
+            : []
+        }
+      />
 
-        <div className="space-y-3">
+      <BottomSheet open={sheetOpen} onClose={resetForm} title={editingId ? 'ویرایش دارایی' : 'دارایی جدید'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <IconPicker
             value={formData.iconUrl}
             onChange={(url) => setFormData({ ...formData, iconUrl: url })}
@@ -423,236 +487,95 @@ export function ManageAssetsView() {
             fallback={<Activity size={22} className="text-zinc-400" />}
             label="آیکون (اختیاری)"
           />
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs text-zinc-400">
-                دسته‌بندی (اختیاری)
-              </label>
-              <button
-                type="button"
-                onClick={() => router.push('/manage/categories')}
-                className="text-xs text-accent-400 hover:text-accent-300"
-              >
-                مدیریت دسته‌ها
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCategoryPickerOpen(true)}
-              className="w-full flex items-center gap-3 bg-surface-hover border border-white/5 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
-            >
-              {selectedCategory ? (
-                <>
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: selectedCategory.color }}
-                  />
-                  <span className="flex-1 min-w-0 text-sm text-white truncate">
-                    {selectedCategory.name}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Folder size={14} className="text-zinc-500 shrink-0" />
-                  <span className="flex-1 min-w-0 text-sm text-zinc-500">
-                    بدون دسته
-                  </span>
-                </>
-              )}
-              <ChevronLeft size={16} className="text-zinc-500 shrink-0" />
-            </button>
-          </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="asset-name" className="block text-xs text-zinc-400 mb-1">
-                نام دارایی
-              </label>
+            <Field label="نام" htmlFor="asset-name">
               <input
                 id="asset-name"
                 type="text"
-                placeholder="مثلا: طلا"
+                placeholder="مثلاً طلا"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-zinc-600 focus:border-accent-500 outline-none transition-all"
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className={fieldInputClass}
                 required
               />
-            </div>
-            <div>
-              <label htmlFor="asset-unit" className="block text-xs text-zinc-400 mb-1">واحد</label>
+            </Field>
+            <Field label="واحد" htmlFor="asset-unit">
               <input
                 id="asset-unit"
                 type="text"
-                placeholder="مثلا: گرم"
+                placeholder="مثلاً گرم"
                 value={formData.unit}
-                onChange={(e) =>
-                  setFormData({ ...formData, unit: e.target.value })
-                }
-                className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-zinc-600 focus:border-accent-500 outline-none transition-all"
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                className={fieldInputClass}
                 required
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">
-              منبع قیمت (اختیاری)
-            </label>
-            <button
-              type="button"
-              onClick={() => setPriceSourcePickerOpen(true)}
-              className="w-full flex items-center gap-3 bg-surface-hover border border-white/5 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
-            >
-              {selectedPriceSourceLabel ? (
-                <>
-                  <Link2
-                    size={14}
-                    className={`shrink-0 ${
-                      selectedPriceSource
-                        ? 'text-accent-300'
-                        : 'text-amber-400'
-                    }`}
-                  />
-                  <span className="flex-1 min-w-0 text-sm text-white truncate">
-                    {selectedPriceSourceLabel}
-                  </span>
-                </>
+          <PickerRow
+            label="گروه"
+            value={selectedCategory?.name}
+            placeholder="بدون گروه"
+            leading={
+              selectedCategory ? (
+                <span className="block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selectedCategory.color }} />
               ) : (
-                <>
-                  <Link2 size={14} className="text-zinc-500 shrink-0" />
-                  <span className="flex-1 min-w-0 text-sm text-zinc-500">
-                    دستی (بدون منبع)
-                  </span>
-                </>
-              )}
-              <ChevronLeft size={16} className="text-zinc-500 shrink-0" />
-            </button>
-          </div>
+                <Folder size={14} />
+              )
+            }
+            onClick={() => setCategoryPickerOpen(true)}
+          />
+          <PickerRow
+            label="منبع قیمت"
+            value={selectedPriceSourceLabel}
+            placeholder="دستی (بدون منبع)"
+            leading={<Link2 size={14} className={selectedPriceSourceLabel && !selectedPriceSource ? 'text-amber-400' : ''} />}
+            onClick={() => setPriceSourcePickerOpen(true)}
+          />
 
           <button
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
-            className="w-full flex items-center justify-between py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="flex w-full items-center justify-between py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200"
           >
-            <span>تنظیمات پیشرفته</span>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-            />
+            تنظیمات پیشرفته
+            <ChevronDown size={16} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
           </button>
-
           {showAdvanced && (
-            <>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">
-              تعداد اعشار نمایش مقدار
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={12}
-              step={1}
-              value={formData.decimalPlaces}
-              onChange={(e) =>
-                setFormData({ ...formData, decimalPlaces: Number(e.target.value) })
-              }
-              className="w-full bg-surface-hover border border-white/5 rounded-xl p-3 text-white text-sm placeholder-zinc-600 focus:border-accent-500 outline-none transition-all"
-              required
-            />
-            <p className="text-xs text-zinc-500 mt-1">
-              فقط نمایش UI را کنترل می‌کند.
-            </p>
-          </div>
-
-          <label className="flex items-center justify-between bg-surface-hover border border-white/5 rounded-xl p-3 cursor-pointer">
-            <div>
-              <p className="text-sm text-zinc-200">شامل در ارزش کل سبد</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                خاموش: در جمع داشبورد لحاظ نمی‌شود
-              </p>
+            <div className="space-y-3">
+              <Field label="تعداد اعشار نمایش مقدار" hint="فقط نمایش را کنترل می‌کند.">
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  step={1}
+                  value={formData.decimalPlaces}
+                  onChange={(e) => setFormData({ ...formData, decimalPlaces: Number(e.target.value) })}
+                  className={`${fieldInputClass} text-left`}
+                  dir="ltr"
+                  required
+                />
+              </Field>
+              {toggle(formData.includeInBalance, 'در ارزش کل سبد حساب شود', 'خاموش: در جمع داشبورد نمی‌آید', () =>
+                setFormData({ ...formData, includeInBalance: !formData.includeInBalance })
+              )}
+              {toggle(formData.includeInProfitLoss, 'در سود و زیان حساب شود', 'خاموش: در گزارش سود/زیان نمی‌آید', () =>
+                setFormData({ ...formData, includeInProfitLoss: !formData.includeInProfitLoss })
+              )}
             </div>
-            <input
-              type="checkbox"
-              checked={formData.includeInBalance}
-              onChange={(e) =>
-                setFormData({ ...formData, includeInBalance: e.target.checked })
-              }
-              className="accent-accent-600 w-4 h-4"
-            />
-          </label>
-
-          <label className="flex items-center justify-between bg-surface-hover border border-white/5 rounded-xl p-3 cursor-pointer">
-            <div>
-              <p className="text-sm text-zinc-200">شامل در سود/زیان</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                خاموش: در گزارش سود/زیان لحاظ نمی‌شود
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={formData.includeInProfitLoss}
-              onChange={(e) =>
-                setFormData({ ...formData, includeInProfitLoss: e.target.checked })
-              }
-              className="accent-accent-600 w-4 h-4"
-            />
-          </label>
-            </>
           )}
-        </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full text-white min-h-11 p-3 rounded-xl font-semibold transition-all disabled:opacity-50 ${editingId ? 'bg-accent-600 hover:bg-accent-500' : 'bg-white/10 hover:bg-white/20'}`}
-        >
-          {isSubmitting
-            ? 'در حال ثبت...'
-            : editingId
-              ? 'ثبت تغییرات'
-              : 'ذخیره دارایی'}
-        </button>
-      </form>
-
-      <div className="px-4 py-4 space-y-3">
-        <h3 className="text-sm font-semibold text-zinc-400 mb-4">
-          دارایی‌های تعریف شده
-        </h3>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={assets.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-            {assets.map((asset) => {
-          const cat = categories.find((c) => c.id === asset.category_id);
-          const color = cat ? cat.color : '#64748b';
-          const source = findPriceSourceInCatalog(asset.price_source_id, priceSourceCatalog);
-
-          return (
-            <SortableAssetRow
-              key={asset.id}
-              asset={asset}
-              editing={editingId === asset.id}
-              catName={cat ? cat.name : 'بدون دسته'}
-              color={color}
-              sourceLabel={source?.label ?? null}
-              onEdit={() => handleEdit(asset)}
-              onDelete={() => void handleDelete(asset.id)}
-              pending={pendingAssetIds.has(asset.id)}
-            />
-          );
-            })}
-          </SortableContext>
-        </DndContext>
-        {assets.length === 0 && (
-          <p className="text-center text-zinc-500 text-sm">
-            هیچ دارایی ثبت نشده.
-          </p>
-        )}
-      </div>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'در حال ثبت...' : editingId ? 'ذخیره تغییرات' : 'افزودن دارایی'}
+          </PrimaryButton>
+          <button
+            type="button"
+            onClick={() => router.push('/manage/categories')}
+            className="w-full text-center text-xs text-zinc-500 hover:text-zinc-300"
+          >
+            مدیریت گروه‌ها
+          </button>
+        </form>
+      </BottomSheet>
 
       <CategorySheetPicker
         open={categoryPickerOpen}
@@ -688,90 +611,51 @@ export function ManageAssetsView() {
 
 function SortableAssetRow({
   asset,
-  editing,
   catName,
   color,
   sourceLabel,
-  onEdit,
-  onDelete,
+  onOpen,
+  onMore,
   pending,
 }: {
   asset: Asset;
-  editing: boolean;
   catName: string;
   color: string;
   sourceLabel: string | null;
-  onEdit: () => void;
-  onDelete: () => void;
+  onOpen: () => void;
+  onMore: () => void;
   pending: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
+  const flags = [
+    asset.include_in_balance === false ? 'خارج از سبد' : null,
+    asset.include_in_profit_loss === false ? 'بدون سود/زیان' : null,
+  ].filter(Boolean);
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-surface-raised p-4 rounded-xl border flex items-center justify-between transition-colors ${editing ? 'border-accent-500/50 bg-accent-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-accent-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          style={{ touchAction: 'none' }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing"
-          aria-label="جابجایی"
-        >
-          <GripVertical size={16} />
-        </button>
+    <SortableListRow
+      rowRef={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: pending ? 0.5 : undefined }}
+      handleProps={{ ...attributes, ...listeners }}
+      isDragging={isDragging}
+      onOpen={onOpen}
+      onMore={onMore}
+      leading={
         <EntityIcon
           iconUrl={asset.icon_url}
-          fallback={<Activity size={18} />}
-          bgColor={`${color}20`}
+          fallback={<Activity size={17} />}
+          bgColor={`${color}1f`}
           color={color}
-          className="w-10 h-10 shrink-0"
+          className="h-10 w-10 shrink-0 rounded-full!"
         />
-        <div className="min-w-0">
-          <p className="text-zinc-200 font-medium text-sm truncate">{asset.name}</p>
-          <p className="text-zinc-500 text-xs mt-1 truncate">
-            {catName} • {asset.unit}
-          </p>
-          {asset.include_in_balance === false && (
-            <span className="inline-block mt-1.5 text-[11px] text-sky-300/90 bg-sky-500/10 border border-sky-500/20 rounded-full px-2 py-0.5">
-              خارج از ارزش کل سبد
-            </span>
-          )}
-          {asset.include_in_profit_loss === false && (
-            <span className="inline-block mt-1.5 text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
-              خارج از سود/زیان
-            </span>
-          )}
-          {sourceLabel && (
-            <span className="inline-block mt-1.5 text-[11px] text-accent-300/80 bg-accent-500/10 border border-accent-500/20 rounded-full px-2 py-0.5">
-              {sourceLabel}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-col gap-1">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onEdit}
-          aria-label="ویرایش دارایی"
-          className="text-blue-400/60 hover:text-blue-400 min-h-11 min-w-11 inline-flex items-center justify-center bg-blue-500/10 rounded-lg transition-colors disabled:opacity-40"
-        >
-          <Edit3 size={16} />
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onDelete}
-          aria-label="حذف دارایی"
-          className="text-rose-400/60 hover:text-rose-400 min-h-11 min-w-11 inline-flex items-center justify-center bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    </div>
+      }
+      title={asset.name}
+      subtitle={
+        <>
+          {catName} · {asset.unit}
+          {sourceLabel ? ` · ${sourceLabel}` : ''}
+          {flags.length > 0 && <span className="text-amber-300/70"> · {flags.join(' · ')}</span>}
+        </>
+      }
+    />
   );
 }

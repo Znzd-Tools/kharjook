@@ -1,5 +1,6 @@
 'use client';
 
+import { Money, PageHeader } from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -7,7 +8,6 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   ChevronDown,
-  ChevronRight,
   FolderOpen,
   WalletIcon,
 } from 'lucide-react';
@@ -114,21 +114,10 @@ export function CashflowReportView() {
   };
 
   return (
-    <div className="bg-surface-shell min-h-full">
-      <header className="sticky top-0 z-10 bg-surface-shell/85 backdrop-blur-md border-b border-white/5 px-3 pt-safe pb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <h1 className="flex-1 text-base font-semibold text-white">گزارش درآمد و هزینه</h1>
-        <ReportExportButton onClick={exportCsv} />
-      </header>
+    <div className="bg-surface-shell min-h-full pb-10">
+      <PageHeader title="درآمد و هزینه" actions={<ReportExportButton onClick={exportCsv} />} />
 
-      <main className="p-4 space-y-4 pb-24">
+      <main className="px-4 pt-5 space-y-5">
         <PeriodNavHeader period={period} onChange={setPeriod} />
 
         <WalletFilterChips
@@ -137,17 +126,17 @@ export function CashflowReportView() {
           onChange={setWallet}
         />
 
+        <CashflowNetBanner
+          income={incomeRollup.total}
+          expense={expenseRollup.total}
+          currencyMode={currencyMode}
+        />
+
         <TabSwitcher
           tab={tab}
           onChange={setTab}
           incomeTotal={incomeRollup.total}
           expenseTotal={expenseRollup.total}
-          currencyMode={currencyMode}
-        />
-
-        <CashflowNetBanner
-          income={incomeRollup.total}
-          expense={expenseRollup.total}
           currencyMode={currencyMode}
         />
 
@@ -216,10 +205,10 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+      className={`shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-colors border ${
         active
-          ? 'bg-accent-500/20 border-accent-500/40 text-white'
-          : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
+          ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+          : 'border-white/8 text-zinc-400 hover:text-zinc-200'
       }`}
     >
       {label}
@@ -238,19 +227,19 @@ function CashflowNetBanner({
 }) {
   const net = income - expense;
   return (
-    <div className="rounded-2xl border border-white/5 bg-surface-raised p-4">
-      <p className="text-xs text-zinc-400 mb-1">مانده دوره</p>
-      <p
-        className={`text-2xl font-semibold ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
-        dir="ltr"
-      >
-        {net >= 0 ? '+' : ''}
-        {formatCurrency(net, currencyMode)}
+    <div className="px-1">
+      <p className="text-xs text-zinc-500">مانده دوره</p>
+      <p className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-tight">
+        <Money tone={net >= 0 ? 'positive' : 'negative'}>
+          {net >= 0 ? '+' : ''}
+          {formatCurrency(net, currencyMode)}
+        </Money>
       </p>
-      <p className="text-xs text-zinc-500 mt-2" dir="ltr">
-        درآمد {formatCurrency(income, currencyMode)} · هزینه{' '}
-        {formatCurrency(expense, currencyMode)}
-      </p>
+      {income > 0 && (
+        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-emerald-400/25" dir="rtl">
+          <div className="h-full rounded-full bg-rose-400" style={{ width: `${Math.min(100, (expense / income) * 100)}%` }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -309,15 +298,13 @@ function TabCard({
   tone: 'income' | 'expense';
   currencyMode: CurrencyMode;
 }) {
-  const activeRing = tone === 'income'
-    ? 'border-emerald-500/40 bg-emerald-500/5'
-    : 'border-rose-500/40 bg-rose-500/5';
+  const activeRing = 'border-white/10 bg-surface-active';
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-start gap-1 border rounded-2xl p-3 text-right transition ${
-        active ? activeRing : 'bg-surface-raised border-white/5 hover:bg-white/5'
+      className={`flex flex-col items-start gap-1 border rounded-2xl p-3 text-right transition-colors ${
+        active ? activeRing : 'border-transparent bg-white/4 hover:bg-white/6'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -369,7 +356,7 @@ function CategoryList({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
       {visibleNodes.map((n) => (
         <CategoryRow
           key={n.id}
@@ -434,7 +421,7 @@ function CategoryRow({
   return (
     <Component
       {...(node.hasChildren ? { type: 'button' as const, onClick: handleClick } : {})}
-      className={`w-full flex items-center gap-2 bg-surface-raised border border-white/5 rounded-xl px-3 py-2.5 text-right transition ${
+      className={`w-full flex items-center gap-2.5 py-3 pl-4 text-right transition-colors ${
         node.hasChildren ? 'hover:bg-white/5 cursor-pointer' : ''
       } ${empty ? 'opacity-50' : ''}`}
       style={{ paddingInlineStart: `${12 + node.depth * 16}px` }}
@@ -476,7 +463,7 @@ function UncategorizedRow({
 }) {
   const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
   return (
-    <div className="flex items-center gap-2 bg-surface-raised border border-dashed border-white/10 rounded-xl px-3 py-2.5">
+    <div className="flex items-center gap-2.5 px-4 py-3">
       <WalletIcon size={14} className="text-zinc-500 shrink-0" />
       <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
         <span className="text-[13px] text-zinc-300 truncate">

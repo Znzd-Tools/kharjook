@@ -1,5 +1,7 @@
 'use client';
 
+import { EmptyState } from '@/shared/components/EmptyState';
+import { PageHeader } from '@/shared/components/ui';
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -7,11 +9,8 @@ import {
   ArrowDown,
   ArrowUp,
   ChevronDown,
-  ChevronRight,
   Coins,
   Info,
-  TrendingDown,
-  TrendingUp,
 } from 'lucide-react';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import type { CurrencyMode } from '@/shared/types/domain';
@@ -212,23 +211,13 @@ export function AssetsReportView() {
   };
 
   return (
-    <div className="bg-surface-shell min-h-full">
-      <header className="sticky top-0 z-10 bg-surface-shell/85 backdrop-blur-md border-b border-white/5 px-3 pt-safe pb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/6"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <h1 className="flex-1 text-base font-semibold text-white">
-          گزارش سود/زیان دارایی‌ها
-        </h1>
-        <ReportExportButton onClick={exportCsv} disabled={sorted.length === 0} />
-      </header>
+    <div className="bg-surface-shell min-h-full pb-10">
+      <PageHeader
+        title="سود و زیان دارایی‌ها"
+        actions={<ReportExportButton onClick={exportCsv} disabled={sorted.length === 0} />}
+      />
 
-      <main className="p-4 space-y-4 pb-24">
+      <main className="px-4 pt-5 space-y-5">
         <PeriodNavHeader period={period} onChange={setPeriod} />
 
         <AssetFilterChips
@@ -256,12 +245,9 @@ export function AssetsReportView() {
         />
 
         {sorted.length === 0 ? (
-          <div className="bg-surface-raised border border-white/5 rounded-2xl p-8 text-center">
-            <Coins size={28} className="text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm text-zinc-400">دارایی‌ای برای نمایش نیست.</p>
-          </div>
+          <EmptyState icon={<Coins size={22} />} title="دارایی‌ای برای نمایش نیست." />
         ) : (
-          <div className="space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface-raised divide-y divide-white/5">
             {sorted.map(({ asset, stats }) => (
               <AssetRow key={asset.id} asset={asset} stats={stats} currencyMode={currencyMode} />
             ))}
@@ -313,10 +299,10 @@ function AssetFilterChips({
             <button
               type="button"
               onClick={() => onChange(null)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+              className={`shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-colors border ${
                 value === null
-                  ? 'bg-accent-500/20 border-accent-500/40 text-white'
-                  : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
+                  ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+                  : 'border-white/8 text-zinc-400 hover:text-zinc-200'
               }`}
             >
               همه دارایی‌ها
@@ -326,10 +312,10 @@ function AssetFilterChips({
                 key={a.id}
                 type="button"
                 onClick={() => onChange(a.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+                className={`shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-colors border ${
                   value === a.id
-                    ? 'bg-accent-500/20 border-accent-500/40 text-white'
-                    : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
+                    ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+                    : 'border-white/8 text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {a.name}
@@ -367,10 +353,10 @@ function ZeroValueChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+      className={`shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-colors border ${
         active
-          ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-100'
-          : 'bg-surface-raised border-white/5 text-zinc-400 hover:text-white'
+          ? 'border-zinc-50 bg-zinc-50 text-zinc-900'
+          : 'border-white/8 text-zinc-400 hover:text-zinc-200'
       }`}
     >
       {label}
@@ -412,11 +398,12 @@ function SummaryCard({
   const positive = total >= 0;
 
   return (
-    <div className="bg-surface-raised border border-white/5 rounded-2xl p-4 space-y-3">
+    <div className="rounded-2xl border border-white/5 bg-surface-raised p-4 space-y-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full text-right"
+        aria-expanded={open}
       >
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-zinc-400">سود/زیان کل دوره</span>
@@ -425,14 +412,9 @@ function SummaryCard({
             className={`text-zinc-500 transition ${open ? 'rotate-180' : ''}`}
           />
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          {positive ? (
-            <TrendingUp size={18} className="text-emerald-400 shrink-0" />
-          ) : (
-            <TrendingDown size={18} className="text-rose-400 shrink-0" />
-          )}
+        <div className="mt-1 flex items-center gap-2">
           <span
-            className={`text-2xl font-semibold ${
+            className={`text-[1.75rem] leading-tight tracking-tight font-semibold ${
               total === 0 ? 'text-zinc-300' : positive ? 'text-emerald-400' : 'text-rose-400'
             }`}
             dir="ltr"
@@ -568,19 +550,20 @@ function AssetRow({
   const decimals = assetDecimals(asset);
 
   return (
-    <div className="bg-surface-raised border border-white/5 rounded-2xl overflow-hidden">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 p-3 text-right hover:bg-white/[0.02] transition"
+        aria-expanded={open}
+        className="w-full flex items-center gap-3 px-4 py-3 text-right hover:bg-surface-hover transition-colors"
       >
         <EntityIcon
           iconUrl={asset.icon_url}
           fallback={<Coins size={16} />}
-          className="w-9 h-9 shrink-0"
+          className="w-10 h-10 shrink-0 rounded-full!"
         />
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white truncate">{asset.name}</div>
+          <div className="text-sm font-medium text-zinc-100 truncate">{asset.name}</div>
           <div className="text-[11px] text-zinc-500">
             {formatAssetAmount(stats.endHoldings, decimals)} {asset.unit}
             {!hasActivity && ' · بدون فعالیت'}
@@ -603,7 +586,7 @@ function AssetRow({
       </button>
 
       {open && (
-        <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
+        <div className="px-4 pb-4 space-y-3 bg-white/[0.015] border-t border-white/5 pt-3">
           {hasActivity ? (
             <div className="grid grid-cols-2 gap-2">
               <TradeBox

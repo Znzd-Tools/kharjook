@@ -18,7 +18,7 @@ export function Input({
   return (
     <div>
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium text-zinc-400 mb-1.5">
+        <label htmlFor={inputId} className="mb-1.5 block text-xs font-medium text-zinc-400">
           {label}
         </label>
       )}
@@ -32,7 +32,7 @@ export function Input({
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${inputId}-error` : undefined}
-          className={`w-full h-11 bg-surface-inset border rounded-xl text-sm text-zinc-50 placeholder:text-zinc-600 focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 outline-none transition ${
+          className={`w-full min-h-11 rounded-xl border border-white/8 bg-surface-inset px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 h-11 text-zinc-50 ${
             icon ? 'pl-10 pr-4' : 'px-4'
           } ${error ? 'border-rose-500/50' : 'border-white/8'} ${className}`}
           {...props}
