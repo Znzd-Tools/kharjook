@@ -1,12 +1,13 @@
 # Kharjook docs
 
-Three docs live here. The story card is [TEMPLATE.md](TEMPLATE.md) for both backlogs.
+Four docs live here. The story card is [TEMPLATE.md](TEMPLATE.md) for both backlogs.
 
 | Phase | Doc |
 | --- | --- |
 | UI, design from scratch | [design/prompt.md](design/prompt.md) |
 | Frontend screens | [frontend/README.md](frontend/README.md) |
 | Backend, NestJS | This page |
+| UX v2 improvement plan | [ux/README.md](ux/README.md) |
 
 # Backend backlog
 
