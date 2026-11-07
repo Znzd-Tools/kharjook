@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Coins, Landmark, Wallet } from 'lucide-react';
+import { Coins, Landmark, Wallet } from '../icons';
 import { Avatar } from './Avatar';
 
 const IMG =

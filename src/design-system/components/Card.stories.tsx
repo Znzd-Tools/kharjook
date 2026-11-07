@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb } from '../icons';
 import { Card } from './Card';
 import { Divider } from './Divider';
 import { Section } from './Section';

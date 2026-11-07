@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Copy, Coins, Landmark, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Copy, Coins, Landmark, MoreHorizontal, Pencil, RefreshCw, Trash2 } from '../icons';
 import { useState } from 'react';
 import { ActionSheet } from './ActionSheet';
 import { Amount } from './Amount';

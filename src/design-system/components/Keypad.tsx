@@ -1,6 +1,6 @@
 'use client';
 
-import { Delete } from 'lucide-react';
+import { Delete } from '../icons';
 import { cn } from '../lib/cn';
 import { haptic } from '../lib/haptics';
 

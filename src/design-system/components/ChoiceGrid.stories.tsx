@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Bus, Coffee, Gift, HeartPulse, Home, LayoutGrid, Shirt, ShoppingCart, Utensils, Zap } from 'lucide-react';
+import { Bus, Coffee, Gift, HeartPulse, Home, LayoutGrid, Shirt, ShoppingCart, Utensils, Zap } from '../icons';
 import { useState } from 'react';
 import { ChoiceGrid } from './ChoiceGrid';
 

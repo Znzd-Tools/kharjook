@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Coffee, Copy, Landmark, Pencil, ShoppingCart, Trash2, Wallet } from 'lucide-react';
+import { Coffee, Copy, Landmark, Pencil, ShoppingCart, Trash2, Wallet } from '../icons';
 import { fn } from 'storybook/test';
 import { Amount } from './Amount';
 import { Avatar } from './Avatar';

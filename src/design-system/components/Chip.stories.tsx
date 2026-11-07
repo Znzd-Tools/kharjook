@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Wallet } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Wallet } from '../icons';
 import { useState } from 'react';
 import { Chip, ChipGroup, InputChip } from './Chip';
 

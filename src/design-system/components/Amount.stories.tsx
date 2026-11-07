@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { PieChart, TrendingUp, Wallet } from 'lucide-react';
+import { PieChart, TrendingUp, Wallet } from '../icons';
 import { Amount } from './Amount';
 import { Delta } from './Delta';
 import { StatTile } from './StatTile';

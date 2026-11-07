@@ -1,7 +1,7 @@
 'use client';
 
 import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox';
-import { Check, Minus } from 'lucide-react';
+import { Check, Minus } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Plus } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 import { haptic } from '../lib/haptics';

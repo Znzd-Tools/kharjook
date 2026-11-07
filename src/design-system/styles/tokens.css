@@ -1,5 +1,5 @@
 /*
- * Kharjook design system — tokens.
+ * Kharjook design system — tokens. Look: "Pastel", dark-first.
  *
  * Import order: this file is imported by `src/app/globals.css` AFTER
  * `@import "tailwindcss"`. Every token here becomes a Tailwind utility
@@ -28,7 +28,10 @@
   --ds-max-width: 28rem;
 
   /* Hero gradient (not a color token: gradients cannot live in --color-*). */
-  --gradient-hero: linear-gradient(135deg, oklch(0.5 0.2 293), oklch(0.42 0.2 280));
+  --gradient-hero:
+    radial-gradient(120% 90% at 100% 0%, oklch(0.88 0.09 300) 0%, transparent 60%),
+    radial-gradient(90% 90% at 0% 100%, oklch(0.9 0.08 60) 0%, transparent 60%),
+    linear-gradient(135deg, oklch(0.86 0.1 330), oklch(0.88 0.08 20));
 
   /* Motion durations */
   --ds-duration-instant: 80ms;
@@ -62,50 +65,50 @@
   /* ---------------------------------------------------------------
    * Color — surfaces (light-dark(LIGHT, DARK))
    * ------------------------------------------------------------- */
-  --color-canvas: light-dark(oklch(0.975 0.004 285), oklch(0.155 0.012 280));
-  --color-sunken: light-dark(oklch(0.945 0.006 285), oklch(0.125 0.01 280));
-  --color-panel: light-dark(oklch(1 0 0), oklch(0.195 0.014 280));
-  --color-elevated: light-dark(oklch(1 0 0), oklch(0.235 0.016 280));
-  --color-hover: light-dark(oklch(0.2 0.02 285 / 0.05), oklch(1 0 0 / 0.06));
-  --color-pressed: light-dark(oklch(0.2 0.02 285 / 0.09), oklch(1 0 0 / 0.1));
-  --color-scrim: light-dark(oklch(0.2 0.02 285 / 0.4), oklch(0 0 0 / 0.62));
+  --color-canvas: light-dark(oklch(0.975 0.012 70), oklch(0.165 0.022 300));
+  --color-sunken: light-dark(oklch(0.95 0.016 70), oklch(0.135 0.02 300));
+  --color-panel: light-dark(oklch(1 0 0), oklch(0.215 0.028 300));
+  --color-elevated: light-dark(oklch(1 0 0), oklch(0.255 0.032 300));
+  --color-hover: light-dark(oklch(0.3 0.04 300 / 0.05), oklch(0.9 0.05 300 / 0.07));
+  --color-pressed: light-dark(oklch(0.3 0.04 300 / 0.09), oklch(0.9 0.05 300 / 0.12));
+  --color-scrim: light-dark(oklch(0.3 0.04 300 / 0.35), oklch(0.08 0.02 300 / 0.7));
 
   /* Color — lines */
-  --color-line: light-dark(oklch(0.2 0.02 285 / 0.09), oklch(1 0 0 / 0.08));
-  --color-line-strong: light-dark(oklch(0.2 0.02 285 / 0.16), oklch(1 0 0 / 0.15));
+  --color-line: light-dark(oklch(0.3 0.04 300 / 0.07), oklch(0.9 0.05 300 / 0.08));
+  --color-line-strong: light-dark(oklch(0.3 0.04 300 / 0.14), oklch(0.9 0.05 300 / 0.16));
 
   /* Color — text */
-  --color-fg: light-dark(oklch(0.21 0.02 285), oklch(0.96 0.005 285));
-  --color-fg-muted: light-dark(oklch(0.45 0.02 285), oklch(0.75 0.012 285));
-  --color-fg-subtle: light-dark(oklch(0.56 0.018 285), oklch(0.6 0.014 285));
-  --color-fg-disabled: light-dark(oklch(0.7 0.01 285), oklch(0.43 0.012 285));
-  --color-fg-on-accent: oklch(0.99 0 0);
+  --color-fg: light-dark(oklch(0.27 0.04 300), oklch(0.965 0.012 300));
+  --color-fg-muted: light-dark(oklch(0.47 0.035 300), oklch(0.8 0.025 300));
+  --color-fg-subtle: light-dark(oklch(0.6 0.03 300), oklch(0.66 0.03 300));
+  --color-fg-disabled: light-dark(oklch(0.75 0.02 300), oklch(0.46 0.025 300));
+  --color-fg-on-accent: light-dark(oklch(0.99 0 0), oklch(0.2 0.06 300));
 
   /* Color — brand accent (violet). Use ONLY for the main action,
      the active state and focus. */
-  --color-accent: light-dark(oklch(0.52 0.22 293), oklch(0.6 0.21 293));
-  --color-accent-hover: light-dark(oklch(0.47 0.22 293), oklch(0.66 0.2 293));
-  --color-accent-soft: light-dark(oklch(0.52 0.22 293 / 0.1), oklch(0.6 0.21 293 / 0.18));
-  --color-accent-ink: light-dark(oklch(0.46 0.2 293), oklch(0.8 0.12 293));
-  --color-focus: light-dark(oklch(0.52 0.22 293), oklch(0.72 0.17 293));
+  --color-accent: light-dark(oklch(0.6 0.2 305), oklch(0.8 0.13 305));
+  --color-accent-hover: light-dark(oklch(0.55 0.21 305), oklch(0.85 0.11 305));
+  --color-accent-soft: light-dark(oklch(0.6 0.2 305 / 0.12), oklch(0.8 0.13 305 / 0.16));
+  --color-accent-ink: light-dark(oklch(0.5 0.2 305), oklch(0.86 0.1 305));
+  --color-focus: light-dark(oklch(0.6 0.2 305), oklch(0.85 0.11 305));
 
   /* Color — semantic status. `*-soft` = tinted background,
      `*-ink` = readable text on `*-soft` or on surfaces. */
-  --color-positive: light-dark(oklch(0.56 0.14 158), oklch(0.72 0.15 160));
-  --color-positive-soft: light-dark(oklch(0.56 0.14 158 / 0.1), oklch(0.72 0.15 160 / 0.14));
-  --color-positive-ink: light-dark(oklch(0.46 0.12 158), oklch(0.8 0.13 160));
+  --color-positive: light-dark(oklch(0.62 0.13 165), oklch(0.82 0.12 165));
+  --color-positive-soft: light-dark(oklch(0.62 0.13 165 / 0.12), oklch(0.82 0.12 165 / 0.14));
+  --color-positive-ink: light-dark(oklch(0.48 0.12 165), oklch(0.86 0.11 165));
 
-  --color-negative: light-dark(oklch(0.56 0.2 22), oklch(0.68 0.18 20));
-  --color-negative-soft: light-dark(oklch(0.56 0.2 22 / 0.1), oklch(0.68 0.18 20 / 0.15));
-  --color-negative-ink: light-dark(oklch(0.48 0.18 22), oklch(0.78 0.13 20));
+  --color-negative: light-dark(oklch(0.62 0.18 15), oklch(0.78 0.13 15));
+  --color-negative-soft: light-dark(oklch(0.62 0.18 15 / 0.12), oklch(0.78 0.13 15 / 0.15));
+  --color-negative-ink: light-dark(oklch(0.52 0.17 15), oklch(0.84 0.1 15));
 
-  --color-warning: light-dark(oklch(0.68 0.15 70), oklch(0.8 0.14 80));
-  --color-warning-soft: light-dark(oklch(0.68 0.15 70 / 0.12), oklch(0.8 0.14 80 / 0.14));
-  --color-warning-ink: light-dark(oklch(0.48 0.11 65), oklch(0.85 0.11 85));
+  --color-warning: light-dark(oklch(0.72 0.14 75), oklch(0.86 0.12 85));
+  --color-warning-soft: light-dark(oklch(0.72 0.14 75 / 0.14), oklch(0.86 0.12 85 / 0.14));
+  --color-warning-ink: light-dark(oklch(0.5 0.11 70), oklch(0.89 0.1 85));
 
-  --color-info: light-dark(oklch(0.55 0.15 245), oklch(0.72 0.12 240));
-  --color-info-soft: light-dark(oklch(0.55 0.15 245 / 0.1), oklch(0.72 0.12 240 / 0.14));
-  --color-info-ink: light-dark(oklch(0.46 0.14 245), oklch(0.82 0.09 240));
+  --color-info: light-dark(oklch(0.6 0.14 240), oklch(0.82 0.1 235));
+  --color-info-soft: light-dark(oklch(0.6 0.14 240 / 0.12), oklch(0.82 0.1 235 / 0.14));
+  --color-info-ink: light-dark(oklch(0.48 0.13 240), oklch(0.87 0.08 235));
 
   /* Color — data visualization. Fixed order, never cycled. Validated
      categorical set (adjacent-pair CVD safe in both modes). */
@@ -120,24 +123,25 @@
   --color-chart-other: light-dark(oklch(0.75 0.01 285), oklch(0.45 0.012 285));
 
   /* Color — pastel tints for entities (categories, wallets, assets).
+     In dark mode they stay bright pastel with dark ink ("candy on dark").
      `-soft` = tile background, `-ink` = icon/text on it. Decorative
      identity only: never use them for status. */
-  --color-tint-rose-soft: light-dark(oklch(0.94 0.045 10), oklch(0.3 0.06 10));
-  --color-tint-rose-ink: light-dark(oklch(0.52 0.14 10), oklch(0.86 0.1 10));
-  --color-tint-peach-soft: light-dark(oklch(0.94 0.045 55), oklch(0.3 0.06 55));
-  --color-tint-peach-ink: light-dark(oklch(0.52 0.14 55), oklch(0.86 0.1 55));
-  --color-tint-lemon-soft: light-dark(oklch(0.94 0.045 95), oklch(0.3 0.06 95));
-  --color-tint-lemon-ink: light-dark(oklch(0.52 0.14 95), oklch(0.86 0.1 95));
-  --color-tint-mint-soft: light-dark(oklch(0.94 0.045 165), oklch(0.3 0.06 165));
-  --color-tint-mint-ink: light-dark(oklch(0.52 0.14 165), oklch(0.86 0.1 165));
-  --color-tint-sky-soft: light-dark(oklch(0.94 0.045 235), oklch(0.3 0.06 235));
-  --color-tint-sky-ink: light-dark(oklch(0.52 0.14 235), oklch(0.86 0.1 235));
-  --color-tint-lilac-soft: light-dark(oklch(0.94 0.045 300), oklch(0.3 0.06 300));
-  --color-tint-lilac-ink: light-dark(oklch(0.52 0.14 300), oklch(0.86 0.1 300));
+  --color-tint-rose-soft: light-dark(oklch(0.94 0.045 10), oklch(0.85 0.075 10));
+  --color-tint-rose-ink: light-dark(oklch(0.52 0.14 10), oklch(0.36 0.1 10));
+  --color-tint-peach-soft: light-dark(oklch(0.94 0.045 55), oklch(0.85 0.075 55));
+  --color-tint-peach-ink: light-dark(oklch(0.52 0.14 55), oklch(0.36 0.1 55));
+  --color-tint-lemon-soft: light-dark(oklch(0.94 0.045 95), oklch(0.85 0.075 95));
+  --color-tint-lemon-ink: light-dark(oklch(0.52 0.14 95), oklch(0.36 0.1 95));
+  --color-tint-mint-soft: light-dark(oklch(0.94 0.045 165), oklch(0.85 0.075 165));
+  --color-tint-mint-ink: light-dark(oklch(0.52 0.14 165), oklch(0.36 0.1 165));
+  --color-tint-sky-soft: light-dark(oklch(0.94 0.045 235), oklch(0.85 0.075 235));
+  --color-tint-sky-ink: light-dark(oklch(0.52 0.14 235), oklch(0.36 0.1 235));
+  --color-tint-lilac-soft: light-dark(oklch(0.94 0.045 300), oklch(0.85 0.075 300));
+  --color-tint-lilac-ink: light-dark(oklch(0.52 0.14 300), oklch(0.36 0.1 300));
 
   /* Hero surface (net worth card). Text on it uses fg-on-hero. */
-  --color-fg-on-hero: oklch(0.99 0 0);
-  --color-fg-on-hero-muted: oklch(0.99 0 0 / 0.72);
+  --color-fg-on-hero: oklch(0.25 0.06 300);
+  --color-fg-on-hero-muted: oklch(0.25 0.06 300 / 0.65);
 
   /* ---------------------------------------------------------------
    * Typography — IRANSansX. 7 steps. Do not add more.
@@ -170,17 +174,17 @@
   /* ---------------------------------------------------------------
    * Radius — 3 steps + full (pill / circle).
    * ------------------------------------------------------------- */
-  --radius-control: 0.75rem; /* buttons, inputs, list icons */
-  --radius-card: 1.125rem; /* cards, sections */
-  --radius-sheet: 1.75rem; /* sheets, dialogs */
+  --radius-control: 1.125rem; /* buttons, inputs, list icons */
+  --radius-card: 1.75rem; /* cards, sections */
+  --radius-sheet: 2.25rem; /* sheets, dialogs */
 
   /* ---------------------------------------------------------------
    * Elevation — flat UI. Shadows only on floating layers.
    * ------------------------------------------------------------- */
-  --shadow-raised: 0 1px 2px oklch(0 0 0 / 0.12), 0 2px 8px -2px oklch(0 0 0 / 0.16);
+  --shadow-raised: 0 10px 30px -14px oklch(0.1 0.05 305 / 0.45);
   --shadow-overlay: 0 16px 40px -12px oklch(0 0 0 / 0.5), 0 2px 6px oklch(0 0 0 / 0.18);
-  --shadow-hero: 0 18px 40px -18px oklch(0.45 0.2 293 / 0.6);
-  --shadow-fab: 0 8px 20px -6px oklch(0.6 0.21 293 / 0.55);
+  --shadow-hero: 0 22px 44px -22px oklch(0.7 0.15 330 / 0.45);
+  --shadow-fab: 0 12px 28px -8px oklch(0.75 0.15 320 / 0.55);
 
   /* ---------------------------------------------------------------
    * Motion

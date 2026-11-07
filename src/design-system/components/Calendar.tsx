@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '../icons';
 import { useMemo, useState } from 'react';
 import {
   JALALI_MONTHS,

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Plus, Receipt } from 'lucide-react';
+import { Plus, Receipt } from '../icons';
 import { Banner } from './Banner';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';

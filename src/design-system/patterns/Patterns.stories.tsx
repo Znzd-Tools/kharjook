@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import {
   ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Bus, CalendarDays, Check, Coffee, Coins, Eye, EyeOff, FileText, Home,
   Landmark, LayoutGrid, PieChart, Receipt, RefreshCw, ShoppingCart, Utensils, Wallet, Zap, X,
-} from 'lucide-react';
+} from '../icons';
 import { useState } from 'react';
 import {
   ActionSheet, AllocationBar, Amount, Card, Avatar, Badge, Banner, BarChart, Button, Chip, ChipGroup, ChoiceGrid, DateField,
@@ -86,13 +86,13 @@ function HomeScreen() {
         <Section title="این ماه" action={<Button size="sm" variant="link">گزارش</Button>}>
           <div className="space-y-4 rounded-card bg-panel p-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 rounded-control bg-tint-mint-soft p-3">
-                <Avatar size="sm" shape="circle" tone="mint" fallback={<ArrowDownLeft />} className="bg-panel" />
-                <div><p className="text-micro text-tint-mint-ink">درآمد</p><Amount value={35_000_000} compact size="sm" hidden={hidden} /></div>
+              <div className="flex items-center gap-3 rounded-card bg-tint-mint-soft p-3 text-tint-mint-ink">
+                <span className="flex size-9 items-center justify-center rounded-full bg-white/55 [&_svg]:size-4.5"><ArrowDownLeft /></span>
+                <div><p className="text-micro opacity-80">درآمد</p><Amount value={35_000_000} compact size="sm" tone="inherit" hidden={hidden} /></div>
               </div>
-              <div className="flex items-center gap-3 rounded-control bg-tint-rose-soft p-3">
-                <Avatar size="sm" shape="circle" tone="rose" fallback={<ArrowUpLeft />} className="bg-panel" />
-                <div><p className="text-micro text-tint-rose-ink">هزینه</p><Amount value={18_400_000} compact size="sm" hidden={hidden} /></div>
+              <div className="flex items-center gap-3 rounded-card bg-tint-rose-soft p-3 text-tint-rose-ink">
+                <span className="flex size-9 items-center justify-center rounded-full bg-white/55 [&_svg]:size-4.5"><ArrowUpLeft /></span>
+                <div><p className="text-micro opacity-80">هزینه</p><Amount value={18_400_000} compact size="sm" tone="inherit" hidden={hidden} /></div>
               </div>
             </div>
             <ProgressBar tone="auto" value={18.4} max={24} label="از بودجه ماه" valueLabel="۷۷٪" marker={17} />

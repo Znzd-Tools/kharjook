@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, XCircle, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, XCircle, X } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 

@@ -3,7 +3,7 @@ import {
   ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Banknote, BarChart3, Bell, CalendarDays, ChevronLeft, CircleDollarSign,
   Coins, CreditCard, FileText, Home, Landmark, MoreHorizontal, PieChart, Plus, Receipt, Repeat, Search, Settings,
   Target, TrendingUp, Users, Wallet,
-} from 'lucide-react';
+} from '../icons';
 import { useState } from 'react';
 import { colorGroups, motion, radii, shadows, spacing, typeScale } from './tokens';
 
@@ -189,7 +189,7 @@ const ICONS = { Home, Wallet, Coins, CalendarDays, Receipt, Plus, Search, Settin
 
 export const Iconography: Story = {
   render: () => (
-    <Page title="آیکون‌ها" intro="lucide-react, stroke 2. Sizes: 16 (inline), 20 (buttons, lists), 24 (tab bar). Icons inherit text color. Directional icons are mirrored for RTL: back = ArrowRight, forward/chevron = ChevronLeft.">
+    <Page title="آیکون‌ها" intro="Solar icons: bold-duotone for entities, navigation and status; linear for small UI glyphs. Import only from @/design-system/icons. Sizes: 16 (inline), 20 (buttons, lists), 24 (tab bar). Icons inherit text color. Directional icons are mirrored for RTL: back = ArrowRight, forward/chevron = ChevronLeft.">
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
         {Object.entries(ICONS).map(([name, Icon]) => (
           <div key={name} className="flex flex-col items-center gap-2 rounded-card bg-panel p-3 text-fg-muted">

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from '../icons';
 import { useState } from 'react';
 import { addDays, equalsJalaali, formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { cn } from '../lib/cn';

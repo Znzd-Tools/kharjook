@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { CalendarDays, Home, MoreHorizontal, PieChart, Receipt, Search, Settings } from 'lucide-react';
+import { CalendarDays, Home, MoreHorizontal, PieChart, Receipt, Search, Settings } from '../icons';
 import { useState } from 'react';
 import { Avatar } from './Avatar';
 import { Fab } from './Fab';

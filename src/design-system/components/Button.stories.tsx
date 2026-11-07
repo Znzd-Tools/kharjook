@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { ArrowLeft, Download, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Download, MoreHorizontal, Pencil, Plus, Trash2, X } from '../icons';
 import { fn } from 'storybook/test';
 import { Button } from './Button';
 import { IconButton } from './IconButton';

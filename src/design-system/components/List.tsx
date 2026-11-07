@@ -2,7 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render';
 import { mergeProps } from '@base-ui/react/merge-props';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 

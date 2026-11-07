@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from '../icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
 import { controlBox, useField } from './Field';

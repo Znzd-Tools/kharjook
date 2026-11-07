@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Clock } from 'lucide-react';
+import { Clock } from '../icons';
 import { Badge, CounterBadge } from './Badge';
 
 const meta = {

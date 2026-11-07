@@ -1,7 +1,7 @@
 'use client';
 
 import { Collapsible } from '@base-ui/react/collapsible';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 

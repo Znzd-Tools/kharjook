@@ -1,7 +1,7 @@
 'use client';
 
 import { Toast as BaseToast } from '@base-ui/react/toast';
-import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from '../icons';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
