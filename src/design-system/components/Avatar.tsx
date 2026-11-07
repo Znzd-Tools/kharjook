@@ -31,7 +31,7 @@ export const avatarVariants = cva(
         custom: '',
       },
     },
-    defaultVariants: { size: 'md', shape: 'rounded', tone: 'neutral' },
+    defaultVariants: { size: 'md', shape: 'circle', tone: 'neutral' },
   }
 );
 

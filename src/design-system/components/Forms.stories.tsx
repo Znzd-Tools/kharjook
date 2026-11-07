@@ -130,10 +130,10 @@ export const Segmented: Story = {
 };
 
 const WALLETS = [
-  { value: 'mellat', label: 'بانک ملت', description: '۴۸٬۲۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Landmark />} tone="info" />, group: 'بانک' },
-  { value: 'saman', label: 'بانک سامان', description: '۱۲٬۰۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Landmark />} tone="info" />, group: 'بانک' },
-  { value: 'cash', label: 'نقد', description: '۱٬۳۵۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Wallet />} tone="positive" />, group: 'نقد' },
-  { value: 'cafe', label: 'کارت هدیه کافه', description: '۲۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Coffee />} tone="warning" />, group: 'سایر' },
+  { value: 'mellat', label: 'بانک ملت', description: '۴۸٬۲۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Landmark />} tone="sky" />, group: 'بانک' },
+  { value: 'saman', label: 'بانک سامان', description: '۱۲٬۰۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Landmark />} tone="sky" />, group: 'بانک' },
+  { value: 'cash', label: 'نقد', description: '۱٬۳۵۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Wallet />} tone="mint" />, group: 'نقد' },
+  { value: 'cafe', label: 'کارت هدیه کافه', description: '۲۰۰٬۰۰۰ تومان', leading: <Avatar size="sm" fallback={<Coffee />} tone="lemon" />, group: 'سایر' },
 ];
 
 export const Picker: Story = {

@@ -30,9 +30,9 @@ export const buttonVariants = cva(
         link: 'h-auto bg-transparent p-0 text-accent-ink underline-offset-4 hover:underline active:scale-100',
       },
       size: {
-        sm: 'h-8 rounded-control px-3 text-caption',
-        md: 'h-11 rounded-control px-4 text-callout',
-        lg: 'h-13 rounded-card px-6 text-body',
+        sm: 'h-8 rounded-full px-3.5 text-caption',
+        md: 'h-11 rounded-full px-5 text-callout',
+        lg: 'h-14 rounded-full px-6 text-body',
       },
       fullWidth: { true: 'w-full', false: '' },
     },

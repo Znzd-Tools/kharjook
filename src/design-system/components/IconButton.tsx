@@ -27,7 +27,7 @@ export const iconButtonVariants = cva(
       },
       shape: { square: '', circle: 'rounded-full' },
     },
-    defaultVariants: { variant: 'ghost', size: 'md', shape: 'square' },
+    defaultVariants: { variant: 'ghost', size: 'md', shape: 'circle' },
   }
 );
 

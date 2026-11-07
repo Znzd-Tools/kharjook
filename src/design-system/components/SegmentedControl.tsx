@@ -40,7 +40,7 @@ export function SegmentedControl<T extends string>({
       value={value}
       onValueChange={(v) => onValueChange(v as T)}
       className={cn(
-        'inline-flex gap-1 rounded-control bg-sunken p-1',
+        'inline-flex gap-1 rounded-full bg-sunken p-1',
         fullWidth && 'flex w-full',
         className
       )}
@@ -52,7 +52,7 @@ export function SegmentedControl<T extends string>({
           value={o.value}
           disabled={o.disabled}
           className={cn(
-            'ds-focus inline-flex flex-1 cursor-pointer select-none items-center justify-center gap-1.5 rounded-[0.55rem] px-3 font-medium whitespace-nowrap',
+            'ds-focus inline-flex flex-1 cursor-pointer select-none items-center justify-center gap-1.5 rounded-full px-3 font-medium whitespace-nowrap',
             'text-fg-muted transition-[background-color,color,box-shadow] duration-(--ds-duration-fast) ease-standard',
             'hover:text-fg data-checked:bg-elevated data-checked:text-fg data-checked:shadow-raised',
             'data-disabled:opacity-45 [&_svg]:size-4',

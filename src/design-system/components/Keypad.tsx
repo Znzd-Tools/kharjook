@@ -69,7 +69,7 @@ export function Keypad({ value, onValueChange, allowDecimal = false, maxFraction
           }}
           aria-label={k === 'backspace' ? 'پاک کردن' : k === '.' ? 'ممیز' : k}
           className={cn(
-            'ds-focus flex h-14 items-center justify-center rounded-card text-headline font-semibold text-fg select-none',
+            'ds-focus flex h-14 items-center justify-center rounded-full text-headline font-semibold text-fg select-none',
             'transition-[background-color,transform] duration-(--ds-duration-instant) hover:bg-hover active:scale-95 active:bg-pressed',
             '[&_svg]:size-6'
           )}

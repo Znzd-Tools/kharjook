@@ -44,6 +44,14 @@ export const Colors: Story = {
         </section>
       ))}
       <section className="space-y-3">
+        <h2 className="text-title text-fg" dir="ltr">Hero gradient</h2>
+        <div className="rounded-card bg-(image:--gradient-hero) p-5 text-fg-on-hero shadow-hero">
+          <p className="text-caption text-fg-on-hero-muted">ارزش کل دارایی</p>
+          <p className="text-display tabular">۴۶۳٬۵۰۰٬۰۰۰</p>
+          <p className="font-mono text-micro text-fg-on-hero-muted" dir="ltr">--gradient-hero · text-fg-on-hero · shadow-hero — one per screen</p>
+        </div>
+      </section>
+      <section className="space-y-3">
         <h2 className="text-title text-fg" dir="ltr">Pairings</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-card bg-panel p-4"><p className="text-body text-fg">fg on panel</p><p className="text-caption text-fg-muted">fg-muted on panel</p><p className="text-caption text-fg-subtle">fg-subtle on panel</p></div>
@@ -131,7 +139,7 @@ export const SpacingLayout: Story = {
 export const RadiusElevation: Story = {
   name: 'Radius & Elevation',
   render: () => (
-    <Page title="گردی گوشه‌ها و سایه" intro="Three radius steps + full. The UI is flat: shadows only on floating layers.">
+    <Page title="گردی گوشه‌ها و سایه" intro="Soft and round: 18 / 28 / 36px + full. Actions (buttons, chips, segments) are pills. The UI is flat: shadows only on floating layers and the hero.">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {radii.map((r) => (
           <div key={r.name} className="space-y-2" dir="ltr">

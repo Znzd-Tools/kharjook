@@ -28,7 +28,7 @@ export function SkeletonList({ rows = 4, className }: { rows?: number; className
     <div role="status" aria-label="در حال بارگذاری" className={cn('overflow-hidden rounded-card bg-panel', className)}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className={cn('flex items-center gap-3 px-4 py-3', i > 0 && 'border-t border-line')}>
-          <Skeleton shape="circle" className="rounded-control" />
+          <Skeleton shape="circle" />
           <div className="flex flex-1 flex-col gap-2">
             <Skeleton shape="text" className="w-28" />
             <Skeleton shape="text" className="h-2.5 w-16" />

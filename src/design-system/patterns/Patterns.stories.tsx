@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import {
-  ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Bus, CalendarDays, Check, Coffee, Coins, Eye, EyeOff, FileText, Home,
+  ArrowDownLeft, ArrowLeftRight, Lightbulb, ArrowUpLeft, Bus, CalendarDays, Check, Coffee, Coins, Eye, EyeOff, FileText, Home,
   Landmark, LayoutGrid, PieChart, Receipt, RefreshCw, ShoppingCart, Utensils, Wallet, Zap, X,
 } from '../icons';
 import { useState } from 'react';
@@ -59,7 +59,7 @@ function HomeScreen() {
   return (
     <AppFrame>
       <TopBar
-        leading={<Avatar name="علی" shape="circle" size="sm" />}
+        leading={<Avatar name="علی" size="sm" tone="lilac" />}
         actions={<IconButton aria-label={hidden ? 'نمایش مبالغ' : 'پنهان کردن مبالغ'} icon={hidden ? <EyeOff /> : <Eye />} onClick={() => setHidden((h) => !h)} />}
       />
       <div className="space-y-6 px-(--ds-gutter)">
@@ -86,13 +86,13 @@ function HomeScreen() {
         <Section title="این ماه" action={<Button size="sm" variant="link">گزارش</Button>}>
           <div className="space-y-4 rounded-card bg-panel p-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 rounded-card bg-tint-mint-soft p-3 text-tint-mint-ink">
-                <span className="flex size-9 items-center justify-center rounded-full bg-white/55 [&_svg]:size-4.5"><ArrowDownLeft /></span>
-                <div><p className="text-micro opacity-80">درآمد</p><Amount value={35_000_000} compact size="sm" tone="inherit" hidden={hidden} /></div>
+              <div className="flex items-center gap-3 rounded-card bg-sunken p-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-tint-mint-soft text-tint-mint-ink [&_svg]:size-4.5"><ArrowDownLeft /></span>
+                <div><p className="text-micro text-fg-subtle">درآمد</p><Amount value={35_000_000} compact size="sm" hidden={hidden} /></div>
               </div>
-              <div className="flex items-center gap-3 rounded-card bg-tint-rose-soft p-3 text-tint-rose-ink">
-                <span className="flex size-9 items-center justify-center rounded-full bg-white/55 [&_svg]:size-4.5"><ArrowUpLeft /></span>
-                <div><p className="text-micro opacity-80">هزینه</p><Amount value={18_400_000} compact size="sm" tone="inherit" hidden={hidden} /></div>
+              <div className="flex items-center gap-3 rounded-card bg-sunken p-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-tint-rose-soft text-tint-rose-ink [&_svg]:size-4.5"><ArrowUpLeft /></span>
+                <div><p className="text-micro text-fg-subtle">هزینه</p><Amount value={18_400_000} compact size="sm" hidden={hidden} /></div>
               </div>
             </div>
             <ProgressBar tone="auto" value={18.4} max={24} label="از بودجه ماه" valueLabel="۷۷٪" marker={17} />
@@ -107,7 +107,7 @@ function HomeScreen() {
           </List>
         </Section>
 
-        <Banner tone="accent" title="پیشنهاد" action={<Button size="sm" variant="link">جزئیات</Button>}>طلا ۵٪ زیر هدف است. حدود ۸ میلیون تومان طلا بخر.</Banner>
+        <Banner tone="accent" icon={<Lightbulb />} title="پیشنهاد" action={<Button size="sm" variant="link">جزئیات</Button>}>طلا ۵٪ زیر هدف است. حدود ۸ میلیون تومان طلا بخر.</Banner>
       </div>
     </AppFrame>
   );
@@ -125,8 +125,8 @@ const CATS = [
   { value: 'gift', label: 'هدیه', icon: <Receipt />, tint: 'lilac' as const },
 ];
 const WALLETS = [
-  { value: 'mellat', label: 'بانک ملت', leading: <Avatar size="sm" fallback={<Landmark />} tone="info" /> },
-  { value: 'cash', label: 'نقد', leading: <Avatar size="sm" fallback={<Wallet />} tone="positive" /> },
+  { value: 'mellat', label: 'بانک ملت', leading: <Avatar size="sm" fallback={<Landmark />} tone="sky" /> },
+  { value: 'cash', label: 'نقد', leading: <Avatar size="sm" fallback={<Wallet />} tone="mint" /> },
 ];
 
 function AddExpenseScreen() {
@@ -212,8 +212,8 @@ function PortfolioScreen() {
           </>
         ) : (
           <List>
-            <ListRow onClick={() => {}} leading={<Avatar fallback={<Landmark />} tone="info" />} title="بانک ملت" subtitle="جاری" trailing={<Amount value={48_200_000} size="sm" />} />
-            <ListRow onClick={() => {}} leading={<Avatar fallback={<Wallet />} tone="positive" />} title="نقد" trailing={<Amount value={1_350_000} size="sm" />} />
+            <ListRow onClick={() => {}} leading={<Avatar fallback={<Landmark />} tone="sky" />} title="بانک ملت" subtitle="جاری" trailing={<Amount value={48_200_000} size="sm" />} />
+            <ListRow onClick={() => {}} leading={<Avatar fallback={<Wallet />} tone="mint" />} title="نقد" trailing={<Amount value={1_350_000} size="sm" />} />
           </List>
         )}
         <Section title="روند ۶ ماه">

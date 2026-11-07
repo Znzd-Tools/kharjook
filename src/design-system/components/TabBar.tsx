@@ -39,12 +39,16 @@ export function TabBar({ items, activeKey, onSelect, center, renderLink, classNa
     );
     const inner = (
       <>
-        <span className="relative [&_svg]:size-6">
+        <span
+          className={cn(
+            'relative flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-(--ds-duration-base) [&_svg]:size-6',
+            active ? 'bg-accent-soft text-accent-ink' : ''
+          )}
+        >
           {active && item.activeIcon ? item.activeIcon : item.icon}
           {item.badge ? <CounterBadge count={item.badge} className="absolute -top-1 -end-2" /> : null}
         </span>
         <span className={cn(active && 'font-semibold')}>{item.label}</span>
-        <span aria-hidden className={cn('absolute top-0 h-0.5 w-6 rounded-full bg-accent transition-opacity', active ? 'opacity-100' : 'opacity-0')} />
       </>
     );
     if (item.href && renderLink) return <li key={item.key} className="flex flex-1">{renderLink(item, inner, cls)}</li>;
@@ -68,7 +72,7 @@ export function TabBar({ items, activeKey, onSelect, center, renderLink, classNa
     <nav
       aria-label="ناوبری اصلی"
       className={cn(
-        'z-(--ds-z-nav) border-t border-line bg-panel/90 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl',
+        'z-(--ds-z-nav) bg-canvas/85 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl',
         className
       )}
     >

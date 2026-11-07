@@ -4,21 +4,21 @@ import { useState } from 'react';
 import { ChoiceGrid } from './ChoiceGrid';
 
 const CATS = [
-  { value: 'food', label: 'خوراک', icon: <Utensils />, color: '#eb6834' },
-  { value: 'grocery', label: 'سوپرمارکت', icon: <ShoppingCart />, color: '#1baf7a' },
-  { value: 'transport', label: 'حمل‌ونقل', icon: <Bus />, color: '#2a78d6' },
-  { value: 'cafe', label: 'کافه', icon: <Coffee />, color: '#eda100' },
-  { value: 'home', label: 'خانه', icon: <Home /> },
-  { value: 'bills', label: 'قبوض', icon: <Zap /> },
-  { value: 'health', label: 'سلامت', icon: <HeartPulse />, color: '#e34948' },
-  { value: 'clothes', label: 'پوشاک', icon: <Shirt /> },
-  { value: 'gift', label: 'هدیه', icon: <Gift />, color: '#e87ba4' },
+  { value: 'food', label: 'خوراک', icon: <Utensils />, tint: 'peach' as const },
+  { value: 'grocery', label: 'سوپرمارکت', icon: <ShoppingCart />, tint: 'mint' as const },
+  { value: 'transport', label: 'حمل‌ونقل', icon: <Bus />, tint: 'sky' as const },
+  { value: 'cafe', label: 'کافه', icon: <Coffee />, tint: 'lemon' as const },
+  { value: 'home', label: 'خانه', icon: <Home />, tint: 'lilac' as const },
+  { value: 'bills', label: 'قبوض', icon: <Zap />, tint: 'lemon' as const },
+  { value: 'health', label: 'سلامت', icon: <HeartPulse />, tint: 'rose' as const },
+  { value: 'clothes', label: 'پوشاک', icon: <Shirt />, tint: 'sky' as const },
+  { value: 'gift', label: 'هدیه', icon: <Gift />, tint: 'rose' as const },
 ];
 
 const meta = {
   title: 'Forms/ChoiceGrid',
   component: ChoiceGrid,
-  parameters: { docs: { description: { component: 'One-tap choice with icon tiles. Show the most used 7–11 options, then a "همه" tile that opens a PickerSheet.' } } },
+  parameters: { docs: { description: { component: 'One-tap choice with pastel icon tiles (`tint`). Show the most used 7–11 options, then a "همه" tile that opens a PickerSheet.' } } },
   args: { choices: CATS, value: 'food', onValueChange: () => {}, 'aria-label': 'دسته‌بندی' },
 } satisfies Meta<typeof ChoiceGrid>;
 export default meta;

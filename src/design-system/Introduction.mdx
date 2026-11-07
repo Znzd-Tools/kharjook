@@ -6,9 +6,18 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # سیستم طراحی خرجوک
 
-یک زبان بصری واحد برای همه صفحه‌ها: **مینیمال، فارسی‌محور، موبایل‌محور.**
+یک زبان بصری واحد برای همه صفحه‌ها: **مینیمال، پاستلی، تیره، فارسی‌محور، موبایل‌محور.**
 
 </div>
+
+## Look: Pastel dark
+
+- **Dark first.** Purple-tinted dark canvas. The app opens in dark.
+- **One soft accent.** Lilac with dark ink, for the main action, the active state and focus.
+- **Pastel identity.** Categories, wallets and assets get one of six tints (rose, peach, lemon, mint, sky, lilac). Small tiles only — never whole rows.
+- **One hero.** The pastel gradient card is for the single most important number on a screen.
+- **Round and soft.** Pills for actions, 28px cards, circle avatars.
+- **Solar icons.** `bold-duotone` for entities and navigation, `linear` for small glyphs. Import from `@/design-system/icons` only.
 
 ## Principles
 
@@ -47,7 +56,7 @@ Use the theme switch in the Storybook toolbar to check every story in both.
 | Group | Components |
 | --- | --- |
 | Actions | Button, IconButton, Chip, ChipGroup, InputChip, Fab |
-| Data display | Text, Amount, Delta, StatTile, Avatar, Badge, CounterBadge, Card, Section, List, ListRow, ListHeader, SwipeRow, ProgressBar, ProgressRing, Divider |
+| Data display | Card (incl. `hero`), Text, Amount, Delta, StatTile, Avatar, Badge, CounterBadge, Card, Section, List, ListRow, ListHeader, SwipeRow, ProgressBar, ProgressRing, Divider |
 | Forms | Field, Input, Textarea, SearchField, AmountField, Keypad, Switch, Checkbox, RadioGroup, SegmentedControl, PickerField, PickerSheet, ChoiceGrid, DateField, Calendar, Disclosure |
 | Feedback | toast, Banner, EmptyState, Skeleton, SkeletonList, Spinner |
 | Overlays | Sheet, ActionSheet, Dialog, ConfirmDialog, useConfirm, Menu, Tooltip |
@@ -68,7 +77,8 @@ Use the theme switch in the Storybook toolbar to check every story in both.
 | `ConfirmDialog` (provider) | `useConfirm` |
 | `Toast` (provider) | `toast.success()` etc. |
 | `EmptyState` | `EmptyState` (new API: `action` node) |
-| `EntityIcon` | `Avatar` |
+| `EntityIcon` | `Avatar` (pastel `tone`) |
+| `lucide-react` icons | `@/design-system/icons` (Solar) |
 | `RouteSkeleton` | `Skeleton`, `SkeletonList` |
 | `Shell` header + `BottomNav` + `MoreHubSheet` | `TopBar` per page + `TabBar` + `Fab` + `ActionSheet` |
 | `MetricCard`, dashboard cards | `StatTile`, `Section` + `List` |

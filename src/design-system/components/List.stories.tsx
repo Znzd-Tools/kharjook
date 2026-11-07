@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
   render: (args) => (
     <List>
-      <ListRow {...args} leading={<Avatar fallback={<Wallet />} tone="accent" />} trailing={<Amount value={12_450_000} size="sm" />} />
+      <ListRow {...args} leading={<Avatar fallback={<Wallet />} tone="lilac" />} trailing={<Amount value={12_450_000} size="sm" />} />
     </List>
   ),
 };
@@ -28,9 +28,9 @@ export const Playground: Story = {
 export const Wallets: Story = {
   render: () => (
     <List aria-label="کیف پول‌ها">
-      <ListRow onClick={fn()} leading={<Avatar fallback={<Landmark />} tone="info" />} title="بانک ملت" subtitle="جاری · ۶۱۰۴…۱۲۳۴" trailing={<Amount value={48_200_000} size="sm" />} />
-      <ListRow onClick={fn()} leading={<Avatar fallback={<Wallet />} tone="positive" />} title="نقد" subtitle="کیف جیبی" trailing={<Amount value={1_350_000} size="sm" />} />
-      <ListRow onClick={fn()} leading={<Avatar fallback={<Landmark />} color="#e87ba4" />} title="رسالت" subtitle="قرض‌الحسنه" trailing={<Amount value={-2_000_000} size="sm" />} trailingSubtitle="بدهکار" />
+      <ListRow onClick={fn()} leading={<Avatar fallback={<Landmark />} tone="sky" />} title="بانک ملت" subtitle="جاری · ۶۱۰۴…۱۲۳۴" trailing={<Amount value={48_200_000} size="sm" />} />
+      <ListRow onClick={fn()} leading={<Avatar fallback={<Wallet />} tone="mint" />} title="نقد" subtitle="کیف جیبی" trailing={<Amount value={1_350_000} size="sm" />} />
+      <ListRow onClick={fn()} leading={<Avatar fallback={<Landmark />} tone="rose" />} title="رسالت" subtitle="قرض‌الحسنه" trailing={<Amount value={-2_000_000} size="sm" />} trailingSubtitle="بدهکار" />
     </List>
   ),
 };
@@ -41,12 +41,12 @@ export const Ledger: Story = {
     <div className="space-y-2">
       <ListHeader trailing={<Amount value={-640_000} size="xs" tone="muted" />}>امروز</ListHeader>
       <List>
-        <ListRow leading={<Avatar fallback={<Coffee />} color="#eb6834" />} title="کافه" subtitle="ملت · ۰۹:۴۰" trailing={<Amount value={-180_000} size="sm" tone="auto" />} onClick={fn()} chevron={false} />
-        <ListRow leading={<Avatar fallback={<ShoppingCart />} color="#1baf7a" />} title="خرید هفتگی" subtitle="نقد · ۱۸:۲۰" trailing={<Amount value={-460_000} size="sm" tone="auto" />} onClick={fn()} chevron={false} />
+        <ListRow leading={<Avatar fallback={<Coffee />} tone="peach" />} title="کافه" subtitle="ملت · ۰۹:۴۰" trailing={<Amount value={-180_000} size="sm" tone="auto" />} onClick={fn()} chevron={false} />
+        <ListRow leading={<Avatar fallback={<ShoppingCart />} tone="mint" />} title="خرید هفتگی" subtitle="نقد · ۱۸:۲۰" trailing={<Amount value={-460_000} size="sm" tone="auto" />} onClick={fn()} chevron={false} />
       </List>
       <ListHeader trailing={<Amount value={35_000_000} size="xs" tone="muted" signed />}>دیروز</ListHeader>
       <List>
-        <ListRow leading={<Avatar fallback={<Landmark />} tone="positive" />} title="حقوق مهر" subtitle={<span className="inline-flex items-center gap-1">ملت <Badge tone="accent">دوره‌ای</Badge></span>} trailing={<Amount value={35_000_000} size="sm" tone="auto" signed />} onClick={fn()} chevron={false} />
+        <ListRow leading={<Avatar fallback={<Landmark />} tone="mint" />} title="حقوق مهر" subtitle={<span className="inline-flex items-center gap-1">ملت <Badge tone="accent">دوره‌ای</Badge></span>} trailing={<Amount value={35_000_000} size="sm" tone="auto" signed />} onClick={fn()} chevron={false} />
       </List>
     </div>
   ),

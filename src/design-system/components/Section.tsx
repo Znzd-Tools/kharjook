@@ -22,7 +22,7 @@ export function Section({ title, description, action, children, className, id }:
         <div className="flex items-end justify-between gap-3 px-1">
           <div className="min-w-0">
             {title && (
-              <h2 id={headingId} className="text-callout font-semibold text-fg">
+              <h2 id={headingId} className="text-body font-semibold text-fg">
                 {title}
               </h2>
             )}

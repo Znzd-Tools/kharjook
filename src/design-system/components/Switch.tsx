@@ -30,7 +30,7 @@ export function Switch({ label, description, className, onCheckedChange, ...prop
     >
       <BaseSwitch.Thumb
         className={cn(
-          'block size-6 rounded-full bg-white shadow-raised',
+          'block size-6 rounded-full bg-white shadow-raised data-checked:bg-fg-on-accent',
           'transition-transform duration-(--ds-duration-base) ease-emphasized',
           'rtl:data-checked:-translate-x-5 ltr:data-checked:translate-x-5'
         )}

@@ -63,6 +63,14 @@ export const colorGroups = [
     ],
   },
   {
+    name: 'Pastel tints',
+    description: 'Identity for entities (categories, wallets, assets). Bright pastel with dark ink, also in dark mode. Never for status.',
+    tokens: (['rose', 'peach', 'lemon', 'mint', 'sky', 'lilac'] as const).flatMap((t) => [
+      { name: `tint-${t}-soft`, use: `${t} tile background` },
+      { name: `tint-${t}-ink`, use: `${t} icon / text on tile` },
+    ]),
+  },
+  {
     name: 'Charts',
     description: 'Categorical, fixed order, never cycled. 9th+ series → "سایر" (chart-other).',
     tokens: [
@@ -83,14 +91,15 @@ export const typeScale = [
 ] as const;
 
 export const radii = [
-  { name: 'control', value: '12px', use: 'Buttons, inputs, icon tiles' },
-  { name: 'card', value: '18px', use: 'Cards, lists, stat tiles' },
-  { name: 'sheet', value: '28px', use: 'Sheets, dialogs' },
-  { name: 'full', value: '9999px', use: 'Chips, badges, avatars, FAB' },
+  { name: 'control', value: '18px', use: 'Inputs, menu items, small tiles' },
+  { name: 'card', value: '28px', use: 'Cards, lists, stat tiles, hero' },
+  { name: 'sheet', value: '36px', use: 'Sheets, dialogs' },
+  { name: 'full', value: '9999px', use: 'Buttons, chips, segmented, avatars, FAB' },
 ] as const;
 
 export const shadows = [
   { name: 'raised', use: 'Selected segment, switch thumb' },
+  { name: 'hero', use: 'Hero card only' },
   { name: 'overlay', use: 'Sheets, menus, dialogs, toasts' },
   { name: 'fab', use: 'Floating action button only' },
 ] as const;

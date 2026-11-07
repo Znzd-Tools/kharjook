@@ -7,11 +7,11 @@ import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 const chipBase = [
-  'ds-focus inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-caption font-medium select-none',
-  'border border-line bg-transparent text-fg-muted',
-  'transition-[background-color,border-color,color] duration-(--ds-duration-fast) ease-standard',
-  'hover:bg-hover hover:text-fg active:scale-[0.97]',
-  'data-pressed:border-transparent data-pressed:bg-accent-soft data-pressed:text-accent-ink',
+  'ds-focus inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-caption font-medium select-none',
+  'bg-hover text-fg-muted',
+  'transition-[background-color,color] duration-(--ds-duration-fast) ease-standard',
+  'hover:bg-pressed hover:text-fg active:scale-[0.97]',
+  'data-pressed:bg-accent data-pressed:text-fg-on-accent',
   'disabled:opacity-45 [&_svg]:size-3.5',
 ].join(' ');
 
@@ -90,7 +90,7 @@ export function InputChip({ children, icon, onRemove, removeLabel = 'حذف', cl
   return (
     <span
       className={cn(
-        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent-soft ps-3 text-caption font-medium text-accent-ink [&_svg]:size-3.5',
+        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent-soft ps-3.5 text-caption font-medium text-accent-ink [&_svg]:size-3.5',
         onRemove ? 'pe-1' : 'pe-3',
         className
       )}

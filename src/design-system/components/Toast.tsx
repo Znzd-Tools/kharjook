@@ -63,7 +63,7 @@ function ToastList() {
         <BaseToast.Title className="text-callout font-medium" />
         <BaseToast.Description className="text-caption text-fg-subtle" />
       </BaseToast.Content>
-      <BaseToast.Action className="ds-focus h-8 shrink-0 rounded-control px-3 text-caption font-semibold text-accent-ink hover:bg-accent-soft" />
+      <BaseToast.Action className="ds-focus h-8 shrink-0 rounded-full px-3 text-caption font-semibold text-accent-ink hover:bg-accent-soft" />
       <BaseToast.Close aria-label="بستن" className="ds-focus inline-flex size-7 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:bg-hover [&_svg]:size-4">
         <X />
       </BaseToast.Close>
