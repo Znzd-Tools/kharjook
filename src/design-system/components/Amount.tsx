@@ -15,9 +15,10 @@ export const amountVariants = cva('inline-flex items-baseline gap-1 tabular whit
   defaultVariants: { size: 'md' },
 });
 
-export type AmountTone = 'auto' | 'default' | 'muted' | 'positive' | 'negative';
+export type AmountTone = 'auto' | 'default' | 'muted' | 'positive' | 'negative' | 'inherit';
 
 const TONE: Record<Exclude<AmountTone, 'auto'>, string> = {
+  inherit: '',
   default: 'text-fg',
   muted: 'text-fg-muted',
   positive: 'text-positive-ink',

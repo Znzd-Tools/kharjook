@@ -27,6 +27,9 @@
   --ds-topbar-height: 3.5rem;
   --ds-max-width: 28rem;
 
+  /* Hero gradient (not a color token: gradients cannot live in --color-*). */
+  --gradient-hero: linear-gradient(135deg, oklch(0.5 0.2 293), oklch(0.42 0.2 280));
+
   /* Motion durations */
   --ds-duration-instant: 80ms;
   --ds-duration-fast: 150ms;
@@ -116,6 +119,26 @@
   --color-chart-8: light-dark(#e34948, #e66767);
   --color-chart-other: light-dark(oklch(0.75 0.01 285), oklch(0.45 0.012 285));
 
+  /* Color — pastel tints for entities (categories, wallets, assets).
+     `-soft` = tile background, `-ink` = icon/text on it. Decorative
+     identity only: never use them for status. */
+  --color-tint-rose-soft: light-dark(oklch(0.94 0.045 10), oklch(0.3 0.06 10));
+  --color-tint-rose-ink: light-dark(oklch(0.52 0.14 10), oklch(0.86 0.1 10));
+  --color-tint-peach-soft: light-dark(oklch(0.94 0.045 55), oklch(0.3 0.06 55));
+  --color-tint-peach-ink: light-dark(oklch(0.52 0.14 55), oklch(0.86 0.1 55));
+  --color-tint-lemon-soft: light-dark(oklch(0.94 0.045 95), oklch(0.3 0.06 95));
+  --color-tint-lemon-ink: light-dark(oklch(0.52 0.14 95), oklch(0.86 0.1 95));
+  --color-tint-mint-soft: light-dark(oklch(0.94 0.045 165), oklch(0.3 0.06 165));
+  --color-tint-mint-ink: light-dark(oklch(0.52 0.14 165), oklch(0.86 0.1 165));
+  --color-tint-sky-soft: light-dark(oklch(0.94 0.045 235), oklch(0.3 0.06 235));
+  --color-tint-sky-ink: light-dark(oklch(0.52 0.14 235), oklch(0.86 0.1 235));
+  --color-tint-lilac-soft: light-dark(oklch(0.94 0.045 300), oklch(0.3 0.06 300));
+  --color-tint-lilac-ink: light-dark(oklch(0.52 0.14 300), oklch(0.86 0.1 300));
+
+  /* Hero surface (net worth card). Text on it uses fg-on-hero. */
+  --color-fg-on-hero: oklch(0.99 0 0);
+  --color-fg-on-hero-muted: oklch(0.99 0 0 / 0.72);
+
   /* ---------------------------------------------------------------
    * Typography — IRANSansX. 7 steps. Do not add more.
    * ------------------------------------------------------------- */
@@ -156,6 +179,7 @@
    * ------------------------------------------------------------- */
   --shadow-raised: 0 1px 2px oklch(0 0 0 / 0.12), 0 2px 8px -2px oklch(0 0 0 / 0.16);
   --shadow-overlay: 0 16px 40px -12px oklch(0 0 0 / 0.5), 0 2px 6px oklch(0 0 0 / 0.18);
+  --shadow-hero: 0 18px 40px -18px oklch(0.45 0.2 293 / 0.6);
   --shadow-fab: 0 8px 20px -6px oklch(0.6 0.21 293 / 0.55);
 
   /* ---------------------------------------------------------------

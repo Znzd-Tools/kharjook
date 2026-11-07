@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import {
-  ActionSheet, AllocationBar, Amount, Avatar, Badge, Banner, BarChart, Button, Chip, ChipGroup, ChoiceGrid, DateField,
+  ActionSheet, AllocationBar, Amount, Card, Avatar, Badge, Banner, BarChart, Button, Chip, ChipGroup, ChoiceGrid, DateField,
   Delta, Disclosure, Fab, Field, IconButton, Input, Keypad, List, ListRow, PickerField, ProgressBar, Section, SegmentedControl,
   Sheet, TabBar, TopBar, toast, AmountField, formatMoney,
 } from '../index';
@@ -63,19 +63,37 @@ function HomeScreen() {
         actions={<IconButton aria-label={hidden ? 'نمایش مبالغ' : 'پنهان کردن مبالغ'} icon={hidden ? <EyeOff /> : <Eye />} onClick={() => setHidden((h) => !h)} />}
       />
       <div className="space-y-6 px-(--ds-gutter)">
-        <button type="button" className="ds-focus block w-full space-y-1 rounded-card text-start" onClick={() => setCurrency((c) => (c === 'TOMAN' ? 'USD' : 'TOMAN'))} aria-label="تغییر واحد">
-          <p className="text-caption text-fg-subtle">ارزش کل · برای تغییر واحد بزن</p>
-          <Amount value={net} currency={currency} size="hero" hidden={hidden} />
-          <div className="flex items-center gap-2 text-caption text-fg-subtle">
-            <Delta value={1.8} pill /> <span>امروز</span>
+        <Card
+          variant="hero"
+          padding="lg"
+          interactive
+          render={<button type="button" />}
+          onClick={() => setCurrency((c) => (c === 'TOMAN' ? 'USD' : 'TOMAN'))}
+          aria-label="تغییر واحد"
+          className="block w-full space-y-4 hover:bg-(image:--gradient-hero)"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-caption text-fg-on-hero-muted">ارزش کل دارایی</p>
+            <span className="rounded-full bg-white/25 px-2.5 py-1 text-micro font-semibold backdrop-blur-sm">{currency === 'TOMAN' ? 'تومان' : 'دلار'}</span>
           </div>
-        </button>
+          <Amount value={net} currency={currency} size="hero" tone="inherit" hidden={hidden} />
+          <div className="flex items-center gap-2 text-caption text-fg-on-hero-muted">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-2 py-0.5 font-semibold text-fg-on-hero backdrop-blur-sm">↑ ۱٫۸٪</span>
+            <span>امروز · ۸٫۲ میلیون بیشتر</span>
+          </div>
+        </Card>
 
         <Section title="این ماه" action={<Button size="sm" variant="link">گزارش</Button>}>
           <div className="space-y-4 rounded-card bg-panel p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-caption text-fg-subtle">درآمد</p><Amount value={35_000_000} compact tone="positive" hidden={hidden} /></div>
-              <div><p className="text-caption text-fg-subtle">هزینه</p><Amount value={18_400_000} compact tone="negative" hidden={hidden} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 rounded-control bg-tint-mint-soft p-3">
+                <Avatar size="sm" shape="circle" tone="mint" fallback={<ArrowDownLeft />} className="bg-panel" />
+                <div><p className="text-micro text-tint-mint-ink">درآمد</p><Amount value={35_000_000} compact size="sm" hidden={hidden} /></div>
+              </div>
+              <div className="flex items-center gap-3 rounded-control bg-tint-rose-soft p-3">
+                <Avatar size="sm" shape="circle" tone="rose" fallback={<ArrowUpLeft />} className="bg-panel" />
+                <div><p className="text-micro text-tint-rose-ink">هزینه</p><Amount value={18_400_000} compact size="sm" hidden={hidden} /></div>
+              </div>
             </div>
             <ProgressBar tone="auto" value={18.4} max={24} label="از بودجه ماه" valueLabel="۷۷٪" marker={17} />
           </div>
@@ -83,9 +101,9 @@ function HomeScreen() {
 
         <Section title="۷ روز آینده" description="۳ مورد" action={<Button size="sm" variant="link">برنامه</Button>}>
           <List>
-            <ListRow leading={<Avatar fallback={<FileText />} tone="warning" />} title="چک به آقای رضایی" subtitle={<Badge tone="warning">فردا</Badge>} trailing={<Amount value={12_000_000} size="sm" hidden={hidden} />} />
-            <ListRow leading={<Avatar fallback={<Landmark />} tone="info" />} title="قسط وام مسکن" subtitle="۱۸ مهر" trailing={<Button size="sm" variant="soft" startIcon={<Check />} onClick={() => toast.success('پرداخت ثبت شد')}>پرداخت</Button>} />
-            <ListRow leading={<Avatar fallback={<Zap />} />} title="اشتراک اینترنت" subtitle="۲۰ مهر · خودکار" trailing={<Amount value={450_000} size="sm" hidden={hidden} />} />
+            <ListRow leading={<Avatar fallback={<FileText />} tone="peach" shape="circle" />} title="چک به آقای رضایی" subtitle={<Badge tone="warning">فردا</Badge>} trailing={<Amount value={12_000_000} size="sm" hidden={hidden} />} />
+            <ListRow leading={<Avatar fallback={<Landmark />} tone="sky" shape="circle" />} title="قسط وام مسکن" subtitle="۱۸ مهر" trailing={<Button size="sm" variant="soft" startIcon={<Check />} onClick={() => toast.success('پرداخت ثبت شد')}>پرداخت</Button>} />
+            <ListRow leading={<Avatar fallback={<Zap />} tone="lemon" shape="circle" />} title="اشتراک اینترنت" subtitle="۲۰ مهر · خودکار" trailing={<Amount value={450_000} size="sm" hidden={hidden} />} />
           </List>
         </Section>
 
@@ -98,13 +116,13 @@ function HomeScreen() {
 export const HomeTab: Story = { name: 'Home tab', render: () => <HomeScreen /> };
 
 const CATS = [
-  { value: 'food', label: 'خوراک', icon: <Utensils /> },
-  { value: 'grocery', label: 'سوپرمارکت', icon: <ShoppingCart /> },
-  { value: 'transport', label: 'حمل‌ونقل', icon: <Bus /> },
-  { value: 'cafe', label: 'کافه', icon: <Coffee /> },
-  { value: 'home', label: 'خانه', icon: <Home /> },
-  { value: 'bills', label: 'قبوض', icon: <Zap /> },
-  { value: 'gift', label: 'هدیه', icon: <Receipt /> },
+  { value: 'food', label: 'خوراک', icon: <Utensils />, tint: 'peach' as const },
+  { value: 'grocery', label: 'سوپرمارکت', icon: <ShoppingCart />, tint: 'mint' as const },
+  { value: 'transport', label: 'حمل‌ونقل', icon: <Bus />, tint: 'sky' as const },
+  { value: 'cafe', label: 'کافه', icon: <Coffee />, tint: 'lemon' as const },
+  { value: 'home', label: 'خانه', icon: <Home />, tint: 'lilac' as const },
+  { value: 'bills', label: 'قبوض', icon: <Zap />, tint: 'rose' as const },
+  { value: 'gift', label: 'هدیه', icon: <Receipt />, tint: 'lilac' as const },
 ];
 const WALLETS = [
   { value: 'mellat', label: 'بانک ملت', leading: <Avatar size="sm" fallback={<Landmark />} tone="info" /> },
@@ -187,9 +205,9 @@ function PortfolioScreen() {
               <AllocationBar segments={[{ key: 'g', label: 'طلا', value: 182 }, { key: 'u', label: 'دلار', value: 96 }, { key: 's', label: 'سهام', value: 64 }, { key: 'c', label: 'کریپتو', value: 28 }, { key: 'x', label: 'سایر', value: 15 }]} />
             </div>
             <List>
-              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} color="#eda100" />} title="طلای ۱۸" subtitle="۴۲٫۵ گرم" trailing={<Amount value={182_000_000} size="sm" compact />} trailingSubtitle={<Delta value={2.1} />} />
-              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} color="#1baf7a" />} title="دلار" subtitle="۱٬۰۵۰ دلار" trailing={<Amount value={96_000_000} size="sm" compact />} trailingSubtitle={<Delta value={-0.4} />} />
-              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} color="#2a78d6" />} title="صندوق سهامی" subtitle="۱۲٬۰۰۰ واحد" trailing={<Amount value={64_000_000} size="sm" compact />} trailingSubtitle={<Delta value={5.6} />} />
+              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} tone="lemon" shape="circle" />} title="طلای ۱۸" subtitle="۴۲٫۵ گرم" trailing={<Amount value={182_000_000} size="sm" compact />} trailingSubtitle={<Delta value={2.1} />} />
+              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} tone="mint" shape="circle" />} title="دلار" subtitle="۱٬۰۵۰ دلار" trailing={<Amount value={96_000_000} size="sm" compact />} trailingSubtitle={<Delta value={-0.4} />} />
+              <ListRow onClick={() => {}} leading={<Avatar fallback={<Coins />} tone="sky" shape="circle" />} title="صندوق سهامی" subtitle="۱۲٬۰۰۰ واحد" trailing={<Amount value={64_000_000} size="sm" compact />} trailingSubtitle={<Delta value={5.6} />} />
             </List>
           </>
         ) : (

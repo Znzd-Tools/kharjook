@@ -5,6 +5,8 @@ import './preview.css';
 
 const withApp: Decorator = (Story, ctx) => {
   const layout = ctx.parameters.layout as string | undefined;
+  const look = (ctx.globals.look as string | undefined) ?? 'base';
+  if (typeof document !== 'undefined') document.documentElement.dataset.look = look;
   return (
     <DesignSystemProvider>
       <div
@@ -24,6 +26,22 @@ const withApp: Decorator = (Story, ctx) => {
 };
 
 const preview: Preview = {
+  globalTypes: {
+    look: {
+      description: 'Visual direction (exploration)',
+      toolbar: {
+        title: 'Look',
+        icon: 'paintbrush',
+        items: [
+          { value: 'base', title: 'Base (v1)' },
+          { value: 'pastel', title: 'A — Pastel' },
+          { value: 'candy', title: 'B — Candy dark' },
+          { value: 'bento', title: 'C — Bento' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
   decorators: [
     withApp,
     withThemeByDataAttribute({
@@ -51,7 +69,7 @@ const preview: Preview = {
       },
     },
   },
-  initialGlobals: { viewport: { value: 'iphone15', isRotated: false } },
+  initialGlobals: { viewport: { value: 'iphone15', isRotated: false }, look: 'base' },
   tags: ['autodocs'],
 };
 

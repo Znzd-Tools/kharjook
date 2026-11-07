@@ -16,6 +16,8 @@ export const cardVariants = cva('rounded-card', {
       elevated: 'bg-elevated shadow-raised',
       /** Inset area inside another card. */
       sunken: 'bg-sunken',
+      /** Gradient hero, one per screen (net worth). Use tone="inherit" on Amount inside. */
+      hero: 'relative isolate overflow-hidden bg-(image:--gradient-hero) text-fg-on-hero shadow-hero',
     },
     padding: { none: '', sm: 'p-3', md: 'p-4', lg: 'p-5' },
     interactive: {

@@ -11,7 +11,18 @@ export interface Choice<T extends string = string> {
   icon: ReactNode;
   /** Entity color (e.g. category color). */
   color?: string;
+  /** Pastel tint name instead of a raw color. */
+  tint?: 'rose' | 'peach' | 'lemon' | 'mint' | 'sky' | 'lilac';
 }
+
+const TINT = {
+  rose: 'bg-tint-rose-soft text-tint-rose-ink',
+  peach: 'bg-tint-peach-soft text-tint-peach-ink',
+  lemon: 'bg-tint-lemon-soft text-tint-lemon-ink',
+  mint: 'bg-tint-mint-soft text-tint-mint-ink',
+  sky: 'bg-tint-sky-soft text-tint-sky-ink',
+  lilac: 'bg-tint-lilac-soft text-tint-lilac-ink',
+} as const;
 
 export interface ChoiceGridProps<T extends string = string> {
   choices: Choice<T>[];
@@ -51,11 +62,15 @@ export function ChoiceGrid<T extends string>({
           className={cn(
             'ds-focus group flex cursor-pointer flex-col items-center gap-1.5 rounded-card px-1 py-2.5 select-none',
             'transition-[background-color,transform] duration-(--ds-duration-fast) hover:bg-hover active:scale-95',
-            'data-checked:bg-accent-soft'
+            ''
           )}
         >
           <span
-            className="flex size-11 items-center justify-center rounded-full bg-hover text-fg-muted transition-colors group-data-checked:bg-accent group-data-checked:text-fg-on-accent [&_svg]:size-5"
+            className={cn(
+              'flex size-12 items-center justify-center rounded-[38%] transition-[background-color,color,transform] duration-(--ds-duration-base) ease-emphasized group-data-checked:scale-110 [&_svg]:size-5.5',
+              c.tint ? TINT[c.tint] : 'bg-hover text-fg-muted',
+              'group-data-checked:bg-accent group-data-checked:text-fg-on-accent'
+            )}
             style={c.color ? { color: c.color, backgroundColor: `color-mix(in oklab, ${c.color} 15%, transparent)` } : undefined}
           >
             {c.icon}

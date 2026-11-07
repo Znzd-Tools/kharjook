@@ -1,4 +1,5 @@
 @import '../src/app/globals.css';
+@import './looks.css';
 
 @font-face {
   font-family: 'IRANSansX';
