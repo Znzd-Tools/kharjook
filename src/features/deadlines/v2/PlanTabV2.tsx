@@ -27,7 +27,6 @@ import {
   Section,
   Sheet,
   Text,
-  toast,
 } from '@/design-system';
 import { CalendarDays, CheckCircle2, FileText, Landmark, MoreHorizontal, Users, Zap } from '@/design-system/icons';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -37,6 +36,7 @@ import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance'
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { rankEndpoints } from '@/features/transactions/utils/usage-stats';
 import { buildPersonSettleTransactionUrl, pickDefaultSettleWallet } from '@/features/persons/utils/person-settle-prefill';
+import { useSettleDeadline } from '@/features/deadlines/hooks/use-settle-deadline';
 import { BUCKET_LABEL, buildTimeline, daysLeftLabel, type TimelineBucket, type TimelineItem } from '@/features/deadlines/utils/timeline';
 
 const KIND_META = {
@@ -52,14 +52,9 @@ const HUBS = [
   { href: '/deadlines/persons', title: 'اشخاص', subtitle: 'طلب و بدهی', icon: <Users />, tone: 'rose' as const },
 ];
 
-type Snapshot =
-  | { kind: 'check'; id: string; status: string; cleared_at: string | null; paid_transaction_id: string | null }
-  | { kind: 'installment'; id: string; paid_amount: number; is_paid: boolean; paid_at: string | null; paid_transaction_id: string | null }
-  | { kind: 'subscription'; id: string; next_due_date_string: string };
-
 export function PlanTabV2() {
   const router = useRouter();
-  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, refresh } = useData();
+  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions } = useData();
   const today = useMemo(() => todayJalaali(), []);
 
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -69,19 +64,30 @@ export function PlanTabV2() {
   const [partialFor, setPartialFor] = useState<TimelineItem | null>(null);
   const [partialAmount, setPartialAmount] = useState('');
   const [partialWallet, setPartialWallet] = useState<string | null>(null);
-  const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  const loadLoans = useCallback(async () => {
-    const [l, i] = await Promise.all([
-      supabase.from('loans').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
-      supabase.from('loan_installments').select('*').order('due_date_string', { ascending: true }),
-    ]);
+  const fetchLoans = useCallback(
+    () =>
+      Promise.all([
+        supabase.from('loans').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('loan_installments').select('*').order('due_date_string', { ascending: true }),
+      ]),
+    []
+  );
+  const applyLoans = useCallback((res: Awaited<ReturnType<typeof fetchLoans>>) => {
+    const [l, i] = res;
     if (!l.error) setLoans((l.data ?? []) as Loan[]);
     if (!i.error) setAllInstallments((i.data ?? []) as LoanInstallment[]);
   }, []);
+  const loadLoans = useCallback(async () => applyLoans(await fetchLoans()), [applyLoans, fetchLoans]);
   useEffect(() => {
-    void loadLoans();
-  }, [loadLoans]);
+    let cancelled = false;
+    void fetchLoans().then((res) => {
+      if (!cancelled) applyLoans(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchLoans, applyLoans]);
 
   const loanById = useMemo(() => new Map(loans.map((l) => [l.id, l])), [loans]);
   const items = useMemo(
@@ -101,6 +107,8 @@ export function PlanTabV2() {
     [checks, activeSubscriptions, upcomingDeadlines, loanById, today]
   );
 
+  const { pay, busyKey } = useSettleDeadline(loadLoans);
+
   const defaultWallet = useMemo(() => {
     const ranked = rankEndpoints(transactions, 'EXPENSE', 'source', ['wallet'])[0]?.id;
     return ranked ?? wallets[0]?.id ?? null;
@@ -111,77 +119,6 @@ export function PlanTabV2() {
     .reduce((s, i) => s + i.amount, 0);
 
   /* ------------------------------ pay ------------------------------ */
-
-  const snapshotOf = (item: TimelineItem): Snapshot | null => {
-    if (item.kind === 'check') {
-      const c = checks.find((x) => x.id === item.id);
-      return c ? { kind: 'check', id: c.id, status: c.status, cleared_at: c.cleared_at, paid_transaction_id: c.paid_transaction_id } : null;
-    }
-    if (item.kind === 'installment') {
-      const i = upcomingDeadlines.find((x) => x.id === item.id);
-      return i
-        ? { kind: 'installment', id: i.id, paid_amount: Number(i.paid_amount), is_paid: i.is_paid, paid_at: i.paid_at, paid_transaction_id: i.paid_transaction_id }
-        : null;
-    }
-    const s = activeSubscriptions.find((x) => x.id === item.id);
-    return s ? { kind: 'subscription', id: s.id, next_due_date_string: s.next_due_date_string } : null;
-  };
-
-  const undo = async (snap: Snapshot, transactionId: string) => {
-    // Delete the expense first (subscription_payments rows cascade), then
-    // restore exactly the fields the settle changed.
-    const del = await supabase.from('transactions').delete().eq('id', transactionId);
-    if (del.error) {
-      toast.error('برگرداندن انجام نشد');
-      return;
-    }
-    if (snap.kind === 'check') {
-      await supabase.from('checks').update({ status: snap.status, cleared_at: snap.cleared_at, paid_transaction_id: snap.paid_transaction_id }).eq('id', snap.id);
-    } else if (snap.kind === 'installment') {
-      await supabase
-        .from('loan_installments')
-        .update({ paid_amount: snap.paid_amount, is_paid: snap.is_paid, paid_at: snap.paid_at, paid_transaction_id: snap.paid_transaction_id })
-        .eq('id', snap.id);
-    } else {
-      await supabase.from('subscription_payments').delete().eq('transaction_id', transactionId);
-      await supabase.from('subscriptions').update({ next_due_date_string: snap.next_due_date_string }).eq('id', snap.id);
-    }
-    await Promise.all([refresh(), loadLoans()]);
-    toast.success('پرداخت برگشت');
-  };
-
-  const pay = async (item: TimelineItem, walletId: string | null, amount?: number) => {
-    const snap = snapshotOf(item);
-    if (!snap) return;
-    if (!walletId && !item.assetId) {
-      toast.warning('یک کیف پول بساز تا بتوانی پرداخت کنی');
-      return;
-    }
-    setBusyKey(item.key);
-    const url =
-      item.kind === 'check' ? '/api/checks/settle' : item.kind === 'installment' ? '/api/loans/installments/settle' : '/api/subscriptions/settle';
-    const body =
-      item.kind === 'check'
-        ? { checkId: item.id, walletId }
-        : item.kind === 'installment'
-          ? { installmentId: item.id, walletId: walletId ?? undefined, amount }
-          : { subscriptionId: item.id, walletId };
-    try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-      const json = (await res.json().catch(() => ({}))) as { error?: string; transactionId?: string };
-      if (!res.ok || !json.transactionId) {
-        toast.error(json.error ?? 'پرداخت ثبت نشد');
-        return;
-      }
-      await Promise.all([refresh(), loadLoans()]);
-      const txId = json.transactionId;
-      toast.success(`${KIND_META[item.kind].label} «${item.title}» پرداخت شد`, {
-        action: { label: 'برگردان', onClick: () => void undo(snap, txId) },
-      });
-    } finally {
-      setBusyKey(null);
-    }
-  };
 
   const walletFor = (item: TimelineItem) => item.walletId ?? defaultWallet;
   const walletName = (id: string | null) => wallets.find((w) => w.id === id)?.name ?? '—';

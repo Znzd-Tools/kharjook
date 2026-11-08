@@ -16,26 +16,19 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
+import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
-import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatDisplayNumber } from '@/shared/utils/format-display-number';
-import { clampPeriodToToday, currentPeriod } from '@/shared/utils/period';
 import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
 import {
-  formatJalaali,
   formatJalaaliHuman,
   JALALI_MONTHS,
   parseJalaali,
   todayJalaali,
 } from '@/shared/utils/jalali';
-import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unrealized';
-import { computeAssetPnl } from '@/features/reports/utils/asset-pnl';
 import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
-import { walletRateNow } from '@/features/rates/utils/wallet-rate';
-import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
 import {
   computeGoalDelta,
   isGoalMet,
@@ -60,6 +53,10 @@ import {
   type ActivePnlMover,
 } from '@/features/dashboard/components/ActivePnlCard';
 
+import { useHomeStats } from '@/features/dashboard/hooks/use-home-stats';
+import { useFlag } from '@/shared/lib/flags/client';
+import { HomeV2 } from '@/features/dashboard/v2/HomeV2';
+
 export type HomeGoalRow = {
   id: string;
   name: string;
@@ -72,16 +69,18 @@ export type HomeGoalRow = {
 };
 
 export function HomeTab() {
+  const v2 = useFlag('v2.dashboard');
+  if (v2) return <HomeV2 />;
+  return <HomeTabV1 />;
+}
+
+function HomeTabV1() {
   const router = useRouter();
-  const { user } = useAuth();
   const {
     assets,
-    categories,
     transactions,
     wallets,
     currencyRates,
-    dailyPrices,
-    goals,
     isLoadingData,
     dataFetchError,
     refresh,
@@ -96,348 +95,8 @@ export function HomeTab() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const today = useMemo(() => todayJalaali(), []);
-  const todayStr = useMemo(() => formatJalaali(today), [today]);
-  const monthPeriod = useMemo(() => clampPeriodToToday(currentPeriod('month')), []);
 
-  const stats = useMemo(() => {
-    let assetsValueToman = 0;
-    let yearPnlToman = 0;
-    let yearPnlUsd = 0;
-    let yearPnlPartialCount = 0;
-    let yearUnrealizedMissingCount = 0;
-    let monthIncomeToman = 0;
-    let monthIncomeUsd = 0;
-    let monthExpenseToman = 0;
-    let monthExpenseUsd = 0;
-    const monthExpenseByCategory = new Map<string, number>();
-    const monthExpenseByCategoryUsd = new Map<string, number>();
-    const categoryById = new Map(categories.map((c) => [c.id, c]));
-    const walletsById = new Map(wallets.map((w) => [w.id, w]));
-    const mainDistributionMap = new Map<string, number>();
-    const subDistribution: { id: string; name: string; valueToman: number }[] = [];
-    const assetValueById = new Map<string, number>();
-
-    // Legacy rows without a snapshot: convert at the rate of THEIR date.
-    const txToToman = (
-      txAmount: number | null | undefined,
-      walletId: string | null | undefined,
-      date: string
-    ) => {
-      const amount = Number(txAmount ?? 0);
-      if (!Number.isFinite(amount)) return 0;
-      const wallet = walletId ? walletsById.get(walletId) : null;
-      if (!wallet) return 0;
-      let rate = tomanPerUnit(wallet.currency, currencyRates);
-      if (wallet.currency !== 'IRT') {
-        const hist = rateHistories[wallet.currency].at(date);
-        if (hist && hist > 0) rate = hist;
-      }
-      return Math.abs(amount) * (rate > 0 ? rate : 0);
-    };
-    const usdRateForDate = (date: string) => {
-      const hist = rateHistories.USD.at(date);
-      return hist && hist > 0 ? hist : usdRate;
-    };
-
-    for (const tx of transactions) {
-      const inMonth =
-        tx.date_string >= formatJalaali(monthPeriod.start) &&
-        tx.date_string <= formatJalaali(monthPeriod.end);
-      if (!inMonth) continue;
-      if (tx.type === 'INCOME') {
-        const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.target_amount, tx.target_wallet_id, tx.date_string);
-        const usd =
-          tx.amount_usd_at_time ??
-          (() => {
-            const t = Number(tx.amount_toman_at_time);
-            const r = Number(tx.usd_rate);
-            if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            // Same fallback as the yearly cashflow chart, so both agree.
-            const derived = Number(toman);
-            const rate = usdRateForDate(tx.date_string);
-            return rate > 0 && derived > 0 ? derived / rate : 0;
-          })();
-        monthIncomeToman += Number(toman) || 0;
-        monthIncomeUsd += Number(usd) || 0;
-      }
-      if (tx.type === 'EXPENSE') {
-        const toman =
-          tx.amount_toman_at_time ?? txToToman(tx.source_amount, tx.source_wallet_id, tx.date_string);
-        const usd =
-          tx.amount_usd_at_time ??
-          (() => {
-            const t = Number(tx.amount_toman_at_time);
-            const r = Number(tx.usd_rate);
-            if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r > 0) return t / r;
-            // Same fallback as the yearly cashflow chart, so both agree.
-            const derived = Number(toman);
-            const rate = usdRateForDate(tx.date_string);
-            return rate > 0 && derived > 0 ? derived / rate : 0;
-          })();
-        const valueToman = Number(toman) || 0;
-        const valueUsd = Number(usd) || 0;
-        monthExpenseToman += valueToman;
-        monthExpenseUsd += valueUsd;
-        const cat = tx.category_id ?? '__uncat__';
-        monthExpenseByCategory.set(
-          cat,
-          (monthExpenseByCategory.get(cat) ?? 0) + valueToman
-        );
-        monthExpenseByCategoryUsd.set(
-          cat,
-          (monthExpenseByCategoryUsd.get(cat) ?? 0) + valueUsd
-        );
-      }
-    }
-
-    // The 3 P/L numbers per asset come from one shared function, so the
-    // dashboard, the assets list and the asset page always agree.
-    let openPnlToman = 0;
-    let openPnlUsd = 0;
-    let openCostToman = 0;
-    let openCostUsd = 0;
-    let allTimeToman = 0;
-    let allTimeUsd = 0;
-    const openRows: {
-      id: string;
-      name: string;
-      pnlToman: number;
-      pnlUsd: number;
-      costToman: number;
-      costUsd: number;
-    }[] = [];
-
-    assets.forEach((asset) => {
-      const s = calculateAssetStats(asset, transactions, currencyMode, usdRate);
-      const pnl = computeAssetPnl(asset, transactions, dailyPrices, usdRate, todayStr);
-      if (pnl.included) {
-        allTimeToman += pnl.allTime.value.toman;
-        allTimeUsd += pnl.allTime.value.usd;
-        if (pnl.holdings > 0 && pnl.active.cost.toman > 0) {
-          openPnlToman += pnl.active.value.toman;
-          openPnlUsd += pnl.active.value.usd;
-          openCostToman += pnl.active.cost.toman;
-          openCostUsd += pnl.active.cost.usd;
-          openRows.push({
-            id: asset.id,
-            name: asset.name,
-            pnlToman: pnl.active.value.toman,
-            pnlUsd: pnl.active.value.usd,
-            costToman: pnl.active.cost.toman,
-            costUsd: pnl.active.cost.usd,
-          });
-        }
-      }
-      if (asset.include_in_balance !== false) {
-        assetsValueToman += s.currentValueToman;
-      }
-      if (s.currentValueToman > 0 && asset.include_in_balance !== false) {
-        subDistribution.push({
-          id: asset.id,
-          name: asset.name,
-          valueToman: s.currentValueToman,
-        });
-        assetValueById.set(asset.id, s.currentValueToman);
-        const catId = asset.category_id ?? '__uncat__';
-        mainDistributionMap.set(
-          catId,
-          (mainDistributionMap.get(catId) ?? 0) + s.currentValueToman
-        );
-      }
-    });
-
-    // Wallets in a currency without a saved rate use the last known rate
-    // (history); if there is none at all they are listed so the UI can warn.
-    let cashToman = 0;
-    const walletsMissingRate: { name: string; currency: string }[] = [];
-    const walletsOnHistoryRate: { name: string; currency: string }[] = [];
-    wallets.forEach((w) => {
-      const balance = calculateWalletStats(w, transactions).balance;
-      const { rate, source } = walletRateNow(w.currency, currencyRates, rateHistories);
-      if (balance !== 0 && source === 'missing') {
-        walletsMissingRate.push({ name: w.name, currency: w.currency });
-      }
-      if (balance !== 0 && source === 'history') {
-        walletsOnHistoryRate.push({ name: w.name, currency: w.currency });
-      }
-      cashToman += balance * rate;
-    });
-
-    const totalPortfolioToman = assetsValueToman + cashToman;
-
-    const ytdSummary = computeYtdUnrealizedSummary(
-      assets,
-      transactions,
-      dailyPrices,
-      usdRate,
-      todayStr
-    );
-    yearPnlToman = ytdSummary.totalToman;
-    yearPnlUsd = ytdSummary.totalUsd;
-    yearPnlPartialCount = ytdSummary.partialTotalCount;
-    yearUnrealizedMissingCount =
-      ytdSummary.missingStartPriceCount + ytdSummary.missingEndPriceCount;
-
-    const mainDistribution = Array.from(mainDistributionMap.entries())
-      .map(([catId, valueToman]) => ({
-        id: catId,
-        name:
-          catId === '__uncat__'
-            ? 'بدون دسته'
-            : (categoryById.get(catId)?.name ?? 'بدون دسته'),
-        valueToman,
-      }))
-      .sort((a, b) => b.valueToman - a.valueToman);
-
-    subDistribution.sort((a, b) => b.valueToman - a.valueToman);
-
-    const goalComparison = goals
-      .map((goal) => {
-        if (goal.target_kind === 'quantity') {
-          if (goal.scope !== 'asset') return null;
-          const asset = goal.asset_id ? assets.find((a) => a.id === goal.asset_id) : null;
-          if (!asset) return null;
-          const targetValue = Number(goal.target_quantity ?? 0);
-          if (!Number.isFinite(targetValue) || targetValue <= 0) return null;
-          const assetStats = calculateAssetStats(
-            asset,
-            transactions,
-            currencyMode,
-            usdRate
-          );
-          const currentValue = assetStats.totalAmount;
-          return {
-            id: goal.id,
-            name: asset.name,
-            kindLabel: 'دارایی',
-            valueKind: 'quantity' as const,
-            currentValue,
-            targetValue,
-            unit: asset.unit,
-            buySuggestion: buildGoalBuySuggestion({
-              name: asset.name,
-              kind: 'quantity',
-              current: currentValue,
-              target: targetValue,
-              unit: asset.unit,
-              decimalPlaces: asset.decimal_places,
-            }),
-          };
-        }
-
-        const targetValue = Number(goal.target_percent ?? 0);
-        if (!Number.isFinite(targetValue) || targetValue <= 0) return null;
-        if (goal.scope === 'asset') {
-          const asset = goal.asset_id ? assets.find((a) => a.id === goal.asset_id) : null;
-          if (!asset) return null;
-          const currentValueToman = assetValueById.get(asset.id) ?? 0;
-          const currentPercent =
-            assetsValueToman > 0 ? (currentValueToman / assetsValueToman) * 100 : 0;
-          return {
-            id: goal.id,
-            name: asset.name,
-            kindLabel: 'دارایی',
-            valueKind: 'percent' as const,
-            currentValue: currentPercent,
-            targetValue,
-            unit: asset.unit,
-            buySuggestion: buildGoalBuySuggestion({
-              name: asset.name,
-              kind: 'percent',
-              current: currentPercent,
-              target: targetValue,
-              currentValueToman,
-              portfolioValueToman: assetsValueToman,
-              priceToman: asset.price_toman,
-              unit: asset.unit,
-              decimalPlaces: asset.decimal_places,
-              currencyMode,
-              usdRate,
-            }),
-          };
-        }
-        const category = goal.category_id ? categoryById.get(goal.category_id) : null;
-        if (!category) return null;
-        const groupValueToman = mainDistributionMap.get(category.id) ?? 0;
-        const currentPercent =
-          assetsValueToman > 0 ? (groupValueToman / assetsValueToman) * 100 : 0;
-        return {
-          id: goal.id,
-          name: category.name,
-          kindLabel: 'گروه',
-          valueKind: 'percent' as const,
-          currentValue: currentPercent,
-          targetValue,
-          buySuggestion: buildGoalBuySuggestion({
-            name: category.name,
-            kind: 'percent',
-            current: currentPercent,
-            target: targetValue,
-            currentValueToman: groupValueToman,
-            portfolioValueToman: assetsValueToman,
-            currencyMode,
-            usdRate,
-          }),
-        };
-      })
-      .filter((row) => row !== null) as HomeGoalRow[];
-    goalComparison.sort((a, b) => b.targetValue - a.targetValue);
-
-    const buildMaxExpense = (byCategory: Map<string, number>) => {
-      const maxEntry = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1])[0];
-      if (!maxEntry) return null;
-      return {
-        name:
-          maxEntry[0] === '__uncat__'
-            ? 'بدون دسته'
-            : (categoryById.get(maxEntry[0])?.name ?? 'بدون دسته'),
-        value: maxEntry[1],
-      };
-    };
-
-    return {
-      totalPortfolioToman,
-      cashToman,
-      walletsMissingRate,
-      walletsOnHistoryRate,
-      openPnlToman,
-      openPnlUsd,
-      openCostToman,
-      openCostUsd,
-      allTimeToman,
-      allTimeUsd,
-      openRows,
-      yearPnlToman,
-      yearPnlUsd,
-      yearPnlPartialCount,
-      yearUnrealizedMissingCount,
-      monthIncomeToman,
-      monthIncomeUsd,
-      monthExpenseToman,
-      monthExpenseUsd,
-      monthBalanceToman: monthIncomeToman - monthExpenseToman,
-      monthBalanceUsd: monthIncomeUsd - monthExpenseUsd,
-      maxExpenseToman: buildMaxExpense(monthExpenseByCategory),
-      maxExpenseUsd: buildMaxExpense(monthExpenseByCategoryUsd),
-      mainDistribution,
-      subDistribution,
-      goalComparison,
-    };
-  }, [
-    assets,
-    categories,
-    transactions,
-    wallets,
-    currencyRates,
-    dailyPrices,
-    goals,
-    currencyMode,
-    usdRate,
-    todayStr,
-    monthPeriod,
-    rateHistories,
-  ]);
+  const stats = useHomeStats();
 
   const priceTickerItems = useMemo((): PriceTickerItem[] => {
     const items: PriceTickerItem[] = [];
