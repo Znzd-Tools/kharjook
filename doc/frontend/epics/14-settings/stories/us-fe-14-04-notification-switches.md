@@ -1,4 +1,4 @@
-# US-FE-14-04 Edit the four notification switches
+# US-FE-14-04 Choose what to be told and where
 
 | Field | Value |
 | --- | --- |
@@ -10,42 +10,36 @@
 
 ## Story
 
-As a signed-in user, I want four independent switches, so that Telegram only sends what I turn on.
+As a signed-in user, I want a short list of notifications with where each goes, so that I can change one in two taps.
 
 ## Outcome
 
-Each switch saves on its own. The report switch reveals daily or weekly.
+Three groups (سررسیدها, هزینه‌ها, گزارش و قیمت). Each row shows the time and «تلگرام و اپ» / «تلگرام» / «اپ» / «خاموش». Tap → a sheet with a description and two switches (Telegram, app). The report sheet also has interval, weekday and content.
 
 ## Acceptance criteria
 
-1. Given settings, when they load, then I see debt reminder, price alert, expense alert, and scheduled report, each with its description.
-2. Given expense alert and the report are off by default for a new user, when I first open settings, then those two show off until I change them.
-3. Given I toggle one, when the save returns, then only that switch changes and a toast confirms it.
-4. Given the report switch is on, when the section expands, then I can pick روزانه or هفتگی.
-5. Given the report switch is off, when the section renders, then the interval control is hidden.
-6. Given a save fails, when the response returns, then the switch returns to the previous value.
+1. Given defaults, when I open the page, then due-today rows show «تلگرام و اپ» and the 23:00 expense reminder shows «خاموش».
+2. Given I switch the app off for «اشتراک امروز», when I close the sheet, then the row shows «تلگرام» and the server keeps Telegram on.
+3. Given «گزارش دوره‌ای», then there is no app switch (Telegram only).
+4. Given a save fails, then the switch goes back and a toast says so.
 
 ## Rules
 
-- Debt reminder copy says 09:00 Tehran and only installments due that day.
-- Price alert copy says it runs after a bot price refresh.
-- Expense alert copy says each new expense includes today's total.
-- Report copy says 09:00 Tehran cashflow and portfolio.
-- The bot chat is not designed here.
+- Rows: چک امروز, قسط امروز, اشتراک امروز, یادآوری قبل از سررسید, هر هزینه جدید, سقف ماهانه دسته‌ها, یادآور ثبت هزینه‌ها (۲۳:۰۰), به‌روزرسانی قیمت‌ها, گزارش دوره‌ای.
 
 ## Data
 
-- Notification settings.
+- None.
 
 ## API
 
-- `GET /notification-settings`, `PATCH /notification-settings`
+- `GET/PUT /notifications/channels` (US-15-05).
 
 ## Errors
 
 | Code | When |
 | --- | --- |
-| toast | Save failed and the switch reverts |
+| — | Toast and rollback. |
 
 ## Dependencies
 
@@ -53,4 +47,4 @@ Each switch saves on its own. The report switch reveals daily or weekly.
 
 ## Test notes
 
-- Toggling expense alert does not change the report switch on screen.
+- e2e/tests/extras.spec.ts

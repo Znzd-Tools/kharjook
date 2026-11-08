@@ -14,7 +14,7 @@ As a user, I want an optional morning digest, so that I see cashflow and portfol
 
 ## Outcome
 
-When the report switch is on, one digest goes out on the daily or weekly schedule.
+When the report Telegram switch is on (US-15-05), one digest goes out on the daily or weekly schedule.
 
 ## Acceptance criteria
 
@@ -28,7 +28,7 @@ When the report switch is on, one digest goes out on the daily or weekly schedul
 
 - Kind is daily_report. The dedup key includes the interval and the Tehran date, or the week for weekly.
 - Numbers come from the portfolio and cashflow services.
-- Default for this switch is off.
+- Default for this switch is off. The report is Telegram only.
 
 ## Data
 

@@ -14,6 +14,7 @@ As a signed-in user, I want current against target, so that I see ahead, behind,
 
 ## Outcome
 
+One card per goal: now / target, one bar with a target marker, the gap badge (or «روی هدف»), and the buy/sell action to reach it. A summary card shows how many goals are on target.
 Progress rows come from the server, including unpriced and missing-target flags.
 
 ## Acceptance criteria

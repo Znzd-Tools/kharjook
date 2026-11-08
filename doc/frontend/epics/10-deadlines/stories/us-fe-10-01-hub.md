@@ -1,4 +1,4 @@
-# US-FE-10-01 Open the four deadline sections
+# US-FE-10-01 Plan tab: due items, loans, debts
 
 | Field | Value |
 | --- | --- |
@@ -10,20 +10,23 @@
 
 ## Story
 
-As a signed-in user, I want the deadlines tab to open loans, persons, checks, and subscriptions, so that each area is one tap away.
+As a signed-in user, I want the Plan tab to show what is due first, with loans and debts one tap away, so that I do not scroll.
 
 ## Outcome
 
-The hub lists those four destinations and nothing else.
+Plan → سررسیدها has three segments: سررسیدها | وام‌ها | طلب و بدهی. On سررسیدها: a compact management grid (چک‌ها, اشتراک‌ها) at the top, the month total (every currency converted), a type filter (همه / چک / قسط / اشتراک), then due items by bucket with «پرداخت شد».
 
 ## Acceptance criteria
 
-1. Given the deadlines tab, when it loads, then I see اقساط و وام‌ها, اشخاص, چک‌ها, and اشتراک‌ها.
-2. Given I tap one, when navigation runs, then that section opens.
+1. Given the tab, when it opens, then the management grid is at the top, not the bottom.
+2. Given the type filter «چک», then only cheques show. There is no category filter.
+3. Given a Lira subscription, then it shows ₺ and the Toman value, never «تومان» for the Lira amount.
+4. Given وام‌ها, then active loans show first and fully paid loans are in a separate «تمام‌شده» section.
+5. Given طلب و بدهی, then «طلب من» and «بدهی من» totals show above the people list.
 
 ## Rules
 
-- The hub does not settle a payment itself.
+- The segment is kept in the URL (?v=loans / ?v=people).
 
 ## Data
 
@@ -31,18 +34,20 @@ The hub lists those four destinations and nothing else.
 
 ## API
 
-- None.
+- Reads deadlines; pay uses the settle calls.
 
 ## Errors
 
 | Code | When |
 | --- | --- |
-| None. | The hub is static navigation. |
+| — | Toast with undo after pay. |
 
 ## Dependencies
 
-- US-FE-01-02
+- US-FE-10-03
+- US-FE-10-05
+- US-FE-10-06
 
 ## Test notes
 
-- Each of the four rows opens its route.
+- e2e/tests/plan.spec.ts

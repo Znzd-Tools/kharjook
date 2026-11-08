@@ -28,7 +28,7 @@ Asset-side expenses fill the legacy price fields. A successful expense insert tr
 - Alert copy includes the new amount and today's running expense total in toman.
 - Today's total uses the same snapshot sum as the cashflow report for the Tehran Jalali day.
 - Edit of an old expense does not send a second alert. Only create does.
-- Import, recurring post, check settle, loan settle, and subscription settle are creates and do alert.
+- Check settle, loan settle, and subscription settle are creates and do alert.
 
 ## Data
 

@@ -1,6 +1,6 @@
 # Kharjook (خرجوک)
 
-Persian RTL personal finance PWA — assets, wallets, cashflow, loans, goals, and Telegram notifications.
+Persian RTL personal finance PWA — assets, wallets, cashflow, loans, cheques, subscriptions, budget envelopes, goals, and notifications (Telegram and app push).
 
 ## Getting Started
 
@@ -27,17 +27,26 @@ supabase db push
 | Migration | Purpose |
 |-----------|---------|
 | `20250602120000_add_transaction_operation_id.sql` | Transaction grouping |
-| `20250603120000_telegram_notifications.sql` | Telegram + notification tables |
-| `20250604120000_telegram_bot_enhancements.sql` | Bot menu state, price alerts |
+| `20250603120000_telegram_notifications.sql` | Telegram link + notification tables |
+| `20250604120000_telegram_bot_enhancements.sql` | Bot state for the «پرداخت» button on a reminder |
 | `20250605120000_wallet_payment_details.sql` | Wallet card/IBAN fields |
 | `20250606120000_wallet_account_owner_name.sql` | Account holder name |
-| `20250607120000_expense_alert_enabled.sql` | Expense alert toggle column |
 | `20250608120000_performance_indexes.sql` | Query indexes |
-| `20250608130000_expense_alert_default_off.sql` | Expense alerts opt-in (default off) |
 | `20250608140000_expense_alert_delivery_kind.sql` | Dedup enum for expense alerts |
 | `20250608150000_cashflow_rpc.sql` | SQL aggregates for cashflow |
-| `20250609120000_report_digest_opt_in.sql` | Report digests opt-in (default off) |
-| `20250610120000_telegram_quick_add_prefs.sql` | Bot quick-add prefs + undo |
+| `20250611120000_checks.sql` | Cheques |
+| `20250612120000_category_spending_caps.sql` | Monthly caps per category |
+| `20250613120000_wallet_savings_pots.sql` | Savings pots in a wallet |
+| `20250615120000_loan_installment_partial_pay.sql` | Partial installment payment |
+| `20250618120000_subscriptions.sql` | Subscriptions |
+| `20250804120000_loan_asset_denomination.sql` | Loans in an asset (e.g. gold) |
+| `20250804130000_loan_auto_income_asset_check.sql` | Loan auto-income check |
+| `20250928120000_restrict_aggregate_rpcs.sql` | RPC access |
+| `20250928130000_currency_rate_history.sql` | Rate history |
+| `20261108120000_user_preferences.sql` | Home layout |
+| `20261108140000_push_subscriptions.sql` | App push devices |
+| `20261109120000_budget_envelopes.sql` | Budget envelopes |
+| `20261109140000_notification_center.sql` | Per-notification channels, cheque reminder days |
 
 **Baseline schema:** Core tables (`transactions`, `assets`, `wallets`, …) predate these incremental migrations. To capture full prod schema in git:
 
@@ -48,24 +57,28 @@ supabase db pull
 
 Commit the generated snapshot so new contributors can audit RLS and indexes.
 
-## Telegram notifications
+## Notifications (Telegram and app push)
 
-1. Create a bot via [@BotFather](https://t.me/BotFather).
-2. Apply all migrations above.
-3. Deploy and register webhook: `https://YOUR_DOMAIN/api/telegram/webhook`
-4. In app **Settings**, connect Telegram and configure toggles:
-   - **Debt reminder** — daily 09:00 Tehran, today's installments only
-   - **Price change alert** — after manual price refresh in bot
-   - **Expense alert** — opt-in; message on each new expense
-   - **Auto report** — opt-in; daily 9 AM cashflow + portfolio digest
+The Telegram bot only sends notifications and reminders. It has no menus or money actions. Everything else is in the app.
 
-Manual cron test:
+1. Create a bot via [@BotFather](https://t.me/BotFather); set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_WEBHOOK_SECRET`.
+2. Register the webhook: `https://YOUR_DOMAIN/api/telegram/webhook`.
+3. App push (optional): `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:…`).
+4. In the app: **Settings → اعلان‌ها**. Connect Telegram, turn on «اپ روی این دستگاه», and choose for each notification Telegram and/or app:
+   - due today (cheque / installment / subscription) — 10:00
+   - N days before the due date (per item, default 2) — 10:00
+   - each new expense; category cap 80% / 100%
+   - «ثبت هزینه‌های امروز» — 23:00
+   - prices updated — after the daily refresh
+   - periodic report (Telegram only)
+
+Manual job test:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
-  https://YOUR_DOMAIN/api/cron/notifications
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://YOUR_DOMAIN/api/cron/notifications   # 10:00 job
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://YOUR_DOMAIN/api/cron/evening         # 23:00 job
 ```
 
 ## Deploy on Vercel
 
-Cron is defined in [`vercel.json`](vercel.json) (`30 5 * * *` UTC ≈ 09:00 Asia/Tehran).
+Crons are defined in [`vercel.json`](vercel.json): `30 6 * * *` UTC = 10:00 Tehran (`/api/cron/notifications`) and `30 19 * * *` UTC = 23:00 Tehran (`/api/cron/evening`). On the Hobby plan Vercel may run a cron any time within that hour.

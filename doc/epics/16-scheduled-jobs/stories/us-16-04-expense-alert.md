@@ -10,11 +10,11 @@
 
 ## Story
 
-As a user, I want a Telegram message for each new expense, so that I see the amount and today's total.
+As a user, I want a notice (Telegram and/or app) for each new expense, so that I see the amount and today's total.
 
 ## Outcome
 
-When the switch is on and the chat is linked, each expense create sends one message. The switch defaults to off.
+When expense_alert is on for a channel, each expense create sends one notice on that channel. Both channels default to off.
 
 ## Acceptance criteria
 
@@ -28,7 +28,6 @@ When the switch is on and the chat is linked, each expense create sends one mess
 
 - Delivery kind is expense_alert. The dedup key is the transaction id so a retry of the same id does not double send.
 - Today's total is the cashflow expense sum for the Tehran date.
-- Catch-up recurring posts alert only when the due date is today.
 
 ## Data
 

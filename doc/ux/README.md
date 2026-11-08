@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Implemented on `feat/design-system` (phases 0–7). See section 13. |
+| Status | Implemented and merged to `main` (phases 0–7 + rounds in section 14). Some rows below describe features that were later removed: see section 14. |
 | Scope | Improve the existing app. Same features, better UX. |
 | Design | `src/design-system` (Pastel dark). Storybook: `pnpm storybook`. |
 | Baseline | Current behavior = the 46 frontend + 59 backend stories in `doc/`. |
@@ -40,7 +40,7 @@ Today there are 18 unit tests, no end-to-end tests and no CI. So the first phase
 | Tab | Holds |
 | --- | --- |
 | خانه | Dashboard v2 (section 9) |
-| تراکنش‌ها | Ledger, search, filters, CSV export, reports (cashflow + assets), CSV import, recurring |
+| تراکنش‌ها | Ledger, search, filters, CSV export, reports (cashflow + assets) |
 | سبد | Segmented: دارایی‌ها / کیف پول‌ها. Asset and wallet details, prices and rates, goals, PnL screen |
 | برنامه | Upcoming timeline, loans, checks, subscriptions, people, expense plan, caps |
 
@@ -261,7 +261,6 @@ Each row must be checked before its old screen is removed.
 | Manage wallets | `/manage/wallets` | Edit mode (S3) |
 | Ledger: search, type filter, date range, CSV export, edit, delete | `/transactions` | تراکنش‌ها (S15–S16) |
 | Add / edit: 6 types, multi-row, convert, % of balance, today / yesterday, preview | `/transactions/new`, edit | Section 2 (preview = summary row + live balance under the amount) |
-| Recurring transactions | `/manage/recurring` | تراکنش‌ها → دوره‌ای (+ S24) |
 | CSV import | `/manage/import` | تراکنش‌ها → ⋯ → ورود CSV |
 | Categories (income, expense, asset), icons | `/manage/categories` | Inside pickers + Settings → دسته‌بندی‌ها |
 | Spending caps | categories / dashboard | برنامه → سقف‌ها (+ S26) |
@@ -278,8 +277,8 @@ Each row must be checked before its old screen is removed.
 | Currency toggle (toman / USD) | header | Tap the hero; default in Settings |
 | PWA install prompt | shell | Stays |
 | Login, register | `/login`, `/register` | Stay (restyled) |
-| Telegram bot: quick add, SMS import, menus, digests, alerts | API | Unchanged (+ S30 shared actions) |
-| Daily cron alerts | API | Unchanged (+ S25 price fetch, S24 pending recurring) |
+| Telegram bot | API | Notifications and reminders only (section 14) |
+| Daily cron alerts | API | 10:00 + 23:00, per-notification channels (section 14) |
 
 ---
 
@@ -348,3 +347,46 @@ Checks at the end of phase 7: `tsc` clean, ESLint 0 errors, 159 unit tests, 80 P
 
 1. Apply the migrations: `20261108120000_user_preferences.sql`, `20261108130000_recurring_run_review.sql`, `20261108140000_push_subscriptions.sql`.
 2. Optional, for Web Push: `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:…`) in Vercel.
+
+---
+
+## 14. Rounds after phase 7 (1405/08/17–18)
+
+### Added
+
+| What | Where | Notes |
+| --- | --- | --- |
+| Budget envelopes | برنامه → بودجه | Caps are envelopes. Month summary, move money, rollover, cover a shortfall. `budget_envelopes`, `budget_allocations`. |
+| Notifications page | تنظیمات → اعلان‌ها | Channels (Telegram, this device) + a short list; tap a row for two switches (Telegram, app). One model: `notification_settings.channels`. |
+| App push | service worker + `/api/push/subscribe` | Due-today, advance, cap, expense, price-update and 23:00 reminders also go to the app. Test button shows the push service answer. |
+| 23:00 reminder | `/api/cron/evening` | Count and total of today's expenses. |
+| "Prices updated" notice | morning job | After the daily refresh. |
+| Reminder days for cheques | cheque form | Default reminder for every cheque, loan and subscription is 2 days before (all existing rows set to 2). |
+| Plan tab | برنامه | Segments سررسیدها / وام‌ها / طلب و بدهی; management grid at the top; type filter only; finished loans in their own section. |
+| Plan detail pages | چک‌ها, اشتراک‌ها, وام‌ها, اشخاص + forms | New design. Same handlers and rules. |
+| Goals | تنظیمات → اهداف تخصیص | New screen: on-target count, one bar per goal (now vs target marker), gap, buy/sell action; edit in a sheet with live rule checks. |
+| Pull to refresh | every screen | Pull down at the top; reloads data. |
+| Scroll-wheel date picker | every date field | `DateWheel` in the design system. |
+| Amount rounding | everywhere | Compact amounts keep 2 decimals (۱٫۴۵ میلیون, not ۱٫۵). |
+| Foreign-currency deadlines | Plan, Home | ₺/€ shown as such, with the Toman value. |
+
+### Removed completely (code, routes, migrations, tables)
+
+| Feature | Notes |
+| --- | --- |
+| Recurring transactions (تراکنش‌های دوره‌ای) | Screen, daily posting, review on Home. Tables `recurring_transactions`, `recurring_transaction_runs` dropped. |
+| Expense plan (برنامه هزینه) | `/plan`, suggestions. Table `expense_plan_items` dropped. Use budget envelopes instead. |
+| CSV import | `/manage/import`, parser. CSV export stays. |
+| Multi-row form (چندتایی) | «ثبت و بعدی» covers it. |
+| Bank SMS (app inbox and bot) | Ingest webhook, inbox, parser, Telegram SMS import. Tables `sms_inbox`, `sms_ingest_tokens` dropped. |
+| Telegram bot extras | Menus, quick add, undo, reports on demand, wallet info, prices, price-change alert. Columns `menu_stack`, `quick_add_prefs`, `undo_last` dropped. The bot only links, notifies, and handles «پرداخت» on a reminder. |
+| Old notification switches | `enabled`, `price_alert_enabled`, `expense_alert_enabled`, `report_enabled` replaced by `channels` (values moved before the drop). |
+| Settings → آزمایشی | v2 is the only UI; an old flag cookie is ignored. The old v1 shell is deleted. |
+
+### Not done yet (next round)
+
+Old-design screens still to redo: reports (index, cashflow, assets), prices, wallets tab and wallet details, assets tab and asset details, manage pages (assets, wallets, categories), the convert form.
+
+### Category icons
+
+Categories have no icon in the database. The add form picks one by keywords in the category name (`src/features/transactions/v2/category-icon.tsx`), first match wins: کافه/قهوه → coffee; خوراک/غذا/رستوران → food; سوپر/خرید/میوه → cart; تاکسی/اسنپ/بنزین/مترو/سفر → bus; خانه/اجاره/رهن → home; قبض/برق/آب/گاز/اینترنت/موبایل → bolt; دارو/پزشک/بیمه → health; لباس/کفش → shirt; هدیه → gift; حقوق/درآمد/پاداش → money; سود/بهره → trend; قسط/وام/کارت → card; اشتراک → receipt; پس‌انداز/کیف → wallet. No match → a document icon. The tile color is the category's own color if set, else a pastel tint by position.

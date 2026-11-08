@@ -2,14 +2,13 @@
 
 ## Goal
 
-The user can record every transaction mode, review history, and import a CSV.
+The user can record every transaction mode (one form; «ثبت و بعدی» for many in a row) and review history.
 
 ## In scope
 
 - Create and edit form
 - Convert
 - History
-- Import
 
 ## Out of scope
 
@@ -21,4 +20,3 @@ The user can record every transaction mode, review history, and import a CSV.
 - [US-FE-07-02 Open the form with a prefill](stories/us-fe-07-02-prefill.md)
 - [US-FE-07-03 Convert two assets as one step](stories/us-fe-07-03-convert.md)
 - [US-FE-07-04 Search, filter, and export history](stories/us-fe-07-04-history.md)
-- [US-FE-07-05 Preview and confirm a CSV import](stories/us-fe-07-05-import.md)

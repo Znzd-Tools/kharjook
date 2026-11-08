@@ -2,7 +2,7 @@
 
 ## Goal
 
-The server accepts buy, sell, transfer, income, expense, and convert, stores cashflow at the rate of that day, and can import, export, and undo.
+The server accepts buy, sell, transfer, income, expense, and convert, stores cashflow at the rate of that day, and can export.
 
 ## In scope
 
@@ -10,8 +10,6 @@ The server accepts buy, sell, transfer, income, expense, and convert, stores cas
 - Convert as one operation of two rows
 - Delete including convert pairs
 - Search, filter, CSV export
-- CSV import
-- Short undo
 
 ## Out of scope
 
@@ -25,5 +23,3 @@ The server accepts buy, sell, transfer, income, expense, and convert, stores cas
 - [US-06-04 Convert one asset into another as a single operation](stories/us-06-04-convert.md)
 - [US-06-05 Update or delete a transaction](stories/us-06-05-update-delete.md)
 - [US-06-06 List, search, filter, and export transactions](stories/us-06-06-list-export.md)
-- [US-06-07 Import income and expense rows from CSV](stories/us-06-07-csv-import.md)
-- [US-06-08 Undo a transaction for a short time](stories/us-06-08-undo.md)

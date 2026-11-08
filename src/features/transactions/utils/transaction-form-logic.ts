@@ -398,26 +398,17 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
 /** Float noise tolerance when spending a full balance / holding. */
 const FUNDS_EPSILON = 1e-9;
 
-/** Stable key of the form's source endpoint (for multi-row reservations). */
-export function sourceEndpointKey(form: FormState): string | null {
-  if (!form.sourceKind || !form.sourceId) return null;
-  return `${form.sourceKind}:${form.sourceId}`;
-}
-
 /**
  * Blocks submit when source amount exceeds wallet/asset holding (not persons).
  *
- * - When editing, pass `transactions` WITHOUT the edited row, so its own old
- *   amount is not counted against the new one.
- * - `alreadyReserved` = amount earlier rows of the same batch already take
- *   from this same source (multi-row add).
+ * When editing, pass `transactions` WITHOUT the edited row, so its own old
+ * amount is not counted against the new one.
  */
 export function validateSourceFunds(
   form: FormState,
   wallets: Wallet[],
   transactions: Transaction[],
-  persons: { id: string }[],
-  alreadyReserved = 0
+  persons: { id: string }[]
 ): string | null {
   if (form.type === 'INCOME' || form.sourceKind === 'person') return null;
   const bal = sourceBalance(form, wallets, transactions, persons);
@@ -425,7 +416,7 @@ export function validateSourceFunds(
   if (
     bal != null &&
     Number.isFinite(amount) &&
-    amount + alreadyReserved > bal + FUNDS_EPSILON
+    amount > bal + FUNDS_EPSILON
   ) {
     return 'موجودی مبدأ کافی نیست.';
   }

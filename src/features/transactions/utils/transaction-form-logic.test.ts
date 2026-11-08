@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   recomputeTransferTarget,
   validateForm,
-  sourceEndpointKey,
   usdRateAfterDateChange,
   validateSourceFunds,
 } from '@/features/transactions/utils/transaction-form-logic';
@@ -168,10 +167,9 @@ describe('validateSourceFunds — edit, batch and float cases', () => {
     created_at: '2024-01-01',
   } as Wallet;
 
-  it('counts amounts reserved by earlier rows of the same batch', () => {
-    const form = { ...baseForm, sourceAmount: '300' };
-    expect(validateSourceFunds(form, [wallet], [], [], 0)).toBe(null);
-    expect(validateSourceFunds(form, [wallet], [], [], 300)).toBe('موجودی مبدأ کافی نیست.');
+  it('blocks more than the balance', () => {
+    expect(validateSourceFunds({ ...baseForm, sourceAmount: '300' }, [wallet], [], [])).toBe(null);
+    expect(validateSourceFunds({ ...baseForm, sourceAmount: '600' }, [wallet], [], [])).toBe('موجودی مبدأ کافی نیست.');
   });
 
   it('allows spending the exact balance despite float noise', () => {
@@ -180,10 +178,6 @@ describe('validateSourceFunds — edit, batch and float cases', () => {
     expect(validateSourceFunds(form, [w], [], [])).toBe(null);
   });
 
-  it('builds a stable source key', () => {
-    expect(sourceEndpointKey(baseForm)).toBe('wallet:w1');
-    expect(sourceEndpointKey({ ...baseForm, sourceId: null })).toBe(null);
-  });
 });
 
 describe('validateForm — asset to asset transfer', () => {

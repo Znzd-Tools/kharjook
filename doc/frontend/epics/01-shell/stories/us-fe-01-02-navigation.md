@@ -20,7 +20,7 @@ Dashboard, assets, wallets, deadlines, and new transaction are primary. Every ot
 
 1. Given the signed-in shell, when I look at primary navigation, then I can open داشبورد, دارایی‌ها, کیف پول‌ها, سررسید, and ثبت تراکنش.
 2. Given portfolio data is still loading, when I try ثبت تراکنش, then the control is unavailable.
-3. Given I am on home, when I follow secondary navigation, then I can open transactions, reports, prices, manage assets, the expense plan, goals, recurring, CSV import, categories, and settings.
+3. Given I am on home, when I follow secondary navigation, then I can open transactions, reports, prices, manage assets, budget, goals, categories, and settings.
 4. Given a direct URL, when I load it, then that screen renders even if I did not tap the nav.
 
 ## Rules

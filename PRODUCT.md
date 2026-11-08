@@ -25,12 +25,12 @@ Unlike typical Persian expense apps, خرجوک covers **assets + transactions +
 - Mobile-first PWA (portrait, bottom nav, installable); phone is the main surface.
 - Persian UI copy, Jalali calendar, Persian digits, amounts in تومان.
 - Auth via Supabase; data lives in Supabase.
-- Telegram bot for linked-account notifications, digests, and quick actions (opt-in toggles in Settings).
-- Tehran-timezone cron for scheduled alerts (~09:00 Asia/Tehran).
+- Notifications in Telegram and/or app push, chosen per notification in Settings → اعلان‌ها. The bot only notifies (no menus or money actions).
+- Tehran-timezone jobs at 10:00 (due items, reminders, caps, prices, report) and 23:00 (record today's expenses).
 
 ## Capabilities and Constraints
 
-**Confirmed capabilities:** dashboard/home; assets and price sources; wallets (incl. payment details); transactions and import; transfers across assets/wallets; categories; deadlines (loans, checks, subscriptions, persons/debts); goals; plan; cashflow and asset reports; settings including Telegram connection.
+**Confirmed capabilities:** dashboard/home; assets and price sources; wallets (incl. payment details); transactions (no CSV import); transfers across assets/wallets; categories; deadlines (loans, checks, subscriptions, persons/debts); budget envelopes; allocation goals; cashflow and asset reports; settings including notifications (Telegram + app push).
 
 **Hard constraints for future work:**
 - Domain logic stays the same unless the builder changes product rules.
@@ -58,7 +58,7 @@ Unlike typical Persian expense apps, خرجوک covers **assets + transactions +
 2. **Persian-first truth** — RTL, Jalali, تومان, and Persian copy are product facts, not themes.
 3. **Builder as user** — optimize for daily personal use and trust over multi-tenant growth theater.
 4. **Logic before look** — improve UI/UX without rewriting domain rules or inventing capabilities.
-5. **Telegram is real surface** — alerts and bot flows must stay consistent with in-app truth.
+5. **Telegram is a notification channel** — alerts must stay consistent with in-app truth; all actions live in the app.
 
 ## Accessibility & Inclusion
 

@@ -25,10 +25,10 @@ Global behavior on every money screen:
   /transactions, /transactions/new, /transactions/[id]/edit,
   /reports, /reports/cashflow, /reports/assets,
   /prices, /manage/rates, /manage/price-sources,
-  /manage/assets, /manage/categories, /manage/goals, /manage/recurring, /manage/import,
-  /plan, /settings.
+  /manage/assets, /manage/categories, /manage/goals,
+  /budget, /settings, /settings/notifications.
 - Primary areas: داشبورد, دارایی‌ها, ثبت تراکنش (prominent, unavailable while data loads), کیف پول‌ها, سررسید.
-- Secondary areas: تراکنش‌ها, گزارش‌ها, قیمت‌ها و نرخ‌ها, مدیریت دارایی‌ها, برنامه هزینه, اهداف تخصیص, تراکنش‌های دوره‌ای, ورود CSV, دسته‌بندی‌ها, تنظیمات.
+- Secondary areas: تراکنش‌ها, گزارش‌ها, قیمت‌ها و نرخ‌ها, مدیریت دارایی‌ها, بودجه, اهداف تخصیص, دسته‌بندی‌ها, تنظیمات.
 
 Auth
 - Login: email, password, submit, error, loading. If the browser supports WebAuthn, a passkey login button. After registration, a banner: حساب ساخته شد، وارد شو.
@@ -112,18 +112,6 @@ Transaction history (/transactions)
 - Skeleton, empty state, and a state for when older history is still loading.
 - Delete lives on the edit screen and on asset history, with confirm. Conversion delete removes both legs.
 
-Recurring transactions (/manage/recurring)
-- Templates that post income or expense on a schedule.
-- Fields: title, type, amount in toman, wallet, category, interval number and period (day, week, month, year), next due Jalali date, optional end date, active toggle, note.
-- Create, edit, pause and resume, delete.
-- List shows the next due date and whether it is active.
-
-CSV import (/manage/import)
-- Income and expense rows only.
-- Columns: Jalali date, type (income/expense or درآمد/هزینه), amount, wallet name, category name, optional note.
-- Example: 1403/04/15,expense,500000,ملی,خوراک,ناهار
-- Per-line errors. Invalid lines are skipped. Confirm before writing. A successful expense import can raise the expense alert when that setting is on.
-
 Categories (/manage/categories)
 - Tabs: دارایی, درآمد, هزینه.
 - Tree of parent and child. Color. Reorder.
@@ -134,17 +122,16 @@ Categories (/manage/categories)
 Goals (/manage/goals)
 - Scope: one asset, or one asset group.
 - Target: a quantity, or an allocation percent of the portfolio.
-- Show current, target, and drift (ahead or behind).
-- Create, edit, delete with confirm.
+- Summary: how many goals are on target.
+- One card per goal: now / target, one bar with a target marker, the gap, and the buy/sell action to reach it.
+- Create and edit in a sheet; rules checked live (groups ≤ 100%, assets in a group ≤ the group goal, one goal per item and kind). Delete with confirm.
 - Dashboard shows a short preview and a drift summary. This screen is the editor.
 
-Expense plan (/plan)
+Budget (/budget)
 - One Jalali month, with a month switcher.
-- Lines: title, amount toman, optional expense category, note, sort order.
-- Source badge: دستی, قسط, دوره‌ای, چک, اشتراک.
-- Manual lines: add, edit, delete, reorder.
-- Suggestions from remaining installments, pending checks, and recurring expenses for that month. Accepting a suggestion adds the line. A non-manual line is not edited as if it were manual.
-- Month total.
+- Summary: money with no job (income − assigned), income, assigned, spent.
+- One envelope per expense category (the category cap is its monthly amount): bar of spent vs assigned + carry, left or short.
+- Envelope sheet: amount every month or this month only, rollover on/off, move money to another envelope, cover a shortfall, remove.
 
 Reports (/reports)
 - Scope: this Jalali month, this Jalali year, all time.
@@ -210,15 +197,15 @@ Subscriptions
 
 Settings (/settings)
 - Account identity: phone or the local part of the email, shown LTR.
-- Telegram: disconnected state explains the link and offers اتصال تلگرام. Starting a link opens Telegram and shows the URL. Connected state shows متصل, @username, and disconnect.
+- One row «اعلان‌ها و یادآوری‌ها» opens /settings/notifications:
+  - کانال‌ها: Telegram (connected @username + قطع, or اتصال) and «اپ روی این دستگاه» (switch; iPhone: add to home screen first). A collapsed «آزمایش و عیب‌یابی» sends a test push and shows the push service answer.
+  - A short list in three groups. Each row shows the time and where it goes (تلگرام و اپ / تلگرام / اپ / خاموش). Tap → a sheet with a description and two switches:
+    - سررسیدها (10:00): چک امروز, قسط امروز, اشتراک امروز, یادآوری قبل از سررسید (days per item, default 2).
+    - هزینه‌ها: هر هزینه جدید, سقف ماهانه دسته‌ها (80% / 100%), یادآور ثبت هزینه‌ها (23:00).
+    - گزارش و قیمت: به‌روزرسانی قیمت‌ها, گزارش دوره‌ای (Telegram only; daily/weekly, weekday, content).
 - Passkeys: if WebAuthn is missing, say it is unavailable. Otherwise list keys, add one, delete one, with loading and error toasts.
-- Four independent notification switches, each with a short description:
-  - یادآور بدهی: every day at 09:00 Tehran, only installments due that Jalali day.
-  - هشدار تغییر قیمت: after a price refresh from the bot, when a held price moves materially.
-  - هشدار ثبت هزینه: on each new expense from the app or the bot, the amount plus today’s expense total. Off unless the user turns it on.
-  - گزارش خودکار: a 09:00 Tehran digest of cashflow and portfolio. When on, choose روزانه or هفتگی.
 - Logout returns to login.
-- The Telegram chat itself is outside this UI. Settings above must still be designed, because they control that bot. The bot can show today’s and this month’s cashflow, category caps, portfolio value, wallet balances, account payment info, this month’s installments, overdue installments, goal drift, a persons summary, current prices, a price refresh, quick-add income or expense in toman with confirm and undo, and a bank-SMS draft. It also mirrors the four notification switches. Those bot screens are not part of this delivery.
+- The Telegram chat itself is outside this UI. The bot only sends notifications and reminders (with «پرداخت» on an installment reminder); it has no menus.
 
 System UI
 - A dismissible PWA install prompt.

@@ -10,7 +10,7 @@
 
 ## Story
 
-As the operator, I want one protected job each morning in Tehran, so that reminders and posting happen without a logged-in user.
+As the operator, I want two protected jobs a day in Tehran (10:00 and 23:00), so that reminders and price refresh happen without a logged-in user.
 
 ## Outcome
 
@@ -18,16 +18,18 @@ A caller with the cron secret runs the pipeline. Anyone else is forbidden.
 
 ## Acceptance criteria
 
-1. Given the cron secret, when the job is called, then it runs recurring posting, auto price refresh, then per active Telegram connection the sends that are due.
+1. Given the cron secret, when the morning job is called, then it runs auto price refresh (+ the "prices updated" notice), then per user the due-today, advance, cap and report sends on the channels the user turned on (Telegram and/or app push).
+5. Given the cron secret, when the evening job is called, then it sends only the "record today's expenses" reminder (US-16-07).
 2. Given a missing or wrong secret, when the job is called, then the response is 403 and no message is sent.
 3. Given one user's step throws, when the job continues, then other users still run and the error is listed in the result.
-4. Given no active connections, when the job runs, then recurring posts and price refresh still happen.
+4. Given no active Telegram connection, when the job runs, then price refresh and app push sends still happen.
 
 ## Rules
 
-- The schedule is 09:00 Asia/Tehran. The transport cron may be 05:30 UTC. The business clock inside the job is Tehran.
+- Schedules: 10:00 and 23:00 Asia/Tehran (transport cron 06:30 and 19:30 UTC; Vercel Hobby may fire any time within that hour). The business clock inside the job is Tehran.
 - The job is idempotent for a given Tehran date because each send has a delivery key.
-- Order is recurring transactions, then auto price refresh, then messages.
+- Order is auto price refresh, then messages.
+- Which channel gets which notification comes from `notification_settings.channels` (US-15-05).
 
 ## Data
 
@@ -46,7 +48,6 @@ A caller with the cron secret runs the pipeline. Anyone else is forbidden.
 
 ## Dependencies
 
-- US-07-02
 - US-03-06
 - US-15-01
 
