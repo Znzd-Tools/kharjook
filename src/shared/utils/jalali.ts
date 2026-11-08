@@ -26,6 +26,12 @@ export function todayJalaali(): JalaaliDate {
   return { jy, jm, jd };
 }
 
+/** Jalali date of a JS Date (local time). */
+export function jalaaliOfDate(date: Date): JalaaliDate {
+  const { jy, jm, jd } = j.toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  return { jy, jm, jd };
+}
+
 /** Jalali calendar date for a timezone (default Tehran). Use for scheduled notifications. */
 export function todayJalaaliInTimezone(timeZone = 'Asia/Tehran'): JalaaliDate {
   const fmt = new Intl.DateTimeFormat('en-US', {
