@@ -27,24 +27,58 @@ function setup() {
 
 interface PushRow { id: string; endpoint: string; p256dh: string; auth: string }
 
+export interface PushResult {
+  ok: boolean;
+  /** HTTP status from the push service (FCM / Apple / Mozilla), if any. */
+  status: number | null;
+  message: string | null;
+}
+
+/** Send to one subscription. A dead one (404/410) is removed. */
+export async function sendPushToRow(row: PushRow, payload: Record<string, unknown>): Promise<PushResult> {
+  setup();
+  try {
+    const res = await webpush.sendNotification(
+      { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
+      JSON.stringify(payload),
+      { TTL: 60 * 60 * 12, urgency: 'high' }
+    );
+    return { ok: true, status: res.statusCode, message: null };
+  } catch (e) {
+    const err = e as { statusCode?: number; body?: string; message?: string };
+    const status = err.statusCode ?? null;
+    if (status === 404 || status === 410) await createSupabaseAdminClient().from('push_subscriptions').delete().eq('id', row.id);
+    console.error('push failed', status, err.body ?? err.message);
+    return { ok: false, status, message: (err.body ?? err.message ?? '').slice(0, 200) };
+  }
+}
+
 /** Send one payload to every device of a user. Dead subscriptions are removed. */
 export async function sendPushToUser(userId: string, payload: Record<string, unknown>): Promise<number> {
   if (!isPushConfigured()) return 0;
-  setup();
   const admin = createSupabaseAdminClient();
   const { data } = await admin.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('user_id', userId);
   let sent = 0;
-  for (const row of (data ?? []) as PushRow[]) {
-    try {
-      await webpush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }, JSON.stringify(payload), { TTL: 60 * 60 * 12 });
-      sent++;
-    } catch (e) {
-      const status = (e as { statusCode?: number }).statusCode;
-      if (status === 404 || status === 410) await admin.from('push_subscriptions').delete().eq('id', row.id);
-      else console.error('push failed', status);
-    }
-  }
+  for (const row of (data ?? []) as PushRow[]) if ((await sendPushToRow(row, payload)).ok) sent++;
   return sent;
+}
+
+/** Test push to one device of a user (by endpoint). */
+export async function sendTestPush(userId: string, endpoint: string): Promise<PushResult> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth')
+    .eq('user_id', userId)
+    .eq('endpoint', endpoint)
+    .maybeSingle();
+  if (!data) return { ok: false, status: null, message: 'not_saved' };
+  return sendPushToRow(data as PushRow, {
+    title: 'خرجوک',
+    body: `اعلان آزمایشی · ${new Date().toLocaleTimeString('fa-IR', { timeZone: 'Asia/Tehran' })}`,
+    url: '/settings',
+    tag: 'push-test',
+  });
 }
 
 /** Cron step: "due today / tomorrow" pushes with a one-tap "پرداخت شد". */

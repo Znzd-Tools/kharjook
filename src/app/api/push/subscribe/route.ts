@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuthUser, unauthorized } from '@/features/notifications/api/auth-helpers';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
-import { isPushConfigured, sendPushToUser } from '@/features/notifications/push/send-push';
+import { isPushConfigured, sendTestPush } from '@/features/notifications/push/send-push';
 
 export const runtime = 'nodejs';
 
@@ -33,8 +33,9 @@ export async function POST(request: Request) {
     { onConflict: 'endpoint' }
   );
   if (error) return NextResponse.json({ error: 'Save failed' }, { status: 500 });
-  if (body.test) await sendPushToUser(user.id, { title: 'خرجوک', body: 'اعلان روی این دستگاه فعال شد', url: '/', tag: 'push-test' });
-  return NextResponse.json({ ok: true });
+  // The push service answer tells the user which step fails (server → Google/Apple → phone).
+  const test = body.test ? await sendTestPush(user.id, body.endpoint) : null;
+  return NextResponse.json({ ok: true, test });
 }
 
 /** Remove this device's subscription. */

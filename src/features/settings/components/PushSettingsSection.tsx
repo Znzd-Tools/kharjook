@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Section, Switch, toast } from '@/design-system';
+import { Banner, Button, Section, Switch, toast } from '@/design-system';
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -21,6 +21,24 @@ async function swRegistration(): Promise<ServiceWorkerRegistration> {
   ]);
 }
 
+/** Push service behind an endpoint (who must reach the phone). */
+function serviceOf(endpoint: string): string {
+  if (endpoint.includes('googleapis.com')) return 'گوگل (FCM)';
+  if (endpoint.includes('push.apple.com')) return 'اپل';
+  if (endpoint.includes('mozilla')) return 'موزیلا';
+  if (endpoint.includes('windows.com')) return 'مایکروسافت';
+  return new URL(endpoint).host;
+}
+
+function sameKey(sub: PushSubscription, key: Uint8Array): boolean {
+  const k = sub.options?.applicationServerKey;
+  if (!k) return true; // older browsers do not expose it
+  const a = new Uint8Array(k);
+  return a.length === key.length && a.every((v, i) => v === key[i]);
+}
+
+type TestResult = { ok: boolean; status: number | null; message: string | null; at: string; service: string };
+
 const supported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
@@ -31,6 +49,28 @@ const supported = () =>
 export function PushSettingsSection() {
   const [state, setState] = useState<'loading' | 'unsupported' | 'off' | 'on'>('loading');
   const [busy, setBusy] = useState(false);
+  const [perm, setPerm] = useState<NotificationPermission | null>(null);
+  const [service, setService] = useState<string | null>(null);
+  const [test, setTest] = useState<TestResult | null>(null);
+
+  /** Save this device on the server and send a test push; show the push service answer. */
+  const runTest = async (sub: PushSubscription) => {
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...sub.toJSON(), test: true }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { test?: { ok: boolean; status: number | null; message: string | null } };
+    const r: TestResult = {
+      ok: res.ok && Boolean(json.test?.ok),
+      status: json.test?.status ?? (res.ok ? null : res.status),
+      message: json.test?.message ?? (res.ok ? null : 'ذخیره روی سرور انجام نشد'),
+      at: new Date().toLocaleTimeString('fa-IR'),
+      service: serviceOf(sub.endpoint),
+    };
+    setTest(r);
+    return { saved: res.ok, result: r };
+  };
 
   useEffect(() => {
     if (!VAPID) return;
@@ -39,7 +79,10 @@ export function PushSettingsSection() {
       if (!supported()) return alive && setState('unsupported');
       const reg = await navigator.serviceWorker.getRegistration();
       const sub = await reg?.pushManager.getSubscription();
-      if (alive) setState(sub ? 'on' : 'off');
+      if (!alive) return;
+      setPerm(Notification.permission);
+      setService(sub ? serviceOf(sub.endpoint) : null);
+      setState(sub ? 'on' : 'off');
     })();
     return () => {
       alive = false;
@@ -65,9 +108,14 @@ export function PushSettingsSection() {
         const reg = await swRegistration();
         let sub: PushSubscription;
         try {
-          sub =
-            (await reg.pushManager.getSubscription()) ??
-            (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID!) }));
+          const key = urlBase64ToUint8Array(VAPID!);
+          let existing = await reg.pushManager.getSubscription();
+          // A subscription made with an old server key can never receive: replace it.
+          if (existing && !sameKey(existing, key)) {
+            await existing.unsubscribe().catch(() => undefined);
+            existing = null;
+          }
+          sub = existing ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
         } catch (e) {
           const name = (e as Error).name;
           toast.error(
@@ -77,18 +125,16 @@ export function PushSettingsSection() {
           );
           return;
         }
-        const res = await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...sub.toJSON(), test: true }),
-        });
-        if (!res.ok) {
+        const { saved } = await runTest(sub);
+        if (!saved) {
           await sub.unsubscribe().catch(() => undefined);
-          toast.error(res.status === 503 ? 'اعلان روی سرور تنظیم نشده است' : `ذخیره اعلان انجام نشد (${res.status})`);
+          toast.error('ذخیره اعلان روی سرور انجام نشد');
           return;
         }
+        setPerm('granted');
+        setService(serviceOf(sub.endpoint));
         setState('on');
-        toast.success('اعلان روی این دستگاه روشن شد؛ یک اعلان آزمایشی فرستادیم');
+        toast.success('اعلان روشن شد؛ یک اعلان آزمایشی فرستادیم');
       } else {
         const reg = await swRegistration();
         const sub = await reg.pushManager.getSubscription();
@@ -101,6 +147,8 @@ export function PushSettingsSection() {
           await sub.unsubscribe();
         }
         setState('off');
+        setTest(null);
+        setService(null);
         toast.show('اعلان این دستگاه خاموش شد');
       }
     } catch (e) {
@@ -110,14 +158,61 @@ export function PushSettingsSection() {
     }
   };
 
+  const sendTest = async () => {
+    setBusy(true);
+    try {
+      const reg = await swRegistration();
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        setState('off');
+        toast.error('اشتراک این دستگاه پیدا نشد؛ دوباره روشن کن');
+        return;
+      }
+      await runTest(sub);
+    } catch (e) {
+      toast.error(`ارسال آزمایشی انجام نشد: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const failHint = (t: TestResult) => {
+    if (t.message === 'not_saved') return 'این دستگاه روی سرور ثبت نیست. خاموش و دوباره روشن کن.';
+    if (t.status === 401 || t.status === 403) return 'کلید سرور با اشتراک این دستگاه نمی‌خواند. خاموش و دوباره روشن کن.';
+    if (t.status === 404 || t.status === 410) return 'اشتراک این دستگاه منقضی شده. خاموش و دوباره روشن کن.';
+    return `سرویس اعلان جواب داد: ${t.status ?? '—'} ${t.message ?? ''}`;
+  };
+
   return (
     <Section title="اعلان روی این دستگاه" description="یادآوری چک، قسط و اشتراک در روز سررسید و روز قبل، با دکمه «پرداخت شد».">
-      <div className="rounded-card bg-panel p-4">
+      <div className="space-y-3 rounded-card bg-panel p-4">
         {state === 'unsupported' ? (
-          <p className="text-caption text-fg-muted">این مرورگر اعلان را پشتیبانی نمی‌کند. در iPhone اول برنامه را به صفحه اصلی اضافه کن.</p>
+          <p className="text-caption text-fg-muted">این مرورگر اعلان را پشتیبانی نمی‌کند. در iPhone اول برنامه را به صفحه اصلی اضافه کن (iOS 16.4 به بعد).</p>
         ) : (
           <Switch label="یادآوری سررسیدها" checked={state === 'on'} disabled={state === 'loading' || busy} onCheckedChange={(on) => void toggle(on)} />
         )}
+        {state !== 'unsupported' && state !== 'loading' && (
+          <ul className="space-y-1 text-caption text-fg-muted" aria-label="وضعیت اعلان">
+            <li>اجازه اعلان: {perm === 'granted' ? 'داده شده ✓' : perm === 'denied' ? 'بسته ✗ (از تنظیمات مرورگر باز کن)' : 'هنوز پرسیده نشده'}</li>
+            <li>اشتراک این دستگاه: {state === 'on' ? `فعال ✓ · سرویس ${service ?? ''}` : 'خاموش'}</li>
+          </ul>
+        )}
+        {state === 'on' && (
+          <Button size="sm" variant="soft" loading={busy} onClick={() => void sendTest()}>
+            ارسال اعلان آزمایشی
+          </Button>
+        )}
+        {test &&
+          (test.ok ? (
+            <Banner tone="info" title={`سرور اعلان را به ${test.service} داد ✓ · ${test.at}`}>
+              اگر تا یک دقیقه نرسید، مشکل در رسیدن از {test.service} به گوشی است، نه در برنامه.
+              {test.service.startsWith('گوگل') ? ' در ایران گوشی اندروید بدون VPN به سرور اعلان گوگل وصل نمی‌شود؛ با VPN امتحان کن.' : ''} اعلان‌های Chrome و صرفه‌جویی باتری را هم چک کن.
+            </Banner>
+          ) : (
+            <Banner tone="warning" title="اعلان آزمایشی ارسال نشد">
+              {failHint(test)}
+            </Banner>
+          ))}
       </div>
     </Section>
   );
