@@ -1,4 +1,4 @@
-import { AddTransactionView } from '@/features/transactions/components/AddTransactionView';
+import { AddTransactionScreen } from '@/features/transactions/v2/AddTransactionScreen';
 
 export default async function EditTransactionPage({
   params,
@@ -6,5 +6,5 @@ export default async function EditTransactionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <AddTransactionView transactionId={id} />;
+  return <AddTransactionScreen transactionId={id} />;
 }

@@ -17,6 +17,8 @@ export interface AmountFieldProps {
   /** `hero`: big centered amount (add-transaction screen). */
   size?: 'md' | 'hero';
   placeholder?: string;
+  /** Override the unit text (e.g. "گرم" for an asset quantity). Hides the words line. */
+  unitLabel?: string;
   /** Show words under the number ("۱٫۲ میلیون تومان"). Default true. */
   showWords?: boolean;
   autoFocus?: boolean;
@@ -35,6 +37,7 @@ export function AmountField({
   value,
   onValueChange,
   currency = 'TOMAN',
+  unitLabel,
   size = 'md',
   placeholder = '۰',
   showWords = true,
@@ -49,8 +52,8 @@ export function AmountField({
   // Persian digits on screen; the parser accepts both digit sets.
   const display = toPersianDigits(formatCanonicalNumberDisplay(value));
   const num = Number(value || 0);
-  const words = value && num >= 1000 ? formatMoney(num, { currency, compact: true }).text : null;
-  const unit = currency === 'USD' ? 'دلار' : 'تومان';
+  const words = !unitLabel && value && num >= 1000 ? formatMoney(num, { currency, compact: true }).text : null;
+  const unit = unitLabel ?? (currency === 'USD' ? 'دلار' : 'تومان');
 
   if (size === 'hero') {
     return (

@@ -10,6 +10,7 @@ import { BottomNav } from "@/features/shell/components/BottomNav";
 import { MoreHubSheet } from "@/features/shell/components/MoreHubSheet";
 import { PwaInstallPrompt } from "@/shared/components/PwaInstallPrompt";
 import { RouteTransitionBar } from "@/shared/components/RouteTransitionBar";
+import { useTrackNavigation } from '@/shared/hooks/use-safe-back';
 import { haptic } from "@/shared/utils/haptics";
 import { useFlag } from "@/shared/lib/flags/client";
 import { AppShellV2 } from "@/features/shell/v2/AppShellV2";
@@ -22,6 +23,7 @@ export interface ShellProps {
 }
 
 export function Shell({ children, modal }: ShellProps) {
+  useTrackNavigation();
   const v2 = useFlag("v2.shell");
   if (v2) return <AppShellV2 modal={modal}>{children}</AppShellV2>;
   return <ShellV1 modal={modal}>{children}</ShellV1>;

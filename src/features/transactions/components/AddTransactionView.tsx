@@ -10,10 +10,11 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Plus } from 'lucide-react';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import type { DailyPrice, Transaction } from '@/shared/types/domain';
+import type { Transaction } from '@/shared/types/domain';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
 import { undoTransactionInsert } from '@/features/transactions/utils/transaction-undo';
+import { useTradeSnapshots } from '@/features/transactions/hooks/use-trade-snapshots';
 import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
 import { TransactionFormRow } from '@/features/transactions/components/TransactionFormRow';
 import {
@@ -39,7 +40,6 @@ import {
 import {
   buildInitialForm,
   buildPayload,
-  buildTradeSnapshots,
   validateForm,
   validateSourceFunds,
   sourceEndpointKey,
@@ -70,9 +70,7 @@ export function AddTransactionView({
     categories,
     transactions,
     currencyRates,
-    dailyPrices,
     setTransactions,
-    setDailyPrices,
   } = useData();
   const { usdRate } = useUI();
 
@@ -125,6 +123,7 @@ export function AddTransactionView({
   const [formError, setFormError] = useState<string | null>(null);
 
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const persistTradeSnapshots = useTradeSnapshots();
 
   useEffect(() => {
     if (txToEdit) {
@@ -206,68 +205,6 @@ export function AddTransactionView({
 
   const toggleCollapsed = (idx: number) => {
     setCollapsed((prev) => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  /**
-   * Best-effort snapshot of BUY/SELL trades into `daily_prices`.
-   *
-   * Source-priority contract:
-   *   manual > trade > auto   (higher NEVER gets overwritten by lower)
-   *
-   * We implement it client-side with a check-then-upsert:
-   *   1. Build candidate rows from the txs we just saved.
-   *   2. Drop any whose (asset_id, date_string) already has a MANUAL row.
-   *   3. Within this batch, dedupe to one row per (asset_id, date_string),
-   *      keeping the LAST occurrence (matches the user's typing order, and
-   *      for a single-tx edit there's nothing to dedupe).
-   *   4. Regular upsert — overwriting any prior trade/auto row for the
-   *      same key is the correct behavior for edits.
-   *
-   * Race with a concurrent manual save between step 2 and step 4 is
-   * tolerated: this is a single-user mobile app, interactions are serial.
-   *
-   * Failures are logged but NEVER abort the primary save. The live
-   * `assets.price_*` cache is not involved here.
-   */
-  const persistTradeSnapshots = async (txs: Transaction[]) => {
-    const candidates = buildTradeSnapshots(txs, user.id);
-    if (candidates.length === 0) return;
-
-    const manualKeys = new Set(
-      dailyPrices
-        .filter((p) => p.source === 'manual')
-        .map((p) => `${p.asset_id}|${p.date_string}`)
-    );
-
-    const byKey = new Map<
-      string,
-      Omit<DailyPrice, 'created_at' | 'updated_at'>
-    >();
-    for (const row of candidates) {
-      const key = `${row.asset_id}|${row.date_string}`;
-      if (manualKeys.has(key)) continue;
-      byKey.set(key, row); // last wins
-    }
-    const rows = [...byKey.values()];
-    if (rows.length === 0) return;
-
-    const { data, error } = await supabase
-      .from('daily_prices')
-      .upsert(rows, { onConflict: 'user_id,asset_id,date_string' })
-      .select();
-    if (error) {
-      console.error('daily_prices trade snapshot failed', error);
-      return;
-    }
-    const fresh = (data as DailyPrice[]) || [];
-    if (fresh.length === 0) return;
-    setDailyPrices((prev) => {
-      const key = (p: DailyPrice) =>
-        `${p.user_id}|${p.asset_id}|${p.date_string}`;
-      const map = new Map(prev.map((p) => [key(p), p]));
-      for (const p of fresh) map.set(key(p), p);
-      return Array.from(map.values());
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

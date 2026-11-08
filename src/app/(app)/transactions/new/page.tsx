@@ -1,4 +1,4 @@
-import { AddTransactionView } from '@/features/transactions/components/AddTransactionView';
+import { AddTransactionScreen } from '@/features/transactions/v2/AddTransactionScreen';
 import {
   CONVERT_UI_MODE,
   type UiTransactionMode,
@@ -26,6 +26,9 @@ export default async function NewTransactionPage({
     personSide?: string;
     amount?: string;
     type?: string;
+    multi?: string;
+    text?: string;
+    title?: string;
   }>;
 }) {
   const {
@@ -38,6 +41,9 @@ export default async function NewTransactionPage({
     personSide,
     amount,
     type,
+    multi,
+    text,
+    title,
   } = await searchParams;
 
   let defaultUiMode: UiTransactionMode | undefined;
@@ -50,7 +56,7 @@ export default async function NewTransactionPage({
   }
 
   return (
-    <AddTransactionView
+    <AddTransactionScreen
       assetId={assetId}
       walletId={walletId}
       targetAssetId={targetAssetId}
@@ -61,6 +67,8 @@ export default async function NewTransactionPage({
       settleAmount={amount}
       defaultType={defaultType}
       defaultUiMode={defaultUiMode}
+      multi={multi === '1'}
+      text={[title, text].filter(Boolean).join(' ') || undefined}
     />
   );
 }

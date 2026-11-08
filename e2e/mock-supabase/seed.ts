@@ -15,7 +15,8 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
   const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
   return {
     assets: clone(assets).map((a, i) => ({ ...a, order_index: i, created_at: now })),
-    wallets: clone(wallets).map((w, i) => ({ ...w, order_index: i, card_number: null, account_number: null, iban: null, account_owner_name: null })),
+    // Realistic balance for the main wallet (the golden fixture overspends it on purpose).
+    wallets: clone(wallets).map((w, i) => ({ ...w, ...(w.id === 'w-irt' ? { initial_balance: 2_000_000_000 } : {}), order_index: i, card_number: null, account_number: null, iban: null, account_owner_name: null })),
     persons: clone(persons),
     categories: clone(categories).map((c, i) => ({ ...c, order_index: i, created_at: now })),
     currency_rates: clone(currencyRates),

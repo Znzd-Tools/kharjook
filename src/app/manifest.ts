@@ -18,11 +18,22 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'fa',
     dir: 'rtl',
     categories: ['finance', 'productivity'],
+    // Share a bank SMS (or any text) to the app → filled add screen.
+    share_target: {
+      action: '/transactions/new',
+      method: 'GET',
+      params: { title: 'title', text: 'text' },
+    },
     shortcuts: [
       {
-        name: 'ثبت تراکنش',
-        short_name: 'تراکنش',
-        url: '/transactions/new',
+        name: 'ثبت هزینه',
+        short_name: 'هزینه',
+        url: '/transactions/new?type=EXPENSE',
+      },
+      {
+        name: 'ثبت درآمد',
+        short_name: 'درآمد',
+        url: '/transactions/new?type=INCOME',
       },
       {
         name: 'قیمت‌ها و نرخ‌ها',

@@ -1,4 +1,4 @@
-import { AddTransactionView } from '@/features/transactions/components/AddTransactionView';
+import { AddTransactionScreen } from '@/features/transactions/v2/AddTransactionScreen';
 import { Modal } from '@/features/shell/components/Modal';
 
 export default async function EditTransactionModal({
@@ -9,7 +9,7 @@ export default async function EditTransactionModal({
   const { id } = await params;
   return (
     <Modal>
-      <AddTransactionView transactionId={id} />
+      <AddTransactionScreen transactionId={id} />
     </Modal>
   );
 }

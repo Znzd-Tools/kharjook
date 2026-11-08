@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <BaseToast.Portal>
         <BaseToast.Viewport
           dir="rtl"
-          className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--ds-tabbar-height)+env(safe-area-inset-bottom,0px)+0.75rem)] z-(--ds-z-toast) mx-auto flex w-[calc(100%-2rem)] max-w-(--ds-max-width) flex-col-reverse gap-2"
+          className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--ds-tabbar-height)+env(safe-area-inset-bottom,0px)+1.75rem)] z-(--ds-z-toast) mx-auto flex w-[calc(100%-2rem)] max-w-(--ds-max-width) flex-col-reverse gap-2"
         >
           <ToastList />
         </BaseToast.Viewport>

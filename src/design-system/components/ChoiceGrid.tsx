@@ -50,7 +50,8 @@ export function ChoiceGrid<T extends string>({
 }: ChoiceGridProps<T>) {
   return (
     <RadioGroup
-      value={value ?? undefined}
+      // Always controlled: '' = nothing selected (no tile has an empty value).
+      value={value ?? ('' as T)}
       onValueChange={(v) => onValueChange(v as T)}
       className={cn('grid gap-2', { 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[columns], className)}
       {...props}

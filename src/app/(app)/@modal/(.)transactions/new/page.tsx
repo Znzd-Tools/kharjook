@@ -1,4 +1,4 @@
-import { AddTransactionView } from '@/features/transactions/components/AddTransactionView';
+import { AddTransactionScreen } from '@/features/transactions/v2/AddTransactionScreen';
 import { Modal } from '@/features/shell/components/Modal';
 import {
   CONVERT_UI_MODE,
@@ -27,6 +27,9 @@ export default async function NewTransactionModal({
     personSide?: string;
     amount?: string;
     type?: string;
+    multi?: string;
+    text?: string;
+    title?: string;
   }>;
 }) {
   const {
@@ -39,6 +42,9 @@ export default async function NewTransactionModal({
     personSide,
     amount,
     type,
+    multi,
+    text,
+    title,
   } = await searchParams;
 
   let defaultUiMode: UiTransactionMode | undefined;
@@ -52,7 +58,7 @@ export default async function NewTransactionModal({
 
   return (
     <Modal>
-      <AddTransactionView
+      <AddTransactionScreen
         assetId={assetId}
         walletId={walletId}
         targetAssetId={targetAssetId}
@@ -63,6 +69,8 @@ export default async function NewTransactionModal({
         settleAmount={amount}
         defaultType={defaultType}
         defaultUiMode={defaultUiMode}
+      multi={multi === '1'}
+      text={[title, text].filter(Boolean).join(' ') || undefined}
       />
     </Modal>
   );
