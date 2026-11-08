@@ -1,25 +1,20 @@
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Transaction } from '@/shared/types/domain';
 
-const UNDO_WINDOW_MS = 5 * 60 * 1000;
-
+/**
+ * Restore a deleted transaction exactly as it was: same id and
+ * created_at, so same-day replay order (average cost, PnL) is unchanged.
+ *
+ * Before: the restore was refused when the row was CREATED more than
+ * 5 minutes ago (so undo failed for almost every older row), and the
+ * restored row got a new id and created_at.
+ * The undo window is now the toast's lifetime.
+ */
 export async function undoTransactionDelete(
   tx: Transaction,
   onRestore: (tx: Transaction) => void
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const createdAt = Date.parse(tx.created_at);
-  if (!Number.isFinite(createdAt) || Date.now() - createdAt > UNDO_WINDOW_MS) {
-    return { ok: false, error: 'مهلت ۵ دقیقه‌ای لغو تمام شده.' };
-  }
-
-  const { id, created_at, ...rest } = tx;
-  void id;
-  void created_at;
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert([rest])
-    .select()
-    .single();
+  const { data, error } = await supabase.from('transactions').insert([tx]).select().single();
 
   if (error || !data) {
     return { ok: false, error: 'بازگردانی تراکنش ناموفق بود.' };

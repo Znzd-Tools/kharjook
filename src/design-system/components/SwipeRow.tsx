@@ -38,6 +38,8 @@ export function SwipeRow({ children, actions, className }: SwipeRowProps) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; base: number; axis: 'x' | 'y' | null } | null>(null);
+  // The click that ends a drag must not toggle the row again.
+  const justDragged = useRef(false);
 
   const onPointerDown = (e: React.PointerEvent) => {
     start.current = { x: e.clientX, y: e.clientY, base: dx, axis: null };
@@ -65,6 +67,11 @@ export function SwipeRow({ children, actions, className }: SwipeRowProps) {
     const s = start.current;
     start.current = null;
     if (!s || s.axis !== 'x') return;
+    justDragged.current = true;
+    // Some touch browsers send no click after a drag: clear the guard soon.
+    window.setTimeout(() => {
+      justDragged.current = false;
+    }, 350);
     setDragging(false);
     const open = dx > max / 2;
     if (open && s.base === 0) haptic('light');
@@ -97,6 +104,12 @@ export function SwipeRow({ children, actions, className }: SwipeRowProps) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClickCapture={(e) => {
+          if (justDragged.current) {
+            justDragged.current = false;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           if (dx !== 0) {
             e.preventDefault();
             e.stopPropagation();

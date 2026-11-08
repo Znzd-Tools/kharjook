@@ -13,6 +13,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { supabase } from '@/shared/lib/supabase/client';
+import { cacheClear, cacheGet, cacheSet } from '@/shared/lib/cache/idb-cache';
 import { useToast } from '@/shared/components/Toast';
 import {
   fetchProviderQuotes,
@@ -125,6 +126,26 @@ const UIContext = createContext<UIValue | null>(null);
 const FALLBACK_USD_RATE = 60000;
 
 const CURRENCY_MODE_KEY = 'kj_currency_mode';
+/** Bump when the cached shape changes; old snapshots are then ignored. */
+const PORTFOLIO_CACHE_VERSION = 'portfolio-v1';
+
+interface PortfolioSnapshot {
+  savedAt: number;
+  categories: Category[];
+  assets: Asset[];
+  transactions: Transaction[];
+  wallets: Wallet[];
+  currencyRates: CurrencyRate[];
+  persons: Person[];
+  dailyPrices: DailyPrice[];
+  goals: Goal[];
+  priceSourceSettings: PriceSourceSetting[];
+  priceSources: PriceSourceRecord[];
+  spendingCaps: CategorySpendingCap[];
+  checks: Check[];
+  activeSubscriptions: Subscription[];
+  upcomingDeadlines: Array<LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }>;
+}
 
 export interface PortfolioProviderProps {
   initialUser: AuthUser | null;
@@ -185,6 +206,8 @@ export function PortfolioProvider({
 
   const toast = useToast();
   const fetchSeq = useRef(0);
+  /** True once server data has been applied (cache must not overwrite it). */
+  const freshLoaded = useRef(false);
 
   const refreshInternal = useCallback(async (includeExternal: boolean) => {
     if (!user) return;
@@ -416,6 +439,7 @@ export function PortfolioProvider({
       setChecks(nextChecks);
       setActiveSubscriptions(nextActiveSubscriptions);
       setUpcomingDeadlines(nextUpcomingDeadlines);
+      freshLoaded.current = true;
 
       const needsMoreTransactions = transactionTotalCount > TRANSACTIONS_PAGE_SIZE;
       setTransactionsFullyLoaded(!needsMoreTransactions);
@@ -458,6 +482,53 @@ export function PortfolioProvider({
       }
     }
   }, [user, toast]);
+
+  // ── Device cache (S28): open instantly with the last data, then refresh.
+  const cacheKey = user ? `${PORTFOLIO_CACHE_VERSION}:${user.id}` : null;
+
+  useEffect(() => {
+    if (!cacheKey) return;
+    freshLoaded.current = false;
+    let cancelled = false;
+    void cacheGet<PortfolioSnapshot>(cacheKey).then((snap) => {
+      // Never overwrite data that already came from the server.
+      if (cancelled || !snap || freshLoaded.current) return;
+      setCategories(snap.categories);
+      setAssets(snap.assets);
+      setTransactions(snap.transactions);
+      setWallets(snap.wallets);
+      setCurrencyRates(snap.currencyRates);
+      setPersons(snap.persons);
+      setDailyPrices(snap.dailyPrices);
+      setGoals(snap.goals);
+      setPriceSourceSettings(snap.priceSourceSettings);
+      setPriceSources(snap.priceSources);
+      setSpendingCaps(snap.spendingCaps);
+      setChecks(snap.checks);
+      setActiveSubscriptions(snap.activeSubscriptions);
+      setUpcomingDeadlines(snap.upcomingDeadlines);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [cacheKey]);
+
+  // Save a snapshot after a full fresh load and after later changes.
+  useEffect(() => {
+    if (!cacheKey || !freshLoaded.current || !transactionsFullyLoaded || isLoadingData) return;
+    const id = window.setTimeout(() => {
+      const snap: PortfolioSnapshot = {
+        savedAt: Date.now(),
+        categories, assets, transactions, wallets, currencyRates, persons, dailyPrices, goals,
+        priceSourceSettings, priceSources, spendingCaps, checks, activeSubscriptions, upcomingDeadlines,
+      };
+      void cacheSet(cacheKey, snap);
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [
+    cacheKey, transactionsFullyLoaded, isLoadingData, categories, assets, transactions, wallets, currencyRates, persons,
+    dailyPrices, goals, priceSourceSettings, priceSources, spendingCaps, checks, activeSubscriptions, upcomingDeadlines,
+  ]);
 
   const refresh = useCallback(async () => {
     await refreshInternal(false);
@@ -572,6 +643,7 @@ export function PortfolioProvider({
 
   const logout = useCallback(async () => {
     setIsLoadingAuth(true);
+    await cacheClear();
     await supabase.auth.signOut();
     setIsLoadingAuth(false);
   }, []);
@@ -658,7 +730,7 @@ export function PortfolioProvider({
       setCurrencyMode,
       toggleCurrency,
     };
-  }, [currencyMode, currencyRates, toggleCurrency]);
+  }, [currencyMode, currencyRates, toggleCurrency, setCurrencyMode]);
 
   return (
     <AuthContext.Provider value={authValue}>

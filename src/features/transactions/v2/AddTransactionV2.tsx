@@ -36,7 +36,7 @@ import {
   toast,
   type Choice,
 } from '@/design-system';
-import { Download, LayoutGrid, X } from '@/design-system/icons';
+import { Download, LayoutGrid, Trash2, X } from '@/design-system/icons';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { addDays, formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
@@ -47,6 +47,7 @@ import { EndpointSheetPicker, type EndpointKind } from '@/features/transactions/
 import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
 import { useTransactionRow } from '@/features/transactions/hooks/use-transaction-row';
 import { useTradeSnapshots } from '@/features/transactions/hooks/use-trade-snapshots';
+import { useTransactionActions } from '@/features/transactions/hooks/use-transaction-actions';
 import { undoTransactionInsert } from '@/features/transactions/utils/transaction-undo';
 import type { FormState } from '@/features/transactions/utils/transaction-form-types';
 import {
@@ -115,6 +116,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
   const { assets, wallets, persons, categories, transactions, currencyRates, setTransactions } = useData();
   const { usdRate } = useUI();
   const persistTradeSnapshots = useTradeSnapshots();
+  const txActions = useTransactionActions();
 
   const txToEdit = useMemo(
     () => (transactionId ? transactions.find((t) => t.id === transactionId) : undefined),
@@ -514,6 +516,16 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
                 </Button>
               )}
             </>
+          ) : txToEdit ? (
+            <IconButton
+              aria-label="حذف تراکنش"
+              variant="danger"
+              icon={<Trash2 />}
+              onClick={async () => {
+                const rows = convertPair ? [convertPair.sell, convertPair.buy] : [txToEdit];
+                if (await txActions.remove(rows)) goBack();
+              }}
+            />
           ) : undefined
         }
       />

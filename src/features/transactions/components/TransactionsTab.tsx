@@ -22,6 +22,8 @@ import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { currentPeriod } from '@/shared/utils/period';
 import type { Transaction } from '@/shared/types/domain';
 import { Receipt } from 'lucide-react';
+import { useFlag } from '@/shared/lib/flags/client';
+import { LedgerV2 } from '@/features/transactions/v2/LedgerV2';
 
 function inDateRange(tx: Transaction, from: string, to: string): boolean {
   if (!from && !to) return true;
@@ -31,6 +33,12 @@ function inDateRange(tx: Transaction, from: string, to: string): boolean {
 }
 
 export function TransactionsTab() {
+  const v2 = useFlag('v2.ledger');
+  if (v2) return <LedgerV2 />;
+  return <TransactionsTabV1 />;
+}
+
+function TransactionsTabV1() {
   const router = useRouter();
   const {
     transactions,
