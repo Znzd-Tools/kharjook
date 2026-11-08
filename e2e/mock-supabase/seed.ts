@@ -67,22 +67,8 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
       },
     ],
     subscription_payments: [],
-    recurring_transactions: [
-      {
-        id: 'rec1', title: 'اجاره ماهانه', type: 'EXPENSE', amount_toman: 12_000_000, wallet_id: 'w-irt', category_id: 'c-rent',
-        interval_number: 1, interval_period: 'month', next_due_date_string: '1405/09/02', end_date_string: null, is_active: true,
-        note: null, deleted_at: null, ...stamp,
-      },
-    ],
-    // The 1405/08/02 rent expense (t017) was created by the daily job and not reviewed yet.
-    recurring_transaction_runs: [
-      { recurring_id: 'rec1', due_date_string: '1405/08/02', transaction_id: 't017', reviewed_at: null, created_at: now },
-    ],
-    expense_plan_items: [],
     budget_envelopes: [],
     budget_allocations: [],
-    sms_inbox: [],
-    sms_ingest_tokens: [],
     wallet_savings_pots: [],
     price_sources: [],
     price_source_settings: [],

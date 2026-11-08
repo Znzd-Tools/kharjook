@@ -10,14 +10,14 @@ describe('v2 nav config', () => {
     expect(tabForPath('/wallets/w1')?.key).toBe('portfolio');
     expect(tabForPath('/prices')?.key).toBe('portfolio');
     expect(tabForPath('/deadlines/loans')?.key).toBe('plan');
-    expect(tabForPath('/plan')?.key).toBe('plan');
+    expect(tabForPath('/budget')?.key).toBe('plan');
   });
 
   it('keeps every link from the old header and More sheet reachable', () => {
     const reachable = new Set(TABS.flatMap((t) => [t.href, ...(t.subNav ?? []).map((s) => s.href), ...(t.menu ?? []).map((m) => m.href)]));
     for (const href of [
-      '/transactions', '/reports', '/prices', '/manage/assets', '/plan', '/manage/goals',
-      '/manage/recurring', '/manage/import', '/manage/categories', '/settings', '/assets', '/wallets', '/deadlines',
+      '/transactions', '/reports', '/prices', '/manage/assets', '/budget', '/manage/goals',
+      '/manage/categories', '/settings', '/assets', '/wallets', '/deadlines',
       '/manage/wallets', '/manage/rates', '/manage/price-sources',
     ]) {
       expect(reachable.has(href), href).toBe(true);

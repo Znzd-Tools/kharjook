@@ -18,7 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'fa',
     dir: 'rtl',
     categories: ['finance', 'productivity'],
-    // Share a bank SMS (or any text) to the app → filled add screen.
+    // Share quick text to the app (e.g. «۸۵ هزار کافه نقد») → filled add screen.
     share_target: {
       action: '/transactions/new',
       method: 'GET',

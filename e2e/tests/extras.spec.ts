@@ -38,17 +38,6 @@ test('home: change a monthly cap in place', async ({ page }) => {
     .toBe(7_000_000);
 });
 
-test('home: review a recurring transaction', async ({ page }) => {
-  await open(page, '/');
-  await page.getByText('۱ تراکنش خودکار ثبت شد').click();
-  await page.getByRole('dialog').getByRole('button', { name: 'تأیید', exact: true }).click();
-  await expect
-    .poll(async () => (await dbRows<{ transaction_id: string; reviewed_at: string | null }>('recurring_transaction_runs'))[0]?.reviewed_at)
-    .not.toBeNull();
-  await page.keyboard.press('Escape');
-  await expect(page.getByText('۱ تراکنش خودکار ثبت شد')).toHaveCount(0);
-});
-
 test('offline: a new expense waits in the queue and is sent once online', async ({ page }) => {
   const before = new Set((await dbRows<Tx>('transactions')).map((t) => t.id));
   await open(page, '/transactions/new?type=EXPENSE');

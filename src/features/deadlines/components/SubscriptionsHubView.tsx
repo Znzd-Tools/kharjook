@@ -29,8 +29,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import type { Subscription, SubscriptionStatus, Transaction } from '@/shared/types/domain';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
-import { subscriptionDueDatesInPeriod } from '@/features/plan/utils/recurring-due-in-period';
-import { intervalLabel } from '@/features/transactions/utils/recurring-transaction-label';
+import { intervalLabel, subscriptionDueDatesInPeriod } from '@/features/deadlines/utils/subscription-due';
 import {
   formatSubscriptionNativeAmount,
   subscriptionAmountToToman,

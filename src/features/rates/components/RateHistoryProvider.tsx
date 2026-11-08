@@ -18,7 +18,7 @@ const RateHistoryContext = createContext<RateHistories | null>(null);
  *  - loads saved rows from `currency_rate_history` (manual / provider days)
  *  - merges them with what can be rebuilt from snapshots and transactions
  *  - once per session, saves the rebuilt days (never overwriting saved ones)
- *    so server jobs (bot, recurring, settle) can use the same history.
+ *    so server jobs (notifications, settle) can use the same history.
  * If the table is missing, it silently works from the rebuilt data only.
  */
 export function RateHistoryProvider({ children }: { children: ReactNode }) {

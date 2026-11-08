@@ -16,13 +16,8 @@ import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
 import { loanAmountToToman } from '@/features/deadlines/utils/loan-amount';
 import { buildUserNotificationSnapshot } from '@/features/notifications/utils/build-user-snapshot';
-import {
-  formatMonthCashflowMessage,
-  formatTodayCashflowMessage,
-} from '@/features/notifications/telegram/utils/format-today-cashflow';
-import { processRecurringTransactions } from '@/features/transactions/services/process-recurring-transactions';
 import { formatScheduledReportMessage } from '@/features/notifications/telegram/utils/format-scheduled-report';
-import { processCategoryCapAlertsForUser, sendCategoryCapsForUser } from '@/features/categories/services/category-cap-alerts';
+import { processCategoryCapAlertsForUser } from '@/features/categories/services/category-cap-alerts';
 import {
   DEFAULT_REPORT_SETTINGS,
   type ReportNotificationSettings,
@@ -46,23 +41,11 @@ import {
   type TelegramReplyMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
-import { isInPeriod, periodContaining } from '@/shared/utils/period';
-import {
-  loadUserAssetsWithRates,
-  refreshUserPricesFromProviders,
-  processAutoPriceRefresh,
-} from '@/features/notifications/services/server-price-refresh';
-import { formatPortfolioMessage } from '@/features/notifications/telegram/utils/format-portfolio';
-import {
-  formatPriceRefreshResultMessage,
-  formatPricesListMessage,
-} from '@/features/notifications/telegram/utils/format-prices-list';
-import { formatWalletBalancesMessage } from '@/features/notifications/telegram/utils/format-wallets-list';
-import { formatTelegramMoney, toPersianDigits } from '@/features/notifications/telegram/utils/format-helpers';
+import { periodContaining } from '@/shared/utils/period';
+import { processAutoPriceRefresh } from '@/features/notifications/services/server-price-refresh';
 import {
   DEFAULT_NOTIFICATION_SETTINGS as BOT_DEFAULT_NOTIFICATION_SETTINGS,
   loadNotificationEnabled,
-  loadPriceAlertEnabled,
   type BotNotificationSettings,
 } from '@/features/notifications/services/bot-notification-settings';
 import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
@@ -311,161 +294,6 @@ async function sendTelegramInlineToConnection(
   }
 }
 
-export async function sendTodayCashflowForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const data = await loadUserData(userId);
-  const snapshot = buildUserNotificationSnapshot(data);
-  const text = formatTodayCashflowMessage(snapshot.today, snapshot.todayUsd);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function sendMonthCashflowForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const data = await loadUserData(userId);
-  const snapshot = buildUserNotificationSnapshot(data);
-  const text = formatMonthCashflowMessage(snapshot.month, snapshot.monthUsd);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function sendPortfolioForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const data = await loadUserData(userId);
-  const snapshot = buildUserNotificationSnapshot(data);
-  const text = formatPortfolioMessage(snapshot.portfolio);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function sendMonthDebtsForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
-  const monthPeriod = periodContaining('month', today);
-  let items = await loadUnpaidDebtItems(userId);
-  let checks = await loadPendingChecks(userId);
-  let subscriptions = await loadUpcomingSubscriptions(userId);
-  items = items.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
-  checks = checks.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
-  subscriptions = subscriptions.filter((item) => isInPeriod(item.dueDateString, monthPeriod));
-  const text = formatDebtsListMessage(items, 'month', checks, subscriptions);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function sendOverdueDebtsForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup; withPayButtons?: boolean }
-): Promise<void> {
-  let items = await loadUnpaidDebtItems(userId);
-  let checks = await loadPendingChecks(userId);
-  let subscriptions = await loadUpcomingSubscriptions(userId);
-  items = items.filter((item) => item.daysUntilDue < 0);
-  checks = checks.filter((item) => item.daysUntilDue < 0);
-  subscriptions = subscriptions.filter((item) => item.daysUntilDue < 0);
-  const text = formatDebtsListMessage(items, 'overdue', checks, subscriptions);
-  const inline = options?.withPayButtons ? buildInstallmentPayInlineKeyboard(items) : null;
-  if (inline) {
-    await sendTelegramInlineToConnection(connection, text, inline);
-  } else {
-    await sendTelegramToConnection(connection, text, options?.replyMarkup);
-  }
-}
-
-export async function sendWalletBalancesForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const data = await loadUserData(userId);
-  const text = formatWalletBalancesMessage(data);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function sendPricesListForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const { assets, usdRate } = await loadUserAssetsWithRates(userId);
-  const text = formatPricesListMessage(assets, usdRate);
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-}
-
-export async function refreshAndReportPricesForUser(
-  userId: string,
-  connection: TelegramConnection,
-  options?: { replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  const alertEnabled = await loadPriceAlertEnabled(userId);
-  const before = alertEnabled ? await loadUserAssetsWithRates(userId) : null;
-
-  const result = await refreshUserPricesFromProviders(userId);
-  const text = formatPriceRefreshResultMessage({
-    updatedCount: result.updatedCount,
-    usdRate: result.usdRate,
-    failedProviders: result.failedProviders,
-  });
-  await sendTelegramToConnection(connection, text, options?.replyMarkup);
-
-  if (alertEnabled && before) {
-    const after = await loadUserAssetsWithRates(userId);
-    const changes = detectMaterialPriceChanges(before.assets, after.assets);
-    if (changes.length > 0) {
-      const alertText = formatPriceChangeAlert(changes);
-      await sendTelegramToConnection(connection, alertText, options?.replyMarkup);
-    }
-  }
-}
-
-function detectMaterialPriceChanges(
-  before: Awaited<ReturnType<typeof loadUserAssetsWithRates>>['assets'],
-  after: Awaited<ReturnType<typeof loadUserAssetsWithRates>>['assets']
-): Array<{ name: string; oldPrice: number; newPrice: number; pct: number }> {
-  const beforeMap = new Map(before.map((a) => [a.id, a]));
-  const changes: Array<{ name: string; oldPrice: number; newPrice: number; pct: number }> = [];
-
-  for (const asset of after) {
-    const prev = beforeMap.get(asset.id);
-    if (!prev || prev.price_toman <= 0 || asset.price_toman <= 0) continue;
-    const pct = ((asset.price_toman - prev.price_toman) / prev.price_toman) * 100;
-    if (Math.abs(pct) >= 1) {
-      changes.push({
-        name: asset.name,
-        oldPrice: prev.price_toman,
-        newPrice: asset.price_toman,
-        pct,
-      });
-    }
-  }
-
-  return changes.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
-}
-
-function formatPriceChangeAlert(
-  changes: Array<{ name: string; oldPrice: number; newPrice: number; pct: number }>
-): string {
-  const lines = ['📈 تغییر قیمت دارایی‌ها', '────────────'];
-  for (const row of changes.slice(0, 8)) {
-    const arrow = row.pct >= 0 ? '📈' : '📉';
-    lines.push(
-      `${arrow} ${row.name}`,
-      `   ${formatTelegramMoney(row.oldPrice, 'TOMAN')} → ${formatTelegramMoney(row.newPrice, 'TOMAN')} (${toPersianDigits(row.pct.toFixed(1))}٪)`
-    );
-  }
-  lines.push('────────────');
-  return lines.join('\n');
-}
-
 /** Daily cron at 09:00 Tehran — today's installments only, skip if none. */
 export async function sendDebtsListForUser(
   userId: string,
@@ -625,18 +453,16 @@ export async function sendScheduledReportForUser(
   return true;
 }
 
-/** Daily cron at 10:00 Tehran — installments, reports, caps, recurring txs, auto prices. */
+/** Daily cron at 10:00 Tehran — due items, reminders, reports, caps, auto prices. */
 export async function processScheduledNotifications(): Promise<{
   debtsDigestsSent: number;
   reportsDigestsSent: number;
   categoryCapAlertsSent: number;
-  recurringTransactionsCreated: number;
   priceRefreshUsersProcessed: number;
   priceRefreshAssetsUpdated: number;
   errors: string[];
 }> {
-  const recurringResult = await processRecurringTransactions();
-  const errors: string[] = [...recurringResult.errors];
+  const errors: string[] = [];
 
   const priceRefreshResult = await processAutoPriceRefresh();
   errors.push(...priceRefreshResult.errors);
@@ -658,7 +484,6 @@ export async function processScheduledNotifications(): Promise<{
       debtsDigestsSent: 0,
       reportsDigestsSent: 0,
       categoryCapAlertsSent: 0,
-      recurringTransactionsCreated: recurringResult.created,
       priceRefreshUsersProcessed: priceRefreshResult.usersProcessed,
       priceRefreshAssetsUpdated: priceRefreshResult.assetsUpdated,
       errors,
@@ -762,13 +587,11 @@ export async function processScheduledNotifications(): Promise<{
     debtsDigestsSent,
     reportsDigestsSent,
     categoryCapAlertsSent,
-    recurringTransactionsCreated: recurringResult.created,
     priceRefreshUsersProcessed: priceRefreshResult.usersProcessed,
     priceRefreshAssetsUpdated: priceRefreshResult.assetsUpdated,
     errors,
   };
 }
 
-export { sendCategoryCapsForUser };
 
 export { loadUnpaidDebtItems };

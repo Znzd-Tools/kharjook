@@ -5,7 +5,7 @@ import { PortfolioPnlCard } from '@/features/pnl/components/PortfolioPnlCard';
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Plus, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
+import { Activity, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
 import { EntityIcon } from '@/shared/components/EntityIcon';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { FilterChip } from '@/shared/components/FilterChip';

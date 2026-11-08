@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { subscriptionDueDatesInPeriod } from '@/features/plan/utils/recurring-due-in-period';
+import { subscriptionDueDatesInPeriod } from '@/features/deadlines/utils/subscription-due';
 import type { Subscription } from '@/shared/types/domain';
 
 const sub = (next: string): Subscription => ({

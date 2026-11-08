@@ -15,7 +15,7 @@ import {
   LOAN_REMINDER_DAY_OPTIONS,
   normalizeReminderDaysBefore,
 } from '@/features/deadlines/utils/loan-reminder-days';
-import { intervalLabel } from '@/features/transactions/utils/recurring-transaction-label';
+import { intervalLabel } from '@/features/deadlines/utils/subscription-due';
 
 const INTERVAL_OPTIONS: { id: LoanIntervalPeriod; label: string }[] = [
   { id: 'day', label: 'روز' },

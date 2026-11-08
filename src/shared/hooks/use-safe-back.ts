@@ -5,7 +5,7 @@ import { useCallback, useEffect } from 'react';
 
 /**
  * Count client-side route changes in this page load. A full page load
- * (deep link, shared SMS, refresh) starts at 0, so "back" would leave the
+ * (deep link, shared text, refresh) starts at 0, so "back" would leave the
  * app or reload it — then we replace to a fallback instead.
  */
 let inAppNavigations = 0;

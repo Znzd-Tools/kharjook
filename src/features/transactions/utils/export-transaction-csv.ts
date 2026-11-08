@@ -1,5 +1,4 @@
 import type { Asset, Category, Transaction, Wallet } from '@/shared/types/domain';
-import { TRANSACTION_CSV_TEMPLATE } from '@/features/transactions/utils/parse-transaction-csv';
 
 const TYPE_LABELS: Record<Transaction['type'], string> = {
   BUY: 'buy',
@@ -93,4 +92,3 @@ export function downloadTransactionCsv(
   URL.revokeObjectURL(url);
 }
 
-export { TRANSACTION_CSV_TEMPLATE };

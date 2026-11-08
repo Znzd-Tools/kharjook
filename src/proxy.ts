@@ -8,7 +8,6 @@ const PUBLIC_ROUTES = [
   '/api/telegram/webhook',
   '/api/cron/notifications',
   '/api/cron/evening',
-  '/api/sms/ingest',
   '/manifest.webmanifest',
   '/sw.js',
   '/icon',

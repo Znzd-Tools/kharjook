@@ -36,7 +36,7 @@ describe('parseQuickText', () => {
 });
 
 describe('parseEntry', () => {
-  it('falls back to quick text for non-SMS input', () => {
+  it('reads quick text', () => {
     expect(parseEntry('۵۰ هزار کافه', ctx)?.source).toBe('text');
   });
 });

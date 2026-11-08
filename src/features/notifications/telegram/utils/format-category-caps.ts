@@ -3,32 +3,6 @@ import {
   TELEGRAM_SEPARATOR,
   toPersianDigits,
 } from '@/features/notifications/telegram/utils/format-helpers';
-import type { CapStatus } from '@/features/categories/utils/category-spending-caps';
-
-function capIcon(level: CapStatus['level']): string {
-  if (level === 'over') return '🔴';
-  if (level === 'warn') return '🟠';
-  return '🟢';
-}
-
-export function formatCategoryCapsMessage(rows: CapStatus[]): string {
-  const heading = '🎯 سقف هزینه دسته‌ها (این ماه)';
-  if (rows.length === 0) {
-    return `${heading}\n${TELEGRAM_SEPARATOR}\nهنوز سقفی برای دسته‌های هزینه تنظیم نشده.\n${TELEGRAM_SEPARATOR}`;
-  }
-
-  const lines = [heading, TELEGRAM_SEPARATOR, ''];
-  for (const row of rows.slice(0, 12)) {
-    const pct = Math.min(Math.round(row.percent), 999);
-    lines.push(`${capIcon(row.level)} ${row.categoryName}`);
-    lines.push(
-      `   ${toPersianDigits(pct)}٪ · ${formatTelegramMoney(row.spentToman, 'TOMAN')} / ${formatTelegramMoney(row.limitToman, 'TOMAN')}`
-    );
-    lines.push('');
-  }
-  lines.push(TELEGRAM_SEPARATOR);
-  return lines.join('\n').trim();
-}
 
 export function formatCapThresholdAlertMessage(input: {
   categoryName: string;

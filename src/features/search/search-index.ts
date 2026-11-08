@@ -26,11 +26,9 @@ const ACTIONS: { title: string; href: string; words: string[] }[] = [
   { title: 'سود و زیان', href: '/pnl', words: ['سود', 'زیان', 'ضرر'] },
   { title: 'گزارش جریان نقدی', href: '/reports/cashflow', words: ['گزارش', 'جریان'] },
   { title: 'سررسیدها', href: '/deadlines', words: ['سررسید', 'قسط', 'وام', 'چک', 'اشتراک'] },
-  { title: 'برنامه هزینه', href: '/plan', words: ['برنامه', 'بودجه'] },
+  { title: 'بودجه', href: '/budget', words: ['بودجه', 'پاکت'] },
   { title: 'دسته‌بندی‌ها و سقف هزینه', href: '/manage/categories', words: ['دسته', 'سقف'] },
   { title: 'اهداف تخصیص', href: '/manage/goals', words: ['هدف', 'اهداف'] },
-  { title: 'تراکنش‌های دوره‌ای', href: '/manage/recurring', words: ['دوره', 'تکرار'] },
-  { title: 'ورود از CSV', href: '/manage/import', words: ['csv', 'ورود', 'اکسل'] },
   { title: 'تنظیمات', href: '/settings', words: ['تنظیم', 'تلگرام', 'خروج'] },
 ];
 

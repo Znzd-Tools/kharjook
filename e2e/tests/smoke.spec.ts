@@ -4,9 +4,9 @@ import { expect, test } from './fixtures';
 const ROUTES = [
   '/', '/assets', '/assets/gold', '/wallets', '/wallets/w-irt', '/transactions', '/transactions/new',
   '/deadlines', '/deadlines/loans', '/deadlines/checks', '/deadlines/subscriptions', '/deadlines/persons',
-  '/deadlines/persons/p-ali', '/plan', '/prices', '/reports', '/reports/cashflow', '/reports/assets',
+  '/deadlines/persons/p-ali', '/budget', '/prices', '/reports', '/reports/cashflow', '/reports/assets',
   '/settings', '/manage/assets', '/manage/wallets', '/manage/categories', '/manage/goals',
-  '/manage/rates', '/manage/price-sources', '/manage/recurring', '/manage/import',
+  '/manage/rates', '/manage/price-sources',
 ];
 
 for (const route of ROUTES) {

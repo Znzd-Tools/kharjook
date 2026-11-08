@@ -1,4 +1,3 @@
-import { APP_GLOBAL_USD_SLUG } from '@/features/prices/constants/price-sources';
 import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import {
   applyConversionRatesToQuotes,
@@ -22,12 +21,9 @@ import type {
   PriceSourceRecord,
   PriceSourceSetting,
   RateCurrency,
-  Transaction,
 } from '@/shared/types/domain';
-import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { formatJalaali, todayJalaaliInTimezone } from '@/shared/utils/jalali';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
-import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 
 const USD_RATE_SOURCE_SLUG = 'abantether.usdt';
 
@@ -294,27 +290,4 @@ export async function processAutoPriceRefresh(): Promise<{
   }
 
   return { usersProcessed: userIds.length, assetsUpdated, errors, perUser };
-}
-
-export async function loadUserAssetsWithRates(userId: string): Promise<{
-  assets: Asset[];
-  usdRate: number;
-}> {
-  const admin = createSupabaseAdminClient();
-  const [{ data: assets }, { data: rates }, { data: transactions }] = await Promise.all([
-    admin.from('assets').select('*').eq('user_id', userId),
-    admin.from('currency_rates').select('*').eq('user_id', userId),
-    fetchAllUserTransactions(admin, userId),
-  ]);
-  const usdRate =
-    ((rates ?? []) as CurrencyRate[]).find((r) => r.currency === 'USD')?.toman_per_unit ?? 0;
-  const txs = (transactions ?? []) as Transaction[];
-
-  const held = ((assets ?? []) as Asset[]).filter((asset) => {
-    if (asset.include_in_balance === false) return false;
-    const stats = calculateAssetStats(asset, txs, 'TOMAN', usdRate);
-    return stats.totalAmount > 0;
-  });
-
-  return { assets: held, usdRate };
 }

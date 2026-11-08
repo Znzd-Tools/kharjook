@@ -1,22 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import { Grid3x3, Settings } from "lucide-react";
-import { useUI } from "@/features/portfolio/PortfolioProvider";
-import { BottomNav } from "@/features/shell/components/BottomNav";
-import { MoreHubSheet } from "@/features/shell/components/MoreHubSheet";
-import { PwaInstallPrompt } from "@/shared/components/PwaInstallPrompt";
-import { RouteTransitionBar } from "@/shared/components/RouteTransitionBar";
-import { useTrackNavigation } from '@/shared/hooks/use-safe-back';
-import { OutboxSync } from '@/features/transactions/components/OutboxSync';
-import { haptic } from "@/shared/utils/haptics";
-import { useFlag } from "@/shared/lib/flags/client";
+import { useTrackNavigation } from "@/shared/hooks/use-safe-back";
+import { OutboxSync } from "@/features/transactions/components/OutboxSync";
 import { AppShellV2 } from "@/features/shell/v2/AppShellV2";
-
-const TAB_ROUTES = new Set<string>(["/", "/assets", "/wallets", "/deadlines"]);
 
 export interface ShellProps {
   children: ReactNode;
@@ -25,103 +12,10 @@ export interface ShellProps {
 
 export function Shell({ children, modal }: ShellProps) {
   useTrackNavigation();
-  const v2 = useFlag("v2.shell");
   return (
     <>
       <OutboxSync />
-      {v2 ? (
-        <AppShellV2 modal={modal}>{children}</AppShellV2>
-      ) : (
-        <ShellV1 modal={modal}>{children}</ShellV1>
-      )}
+      <AppShellV2 modal={modal}>{children}</AppShellV2>
     </>
-  );
-}
-
-function ShellV1({ children, modal }: ShellProps) {
-  const { currencyMode, toggleCurrency } = useUI();
-  const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const showNav =
-    TAB_ROUTES.has(pathname) ||
-    pathname === "/deadlines/loans" ||
-    pathname === "/deadlines/persons" ||
-    pathname === "/deadlines/checks";
-
-  return (
-    <div className="bg-background text-slate-200 min-h-dvh font-sans flex justify-center selection:bg-purple-500/30">
-      <div className="w-full sm:max-w-md bg-surface-shell relative sm:shadow-2xl flex flex-col h-dvh overflow-hidden sm:border-x border-slate-800">
-        <RouteTransitionBar />
-        <header className="px-6 py-4 pt-safe flex justify-between items-center bg-surface-raised border-b border-white/5 z-10">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/settings"
-              onClick={() => haptic("selection")}
-              aria-label="تنظیمات"
-              className="w-10 h-10 rounded-2xl bg-surface-raised border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-purple-500/40 transition-colors"
-            >
-              <Settings size={18} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                haptic("selection");
-                setMoreOpen(true);
-              }}
-              aria-label="منوی بیشتر"
-              className="w-10 h-10 rounded-2xl bg-surface-raised border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-purple-500/40 transition-colors"
-            >
-              <Grid3x3 size={18} />
-            </button>
-            <button
-              onClick={() => {
-                haptic("selection");
-                toggleCurrency();
-              }}
-              aria-label="تغییر واحد نمایش: تومان یا دلار"
-              className="flex items-center gap-2 bg-surface-hover p-1 rounded-full border border-purple-500/20 transition-all hover:border-purple-500/50"
-            >
-              <div
-                className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${currencyMode === "TOMAN" ? "bg-purple-600 text-white shadow-lg shadow-purple-500/20" : "text-slate-400"}`}
-              >
-                تومان
-              </div>
-              <div
-                className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${currencyMode === "USD" ? "bg-purple-600 text-white shadow-lg shadow-purple-500/20" : "text-slate-400"}`}
-              >
-                دلار
-              </div>
-            </button>
-          </div>
-
-          <Link
-            href="/"
-            onClick={() => haptic("selection")}
-            className="flex flex-col"
-          >
-            <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-l from-purple-400 to-purple-600">
-              خرجوک
-            </h1>
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest">
-              مدیریت دارایی
-            </span>
-          </Link>
-        </header>
-
-        <PwaInstallPrompt />
-
-        <main
-          data-app-scroll="main"
-          className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-24"
-        >
-          {children}
-        </main>
-
-        {modal}
-
-        {showNav && <BottomNav />}
-        <MoreHubSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
-      </div>
-    </div>
   );
 }

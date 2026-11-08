@@ -1,17 +1,15 @@
 /**
  * Turn free text into a draft transaction (S10, S11). Runs on the device.
  *
- *  - Bank SMS (pasted, or shared to the PWA): reuses the Telegram parser.
  *  - Quick text: "۸۵ هزار قهوه نقد", "حقوق ۴۵ میلیون ملت".
  *
  * Output is a DRAFT: the add screen opens with these fields filled and the
  * user confirms. Nothing is saved without a tap.
  */
 import type { Category, Wallet } from '@/shared/types/domain';
-import { looksLikeBankSms, parseBankSms } from '@/features/notifications/telegram/utils/parse-bank-sms';
 
 export interface ParsedEntry {
-  source: 'sms' | 'text';
+  source: 'text';
   type: 'EXPENSE' | 'INCOME';
   amount: number | null;
   categoryId: string | null;
@@ -117,19 +115,5 @@ export function parseQuickText(raw: string, ctx: { categories: Category[]; walle
 }
 
 export function parseEntry(raw: string, ctx: { categories: Category[]; wallets: Wallet[] }): ParsedEntry | null {
-  if (looksLikeBankSms(raw)) {
-    const sms = parseBankSms(raw);
-    if (sms) {
-      const wallet = sms.bankHint ? matchByName(sms.bankHint, ctx.wallets.filter((w) => !w.archived_at)) : null;
-      return {
-        source: 'sms',
-        type: sms.txType,
-        amount: sms.amountToman,
-        categoryId: null,
-        walletId: wallet?.id ?? null,
-        note: sms.note,
-      };
-    }
-  }
   return parseQuickText(raw, ctx);
 }

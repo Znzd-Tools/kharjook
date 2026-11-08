@@ -115,32 +115,6 @@ export interface WalletSavingsPot {
   updated_at: string;
 }
 
-export interface RecurringTransaction {
-  id: string;
-  user_id: string;
-  title: string;
-  type: Extract<TransactionType, 'INCOME' | 'EXPENSE'>;
-  amount_toman: number;
-  wallet_id: string;
-  category_id: string;
-  interval_number: number;
-  interval_period: LoanIntervalPeriod;
-  next_due_date_string: string;
-  end_date_string: string | null;
-  is_active: boolean;
-  note: string | null;
-  deleted_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export type ExpensePlanSourceType =
-  | 'manual'
-  | 'installment'
-  | 'recurring'
-  | 'check'
-  | 'subscription';
-
 export type SubscriptionStatus = 'active' | 'cancelled';
 
 export interface Subscription {
@@ -173,21 +147,6 @@ export interface SubscriptionPayment {
   transaction_id: string;
   paid_at: string;
   created_at: string;
-}
-
-export interface ExpensePlanItem {
-  id: string;
-  user_id: string;
-  month_start_string: string;
-  title: string;
-  amount_toman: number;
-  category_id: string | null;
-  note: string | null;
-  source_type: ExpensePlanSourceType;
-  source_id: string | null;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Person {
@@ -350,10 +309,7 @@ export interface TelegramConnection {
   telegram_username: string | null;
   is_active: boolean;
   linked_at: string;
-  menu_stack?: string[] | null;
   bot_flow?: Record<string, unknown> | null;
-  quick_add_prefs?: Record<string, unknown> | null;
-  undo_last?: { transactionId: string; expiresAt: string } | null;
 }
 
 export interface NotificationSettings {

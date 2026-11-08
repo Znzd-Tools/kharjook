@@ -59,11 +59,6 @@ export async function updateBotNotificationSettings(
   return next;
 }
 
-export async function loadPriceAlertEnabled(userId: string): Promise<boolean> {
-  const settings = await loadBotNotificationSettings(userId);
-  return settings.price_alert_enabled;
-}
-
 export async function loadNotificationEnabled(userId: string): Promise<boolean> {
   const settings = await loadBotNotificationSettings(userId);
   return settings.enabled;

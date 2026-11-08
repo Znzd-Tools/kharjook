@@ -1,14 +1,12 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { Category, CategorySpendingCap, TelegramConnection } from '@/shared/types/domain';
 import {
-  buildCapStatuses,
   capLevelForPercent,
   monthKeyFromPeriod,
   type CapStatus,
 } from '@/features/categories/utils/category-spending-caps';
 import {
   formatCapThresholdAlertMessage,
-  formatCategoryCapsMessage,
 } from '@/features/notifications/telegram/utils/format-category-caps';
 import { TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
 import {
@@ -117,22 +115,6 @@ export async function loadCapStatusesForUser(userId: string): Promise<CapStatus[
   }
 
   return rows.sort((a, b) => b.percent - a.percent);
-}
-
-export async function sendCategoryCapsForUser(
-  userId: string,
-  connection: TelegramConnection
-): Promise<void> {
-  const rows = await loadCapStatusesForUser(userId);
-  const text = formatCategoryCapsMessage(rows);
-  try {
-    await sendTelegramMessage(connection.telegram_chat_id, text);
-  } catch (err) {
-    if (err instanceof TelegramSendError && err.blocked) {
-      await markConnectionInactive(userId);
-    }
-    throw err;
-  }
 }
 
 export async function processCategoryCapAlertsForUser(

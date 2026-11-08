@@ -1,11 +1,13 @@
 const TELEGRAM_API = 'https://api.telegram.org';
 
-export type TelegramReplyMarkup = {
-  keyboard: Array<Array<{ text: string }>>;
-  resize_keyboard?: boolean;
-  is_persistent?: boolean;
-  input_field_placeholder?: string;
-};
+export type TelegramReplyMarkup =
+  | {
+      keyboard: Array<Array<{ text: string }>>;
+      resize_keyboard?: boolean;
+      is_persistent?: boolean;
+      input_field_placeholder?: string;
+    }
+  | { remove_keyboard: true };
 
 export type TelegramInlineButton =
   | { text: string; callback_data: string }

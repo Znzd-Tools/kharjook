@@ -6,7 +6,6 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Fab, TabBar, type TabBarItem } from '@/design-system';
 import { CalendarDays, Home, PieChart, Receipt } from '@/design-system/icons';
 import { useData } from '@/features/portfolio/PortfolioProvider';
-import { useSmsNewCount } from '@/features/sms/hooks/use-sms-inbox';
 import { countDueSoon } from '@/features/deadlines/utils/due-soon';
 import { todayJalaali } from '@/shared/utils/jalali';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
@@ -49,13 +48,12 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
     [upcomingDeadlines, checks, activeSubscriptions]
   );
 
-  const smsNew = useSmsNewCount();
   const items: TabBarItem[] = TABS.map((t) => ({
     key: t.key,
     label: t.label,
     href: t.href,
     icon: ICONS[t.key],
-    badge: t.key === 'plan' ? dueSoon : t.key === 'ledger' && smsNew > 0 ? smsNew : undefined,
+    badge: t.key === 'plan' ? dueSoon : undefined,
   }));
 
   return (

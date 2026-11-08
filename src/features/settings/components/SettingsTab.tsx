@@ -3,23 +3,20 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, Button, List, ListRow, Section, SegmentedControl, TopBar, useConfirm } from '@/design-system';
-import { Download, LayoutGrid, Percent, Repeat, Target, TrendingUp } from '@/design-system/icons';
+import { LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
 import { useAuth, useUI } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { TelegramConnectionSection } from '@/features/settings/components/TelegramConnectionSection';
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
-import { SmsSettingsSection } from '@/features/sms/components/SmsSettingsSection';
 import { NotificationCenterSection } from '@/features/settings/components/NotificationCenterSection';
 import { PushSettingsSection } from '@/features/settings/components/PushSettingsSection';
 
 const LINKS = [
   { href: '/manage/categories', title: 'دسته‌بندی‌ها و سقف هزینه', icon: <LayoutGrid />, tone: 'peach' as const },
-  { href: '/manage/recurring', title: 'تراکنش‌های دوره‌ای', icon: <Repeat />, tone: 'mint' as const },
   { href: '/manage/goals', title: 'اهداف تخصیص', icon: <Target />, tone: 'lilac' as const },
   { href: '/manage/rates', title: 'نرخ ارزها', icon: <Percent />, tone: 'sky' as const },
   { href: '/manage/price-sources', title: 'منابع قیمت', icon: <TrendingUp />, tone: 'lemon' as const },
-  { href: '/manage/import', title: 'ورود تراکنش از CSV', icon: <Download />, tone: 'rose' as const },
 ];
 
 export function SettingsTab() {
@@ -90,7 +87,6 @@ export function SettingsTab() {
         <NotificationSettingsSection />
         <PushSettingsSection />
         <NotificationCenterSection />
-        <SmsSettingsSection />
 
         <Button variant="danger" fullWidth size="lg" onClick={handleLogout}>
           خروج از حساب

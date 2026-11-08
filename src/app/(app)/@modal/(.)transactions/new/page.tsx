@@ -5,7 +5,6 @@ import {
   type UiTransactionMode,
 } from '@/features/transactions/utils/convert-transaction';
 import type { TransactionType } from '@/shared/types/domain';
-import { draftFromParams } from '@/features/transactions/utils/entry-draft';
 
 const VALID_TYPES: ReadonlySet<TransactionType> = new Set([
   'BUY',
@@ -28,19 +27,8 @@ export default async function NewTransactionModal({
     personSide?: string;
     amount?: string;
     type?: string;
-    multi?: string;
     text?: string;
     title?: string;
-    src?: string;
-    dst?: string;
-    amt?: string;
-    side?: string;
-    date?: string;
-    note?: string;
-    sms?: string;
-    pair?: string;
-    to?: string;
-    from?: string;
   }>;
 }) {
   const {
@@ -53,11 +41,9 @@ export default async function NewTransactionModal({
     personSide,
     amount,
     type,
-    multi,
     text,
     title,
   } = await searchParams;
-  const draft = draftFromParams(await searchParams);
 
   let defaultUiMode: UiTransactionMode | undefined;
   let defaultType: TransactionType | undefined;
@@ -81,9 +67,7 @@ export default async function NewTransactionModal({
         settleAmount={amount}
         defaultType={defaultType}
         defaultUiMode={defaultUiMode}
-      multi={multi === '1'}
       text={[title, text].filter(Boolean).join(' ') || undefined}
-        draft={draft ?? undefined}
       />
     </Modal>
   );

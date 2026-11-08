@@ -2,22 +2,59 @@ import { settleLoanInstallment } from '@/features/deadlines/services/settle-loan
 import { isAssetLoan } from '@/features/deadlines/utils/loan-amount';
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
 import type { Loan, LoanInstallment, TelegramConnection, Wallet } from '@/shared/types/domain';
-import { clearBotFlow, getConnectionByChatId, setBotFlow } from '@/features/notifications/telegram/bot-nav';
-import { handleQuickAddCallback } from '@/features/notifications/telegram/bot-quick-add';
-import { handleSmsImportCallback } from '@/features/notifications/telegram/bot-sms-import';
-import { undoLastBotTransaction } from '@/features/notifications/services/bot-undo-transaction';
-import { handleWalletInfoCallback } from '@/features/notifications/services/bot-wallet-info';
 import {
   answerTelegramCallback,
   editTelegramMessage,
   sendTelegramInlineMessage,
   type TelegramInlineMarkup,
 } from '@/features/notifications/telegram/utils/telegram-client';
-import {
-  MSG_SETTLE_ALREADY,
-  MSG_SETTLE_OK,
-  MSG_TX_UNDONE,
-} from '@/features/notifications/telegram/utils/telegram-copy';
+import { sendTelegramMessage } from '@/features/notifications/telegram/utils/telegram-client';
+
+/*
+ * The Telegram bot only sends notifications and reminders (Ali, 1405/08).
+ * Kept here: linking (/start <token>, in the webhook) and the «پرداخت»
+ * button on installment reminders. Every other message gets BOT_ONLY_NOTIFY.
+ */
+
+export const MSG_SETTLE_OK = '✅ قسط تسویه شد و تراکنش ثبت شد.';
+export const MSG_SETTLE_ALREADY = 'ℹ️ این قسط قبلاً پرداخت شده.';
+export const BOT_LINKED = `✅ اتصال برقرار شد!
+
+از این به بعد یادآوری چک، قسط و اشتراک و اعلان‌هایی که در اپ روشن کرده‌ای اینجا می‌آید.
+تنظیم اعلان‌ها: اپ ← تنظیمات ← اعلان‌ها.`;
+export const BOT_UNLINKED = `👋 سلام!
+
+این ربات اعلان‌ها و یادآوری‌های خرجوک را می‌فرستد. برای وصل شدن، در اپ به تنظیمات ← اعلان‌ها ← «اتصال تلگرام» برو.`;
+export const BOT_ONLY_NOTIFY = 'ℹ️ این ربات فقط اعلان‌ها و یادآوری‌ها را می‌فرستد. برای ثبت تراکنش یا تغییر تنظیمات از اپ استفاده کن.';
+
+export async function getConnectionByChatId(chatId: number): Promise<TelegramConnection | null> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('telegram_connections')
+    .select('*')
+    .eq('telegram_chat_id', chatId)
+    .eq('is_active', true)
+    .maybeSingle();
+  return (data as TelegramConnection | null) ?? null;
+}
+
+async function setBotFlow(chatId: number, flow: Record<string, unknown> | null): Promise<void> {
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from('telegram_connections')
+    .update({ bot_flow: flow })
+    .eq('telegram_chat_id', chatId)
+    .eq('is_active', true);
+  if (error) throw new Error(`bot_flow update failed: ${error.message}`);
+}
+
+const clearBotFlow = (chatId: number) => setBotFlow(chatId, null);
+
+/** Any text that is not /start: the bot has no menus. */
+export async function handleBotText(chatId: number): Promise<void> {
+  const connection = await getConnectionByChatId(chatId);
+  await sendTelegramMessage(chatId, connection ? BOT_ONLY_NOTIFY : BOT_UNLINKED);
+}
 
 type PayInstallmentFlow = {
   type: 'pay_installment';
@@ -196,61 +233,24 @@ export async function handleBotCallback(input: {
     await answerTelegramCallback(input.callbackQueryId, 'ابتدا از اپ وصل شوید.');
     return;
   }
-
   const { data, callbackQueryId, chatId, messageId } = input;
 
-  if (data === 'undo:last') {
-    const result = await undoLastBotTransaction(connection.user_id);
-    await answerTelegramCallback(callbackQueryId, result.ok ? MSG_TX_UNDONE : result.error);
-    if (messageId) {
-      await editTelegramMessage(
-        chatId,
-        messageId,
-        result.ok ? `✅ ${MSG_TX_UNDONE}` : `❌ ${result.error}`
-      );
-    }
-    return;
-  }
-
-  if (data.startsWith('qa:')) {
-    await handleQuickAddCallback(chatId, data, connection, callbackQueryId, messageId);
-    return;
-  }
-
-  if (data.startsWith('si:')) {
-    await handleSmsImportCallback(chatId, data, connection, callbackQueryId, messageId);
-    return;
-  }
-
   if (data.startsWith('pi:')) {
-    const installmentId = data.slice(3);
-    await handlePayInstallmentStart(chatId, connection, installmentId, callbackQueryId, messageId);
+    await handlePayInstallmentStart(chatId, connection, data.slice(3), callbackQueryId, messageId);
     return;
   }
-
   if (data === 'pw:cancel') {
     await clearBotFlow(chatId);
     await answerTelegramCallback(callbackQueryId, 'لغو شد.');
-    if (messageId) {
-      await editTelegramMessage(chatId, messageId, '❌ پرداخت لغو شد.');
-    }
+    if (messageId) await editTelegramMessage(chatId, messageId, '❌ پرداخت لغو شد.');
     return;
   }
-
   if (data.startsWith('pw:')) {
     const fresh = await getConnectionByChatId(chatId);
     if (!fresh) return;
-    const index = Number(data.slice(3));
-    await handlePayWalletPick(chatId, fresh, index, callbackQueryId, messageId);
+    await handlePayWalletPick(chatId, fresh, Number(data.slice(3)), callbackQueryId, messageId);
     return;
   }
-
-  if (data.startsWith('wi:')) {
-    const walletId = data.slice(3);
-    await answerTelegramCallback(callbackQueryId);
-    await handleWalletInfoCallback(connection, walletId);
-    return;
-  }
-
-  await answerTelegramCallback(callbackQueryId);
+  // Buttons from old menus (removed features).
+  await answerTelegramCallback(callbackQueryId, 'این گزینه دیگر وجود ندارد.');
 }

@@ -47,7 +47,6 @@ import {
   RefreshCw,
   Settings,
   Zap,
-  MessageMoney,
 } from "@/design-system/icons";
 import {
   addDays,
@@ -76,7 +75,6 @@ import {
   todayMarketMove,
   topMovers,
 } from "@/features/dashboard/utils/insights";
-import { RecurringReview } from './RecurringReview';
 import { CapSheet } from "@/features/categories/components/CapSheet";
 import { GoalsDriftWidget } from "@/features/dashboard/components/GoalsDriftWidget";
 import { buildCapStatuses } from "@/features/categories/utils/category-spending-caps";
@@ -94,7 +92,6 @@ import { buildPnlSummary } from "@/features/pnl/utils/pnl-summary";
 import { netWorthChangeThisMonth } from "@/features/pnl/utils/net-worth-change";
 import { BLOCKS, moveBlock, type BlockKey } from "./blocks";
 import { useDashboardLayout } from "./use-dashboard-layout";
-import { useSmsNewCount } from "@/features/sms/hooks/use-sms-inbox";
 import { DeadlineAmount } from "@/features/deadlines/v2/DeadlineAmount";
 
 const PRIVACY_KEY = "kj_privacy";
@@ -294,7 +291,6 @@ export function HomeV2() {
     wallets[0]?.id ??
     null;
 
-  const smsNew = useSmsNewCount();
   const attention: {
     key: string;
     icon: ReactNode;
@@ -302,14 +298,6 @@ export function HomeV2() {
     href: string;
     tone: "warning" | "negative";
   }[] = [];
-  if (smsNew > 0)
-    attention.push({
-      key: "sms",
-      icon: <MessageMoney />,
-      text: `${smsNew.toLocaleString("fa-IR")} پیامک بانکی منتظر تأیید`,
-      href: "/transactions/sms",
-      tone: "warning",
-    });
   if (!usdRateIsSet)
     attention.push({
       key: "usd",
@@ -895,8 +883,6 @@ export function HomeV2() {
           }
         />
       )}
-
-      <RecurringReview />
 
       {layout.order
         .filter((k) => !layout.hidden.includes(k))

@@ -41,8 +41,6 @@ export const TABS: TabConfig[] = [
       { href: '/reports', label: 'گزارش‌ها', match: ['/reports'] },
     ],
     menu: [
-      { href: '/manage/recurring', label: 'تراکنش‌های دوره‌ای', icon: 'repeat' },
-      { href: '/manage/import', label: 'ورود از CSV', icon: 'upload' },
       { href: '/manage/categories', label: 'دسته‌بندی‌ها و سقف‌ها', icon: 'grid' },
       { href: '/settings', label: 'تنظیمات', icon: 'settings' },
     ],
@@ -72,12 +70,11 @@ export const TABS: TabConfig[] = [
     key: 'plan',
     label: 'برنامه',
     href: '/deadlines',
-    prefixes: ['/deadlines', '/budget', '/plan'],
+    prefixes: ['/deadlines', '/budget'],
     title: 'برنامه',
     subNav: [
       { href: '/deadlines', label: 'سررسیدها', match: ['/deadlines'] },
       { href: '/budget', label: 'بودجه' },
-      { href: '/plan', label: 'برنامه هزینه' },
     ],
     menu: [
       { href: '/manage/categories', label: 'دسته‌بندی‌ها و سقف‌ها', icon: 'grid' },
@@ -98,7 +95,7 @@ export function tabForPath(pathname: string): TabConfig | null {
 const ROOTS = new Set([
   '/', '/transactions', '/reports', '/reports/cashflow', '/reports/assets',
   '/assets', '/wallets', '/prices', '/pnl',
-  '/deadlines', '/budget', '/plan',
+  '/deadlines', '/budget',
 ]);
 
 export function isTabRoot(pathname: string): boolean {

@@ -9,7 +9,7 @@ export const maxDuration = 60;
 /**
  * Daily jobs (Vercel cron, Tehran time):
  *  - 10:00 (default): due today + "N days before" (Telegram + push), reports,
- *    caps, recurring transactions, price refresh (+ "prices updated").
+ *    caps, price refresh (+ "prices updated").
  *  The 23:00 expense reminder is /api/cron/evening.
  */
 export async function GET(request: Request) {
