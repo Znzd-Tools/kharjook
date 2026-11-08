@@ -131,10 +131,10 @@ test('deep link: closing goes to the ledger, not out of the app', async ({ page 
   await expect(page).toHaveURL(/\/transactions$/);
 });
 
-test('multi-row entry still opens the classic form', async ({ page }) => {
+test('no multi-row form any more; «ثبت و بعدی» is visible instead', async ({ page }) => {
   await open(page, '/transactions/new?type=EXPENSE');
-  await page.getByText('چندتایی', { exact: true }).click();
-  await expect(page.getByRole('button', { name: /افزودن تراکنش دیگر/ })).toBeVisible();
+  await expect(page.getByText('چندتایی', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'ثبت و بعدی' })).toBeVisible();
 });
 
 test('convert opens with its form', async ({ page }) => {

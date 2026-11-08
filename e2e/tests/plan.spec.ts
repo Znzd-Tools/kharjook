@@ -58,15 +58,12 @@ test('every hub stays reachable (one segment each)', async ({ page }) => {
   await expect(page.getByText('همه اشخاص')).toBeVisible();
 });
 
-test('plan: filter by kind and by category; foreign currency is not shown as Toman', async ({ page }) => {
+test('plan: filter by type only (no category filter)', async ({ page }) => {
   await open(page, '/deadlines');
+  await expect(page.getByRole('group', { name: 'دسته' })).toHaveCount(0);
   await page.getByRole('button', { name: 'چک', exact: true }).click();
   await expect(page.getByRole('button', { name: 'پرداخت چک آقای رضایی' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'پرداخت وام مسکن' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'همه', exact: true }).click();
-  await page.getByRole('button', { name: 'خوراک', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'پرداخت اینترنت' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'پرداخت چک آقای رضایی' })).toHaveCount(0);
 });
 
 test('plan: a Lira subscription shows ₺, not Toman', async ({ page }) => {

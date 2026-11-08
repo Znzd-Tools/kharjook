@@ -1,5 +1,7 @@
-import { ManageGoalsView } from '@/features/goals/components/ManageGoalsView';
+import { GoalsView } from '@/features/goals/components/GoalsView';
 
-export default function ManageGoalsPage() {
-  return <ManageGoalsView />;
+export const metadata = { title: 'اهداف تخصیص' };
+
+export default function GoalsPage() {
+  return <GoalsView />;
 }

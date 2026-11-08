@@ -44,11 +44,13 @@ test('sub navigation inside a tab', async ({ page }) => {
   await expect(page).toHaveURL(/\/prices$/);
 });
 
-test('⋯ menu keeps every old "More" link reachable', async ({ page }) => {
+test('⋯ menu links work (categories)', async ({ page }) => {
   await open(page, '/transactions');
   await page.getByRole('button', { name: 'گزینه‌های بیشتر' }).click();
-  await page.getByRole('menuitem', { name: 'ورود از CSV' }).click();
-  await expect(page).toHaveURL(/\/manage\/import/);
+  await expect(page.getByRole('menuitem', { name: 'ورود از CSV' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'تراکنش‌های دوره‌ای' })).toHaveCount(0);
+  await page.getByRole('menuitem', { name: 'دسته‌بندی‌ها و سقف‌ها' }).click();
+  await expect(page).toHaveURL(/\/manage\/categories/);
 });
 
 test('avatar opens settings; an old "off" cookie cannot bring the old shell back', async ({ page, context }) => {
