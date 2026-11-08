@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import { DeadlinesTab } from '@/features/deadlines/components/DeadlinesTab';
 
 export default function DeadlinesPage() {
-  return <DeadlinesTab />;
+  return (
+    <Suspense>
+      <DeadlinesTab />
+    </Suspense>
+  );
 }

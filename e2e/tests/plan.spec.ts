@@ -43,13 +43,35 @@ test('partial payment of an installment', async ({ page }) => {
 
 test('person settle opens a pre-filled transfer', async ({ page }) => {
   await open(page, '/deadlines');
+  await page.getByRole('radio', { name: /طلب و بدهی/ }).click();
+  await expect(page).toHaveURL(/v=people/);
   await page.getByRole('button', { name: 'تسویه' }).click();
   await expect(page).toHaveURL(/type=TRANSFER.*personId=p-ali/);
 });
 
-test('every hub stays reachable', async ({ page }) => {
+test('every hub stays reachable (one segment each)', async ({ page }) => {
   await open(page, '/deadlines');
-  for (const name of ['اقساط و وام‌ها', 'چک‌ها', 'اشتراک‌ها', 'اشخاص']) {
-    await expect(page.getByRole('link', { name: new RegExp(name) }).last()).toBeVisible();
-  }
+  for (const name of ['چک‌ها', 'اشتراک‌ها']) await expect(page.getByRole('link', { name: new RegExp(name) }).last()).toBeVisible();
+  await page.getByRole('radio', { name: /وام‌ها/ }).click();
+  await expect(page.getByText('مدیریت و وام جدید')).toBeVisible();
+  await page.getByRole('radio', { name: /طلب و بدهی/ }).click();
+  await expect(page.getByText('همه اشخاص')).toBeVisible();
+});
+
+test('plan: filter by kind and by category; foreign currency is not shown as Toman', async ({ page }) => {
+  await open(page, '/deadlines');
+  await page.getByRole('button', { name: 'چک', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'پرداخت چک آقای رضایی' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'پرداخت وام مسکن' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'همه', exact: true }).click();
+  await page.getByRole('button', { name: 'خوراک', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'پرداخت اینترنت' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'پرداخت چک آقای رضایی' })).toHaveCount(0);
+});
+
+test('plan: a Lira subscription shows ₺, not Toman', async ({ page }) => {
+  await open(page, '/deadlines');
+  const row = page.getByRole('listitem').filter({ hasText: 'Spotify' });
+  await expect(row).toContainText('₺');
+  await expect(row).toContainText('۹۹٫۹۹');
 });

@@ -60,6 +60,11 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
         next_due_date_string: '1405/08/20', wallet_id: 'w-irt', category_id: 'c-food', status: 'active',
         cancelled_at: null, reminder_days_before: [1], note: null, deleted_at: null, ...stamp,
       },
+      {
+        id: 'sub2', platform: 'Spotify', amount: 99.99, currency: 'TRY', interval_number: 1, interval_period: 'month',
+        next_due_date_string: '1405/08/25', wallet_id: 'w-irt', category_id: null, status: 'active',
+        cancelled_at: null, reminder_days_before: [1], note: null, deleted_at: null, ...stamp,
+      },
     ],
     subscription_payments: [],
     recurring_transactions: [

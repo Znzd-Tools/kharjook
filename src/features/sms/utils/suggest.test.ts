@@ -59,7 +59,7 @@ describe('buildSuggestion', () => {
   it('suggests paying a matching check', () => {
     const s = buildSuggestion(row('a', 'بانک ملت\nبرداشت چک\nمبلغ:120,000,000\nمانده:5,000,000'), {
       ...ctx([]),
-      deadlines: [{ key: 'check:c1', kind: 'check', id: 'c1', title: 'رضایی', due: '1405/08/19', amount: 12_000_000, currency: 'IRT', assetId: null, walletId: null, bucket: 'week', daysLeft: 2, partial: false }],
+      deadlines: [{ key: 'check:c1', kind: 'check', id: 'c1', title: 'رضایی', due: '1405/08/19', amount: 12_000_000, currency: 'IRT', assetId: null, walletId: null, bucket: 'week', daysLeft: 2, partial: false, categoryId: null }],
     });
     expect(s.choices[0]).toMatchObject({ key: 'settle:check:c1', label: 'پرداخت چک «رضایی»', walletId: 'w-mellat' });
   });

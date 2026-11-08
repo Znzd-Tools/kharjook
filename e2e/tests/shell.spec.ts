@@ -51,19 +51,13 @@ test('⋯ menu keeps every old "More" link reachable', async ({ page }) => {
   await expect(page).toHaveURL(/\/manage\/import/);
 });
 
-test('avatar opens settings; labs switch brings back the old shell and back', async ({ page }) => {
-  await open(page, '/');
-  await page.getByRole('link', { name: 'تنظیمات' }).first().click();
-  await expect(page).toHaveURL(/\/settings/);
-  const shellSwitch = page.getByRole('switch', { name: 'ناوبری جدید (۴ تب)' });
-  await shellSwitch.click();
-  await open(page, '/');
-  await expect(nav(page)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'منوی بیشتر' })).toBeVisible(); // old header
-  await open(page, '/settings');
-  await page.getByRole('switch', { name: 'ناوبری جدید (۴ تب)' }).click();
+test('avatar opens settings; an old "off" cookie cannot bring the old shell back', async ({ page, context }) => {
+  await context.addCookies([{ name: 'kj_flags', value: encodeURIComponent(JSON.stringify({ 'v2.shell': false })), url: 'http://localhost:3100' }]);
   await open(page, '/');
   await expect(nav(page)).toBeVisible();
+  await page.getByRole('link', { name: 'تنظیمات' }).first().click();
+  await expect(page).toHaveURL(/\/settings/);
+  await expect(page.getByText('آزمایشی')).toHaveCount(0);
 });
 
 test('display currency is remembered', async ({ page }) => {

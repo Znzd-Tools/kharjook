@@ -95,6 +95,7 @@ import { netWorthChangeThisMonth } from "@/features/pnl/utils/net-worth-change";
 import { BLOCKS, moveBlock, type BlockKey } from "./blocks";
 import { useDashboardLayout } from "./use-dashboard-layout";
 import { useSmsNewCount } from "@/features/sms/hooks/use-sms-inbox";
+import { DeadlineAmount } from "@/features/deadlines/v2/DeadlineAmount";
 
 const PRIVACY_KEY = "kj_privacy";
 const privacyListeners = new Set<() => void>();
@@ -712,11 +713,10 @@ export function HomeV2() {
                   </Button>
                 }
                 trailingSubtitle={
-                  <Amount
+                  <DeadlineAmount
                     value={item.amount}
-                    currency={item.currency === "USD" ? "USD" : "TOMAN"}
+                    currency={item.currency}
                     size="xs"
-                    compact
                     hidden={hidden}
                   />
                 }

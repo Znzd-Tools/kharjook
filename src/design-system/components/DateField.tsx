@@ -4,7 +4,7 @@ import { CalendarDays } from '../icons';
 import { useState } from 'react';
 import { addDays, equalsJalaali, formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { cn } from '../lib/cn';
-import { Calendar } from './Calendar';
+import { DateWheel } from './DateWheel';
 import { Chip, ChipGroup } from './Chip';
 import { controlBox, useField } from './Field';
 import { Sheet } from './Sheet';
@@ -58,13 +58,16 @@ export function DateField({ value, onValueChange, quickChips = true, className }
         </ChipGroup>
       )}
       <Sheet open={open} onOpenChange={setOpen} title="انتخاب تاریخ">
-        <Calendar
-          value={parsed}
-          onValueChange={(d) => {
-            onValueChange(formatJalaali(d));
-            setOpen(false);
-          }}
-        />
+        {open && (
+          <DateWheel
+            value={value}
+            onConfirm={(v) => {
+              onValueChange(v);
+              setOpen(false);
+            }}
+            onCancel={() => setOpen(false)}
+          />
+        )}
       </Sheet>
     </div>
   );

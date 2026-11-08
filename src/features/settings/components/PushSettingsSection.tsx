@@ -11,6 +11,16 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
+/** The app's service worker, registered if needed, active within 10 s. */
+async function swRegistration(): Promise<ServiceWorkerRegistration> {
+  const reg = (await navigator.serviceWorker.getRegistration('/')) ?? (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
+  if (reg.active) return reg;
+  return await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('سرویس‌ورکر آماده نشد؛ صفحه را دوباره باز کن')), 10_000)),
+  ]);
+}
+
 const supported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
@@ -41,26 +51,46 @@ export function PushSettingsSection() {
   const toggle = async (on: boolean) => {
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
       if (on) {
-        const perm = await Notification.requestPermission();
+        // Ask first, inside the tap: Safari refuses a permission prompt after other awaits.
+        const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
         if (perm !== 'granted') {
-          toast.error('اجازه اعلان داده نشد');
+          toast.error(
+            perm === 'denied'
+              ? 'اعلان برای این سایت بسته است. از تنظیمات مرورگر (قفل کنار آدرس) اجازه اعلان را باز کن.'
+              : 'اجازه اعلان داده نشد'
+          );
           return;
         }
-        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID) });
+        const reg = await swRegistration();
+        let sub: PushSubscription;
+        try {
+          sub =
+            (await reg.pushManager.getSubscription()) ??
+            (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID!) }));
+        } catch (e) {
+          const name = (e as Error).name;
+          toast.error(
+            name === 'AbortError' || name === 'NotSupportedError'
+              ? 'سرویس اعلان مرورگر در دسترس نیست. در Chrome این سرویس از گوگل است و در ایران بدون VPN کار نمی‌کند؛ با VPN یک بار روشن کن یا از اعلان تلگرام استفاده کن.'
+              : `روشن کردن اعلان انجام نشد (${name})`
+          );
+          return;
+        }
         const res = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...sub.toJSON(), test: true }),
         });
         if (!res.ok) {
-          await sub.unsubscribe();
-          throw new Error(String(res.status));
+          await sub.unsubscribe().catch(() => undefined);
+          toast.error(res.status === 503 ? 'اعلان روی سرور تنظیم نشده است' : `ذخیره اعلان انجام نشد (${res.status})`);
+          return;
         }
         setState('on');
-        toast.success('اعلان روی این دستگاه روشن شد');
+        toast.success('اعلان روی این دستگاه روشن شد؛ یک اعلان آزمایشی فرستادیم');
       } else {
+        const reg = await swRegistration();
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
           await fetch('/api/push/subscribe', {
@@ -73,8 +103,8 @@ export function PushSettingsSection() {
         setState('off');
         toast.show('اعلان این دستگاه خاموش شد');
       }
-    } catch {
-      toast.error('تغییر اعلان انجام نشد');
+    } catch (e) {
+      toast.error(`تغییر اعلان انجام نشد: ${(e as Error).message || 'خطای نامعلوم'}`);
     } finally {
       setBusy(false);
     }

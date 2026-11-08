@@ -43,12 +43,3 @@ test('pay an upcoming item from home', async ({ page }) => {
   await page.getByRole('button', { name: 'پرداخت چک آقای رضایی' }).click();
   await expect.poll(async () => (await dbRows<{ status: string }>('checks'))[0]?.status).toBe('cleared');
 });
-
-test('old dashboard is one switch away', async ({ page }) => {
-  await open(page, '/settings');
-  await page.getByRole('switch', { name: 'داشبورد جدید' }).click();
-  await open(page, '/');
-  await expect(main(page)).toContainText('داشبورد');
-  await open(page, '/settings');
-  await page.getByRole('switch', { name: 'داشبورد جدید' }).click();
-});

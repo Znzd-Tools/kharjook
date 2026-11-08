@@ -7,7 +7,7 @@
  * and one-tap settle. Hubs keep every create / edit / schedule feature.
  */
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActionSheet,
@@ -16,6 +16,8 @@ import {
   Avatar,
   Badge,
   Button,
+  Chip,
+  ChipGroup,
   EmptyState,
   Field,
   IconButton,
@@ -25,6 +27,7 @@ import {
   PickerSheet,
   ProgressBar,
   Section,
+  SegmentedControl,
   Sheet,
   Text,
 } from '@/design-system';
@@ -36,8 +39,11 @@ import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance'
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { rankEndpoints } from '@/features/transactions/utils/usage-stats';
 import { buildPersonSettleTransactionUrl, pickDefaultSettleWallet } from '@/features/persons/utils/person-settle-prefill';
+import { DeadlineAmount, deadlineToman } from './DeadlineAmount';
 import { useSettleDeadline } from '@/features/deadlines/hooks/use-settle-deadline';
 import { BUCKET_LABEL, buildTimeline, daysLeftLabel, type TimelineBucket, type TimelineItem } from '@/features/deadlines/utils/timeline';
+
+type PlanView = 'due' | 'loans' | 'people';
 
 const KIND_META = {
   check: { icon: <FileText />, tone: 'peach' as const, label: 'چک', hub: '/deadlines/checks' },
@@ -54,11 +60,25 @@ const HUBS = [
 
 export function PlanTabV2() {
   const router = useRouter();
-  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions } = useData();
+  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, currencyRates, categories } = useData();
   const today = useMemo(() => todayJalaali(), []);
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [allInstallments, setAllInstallments] = useState<LoanInstallment[]>([]);
+  const searchParams = useSearchParams();
+  const [view, setView] = useState<PlanView>(() => {
+    const v = searchParams.get('v');
+    return v === 'loans' || v === 'people' ? v : 'due';
+  });
+  const changeView = (v: PlanView) => {
+    setView(v);
+    const url = new URL(window.location.href);
+    if (v === 'due') url.searchParams.delete('v');
+    else url.searchParams.set('v', v);
+    window.history.replaceState(null, '', url);
+  };
+  const [kindFilter, setKindFilter] = useState<'all' | TimelineItem['kind']>('all');
+  const [catFilter, setCatFilter] = useState<string>('all');
   const [menuFor, setMenuFor] = useState<TimelineItem | null>(null);
   const [walletPickFor, setWalletPickFor] = useState<TimelineItem | null>(null);
   const [partialFor, setPartialFor] = useState<TimelineItem | null>(null);
@@ -100,6 +120,7 @@ export function PlanTabV2() {
             ...i,
             loanAssetId: loanById.get(i.loan_id)?.asset_id ?? null,
             loanWalletId: loanById.get(i.loan_id)?.auto_income_wallet_id ?? null,
+            loanCategoryId: loanById.get(i.loan_id)?.category_id ?? null,
           })),
         },
         today
@@ -114,9 +135,10 @@ export function PlanTabV2() {
     return ranked ?? wallets[0]?.id ?? null;
   }, [transactions, wallets]);
 
+  // Every currency counts, through its rate (₺ 299 → Toman). Asset-based installments are quantities, not money.
   const monthTotalToman = items
-    .filter((i) => i.bucket !== 'later' && i.currency === 'IRT' && !i.assetId)
-    .reduce((s, i) => s + i.amount, 0);
+    .filter((i) => i.bucket !== 'later' && !i.assetId)
+    .reduce((s, i) => s + deadlineToman(i.amount, i.currency, currencyRates), 0);
 
   /* ------------------------------ pay ------------------------------ */
 
@@ -131,8 +153,30 @@ export function PlanTabV2() {
     .filter((x) => Math.abs(x.balance) > 0.5);
   const settleWallet = pickDefaultSettleWallet(wallets)?.id ?? defaultWallet;
 
+  const shown = items.filter(
+    (i) => (kindFilter === 'all' || i.kind === kindFilter) && (catFilter === 'all' || i.categoryId === catFilter)
+  );
+  const usedCats = Array.from(new Set(items.map((i) => i.categoryId).filter((c): c is string => !!c)))
+    .map((id) => categories.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => !!c);
+  const owedToMe = debts.filter((d) => d.balance > 0).reduce((s2, d) => s2 + d.balance, 0);
+  const iOwe = debts.filter((d) => d.balance < 0).reduce((s2, d) => s2 - d.balance, 0);
+
   return (
-    <div className="space-y-6 px-(--ds-gutter) pt-1 pb-6">
+    <div className="space-y-5 px-(--ds-gutter) pt-1 pb-6">
+      <SegmentedControl
+        aria-label="بخش برنامه"
+        value={view}
+        onValueChange={(v) => changeView(v as PlanView)}
+        options={[
+          { value: 'due', label: 'سررسیدها' },
+          { value: 'loans', label: `وام‌ها${loans.length ? ` (${loans.length.toLocaleString('fa-IR')})` : ''}` },
+          { value: 'people', label: `طلب و بدهی${debts.length ? ` (${debts.length.toLocaleString('fa-IR')})` : ''}` },
+        ]}
+      />
+
+      {view === 'due' && (
+      <>
       <div className="flex items-center justify-between gap-3 rounded-card bg-panel p-4">
         <div>
           <Text variant="caption" tone="subtle">
@@ -143,13 +187,38 @@ export function PlanTabV2() {
         <Avatar size="lg" tone="lilac" fallback={<CalendarDays />} />
       </div>
 
+      {items.length > 0 && (
+        <div className="-mx-(--ds-gutter) space-y-2 overflow-x-auto px-(--ds-gutter) scrollbar-hide">
+          <ChipGroup aria-label="نوع سررسید" value={[kindFilter]} onValueChange={(v) => v[0] && setKindFilter(v[0] as typeof kindFilter)}>
+            <Chip value="all">همه</Chip>
+            <Chip value="check">چک</Chip>
+            <Chip value="installment">قسط</Chip>
+            <Chip value="subscription">اشتراک</Chip>
+          </ChipGroup>
+          {usedCats.length > 0 && (
+            <ChipGroup aria-label="دسته" value={[catFilter]} onValueChange={(v) => v[0] && setCatFilter(v[0])}>
+              <Chip value="all">همه دسته‌ها</Chip>
+              {usedCats.map((c) => (
+                <Chip key={c.id} value={c.id}>
+                  {c.name}
+                </Chip>
+              ))}
+            </ChipGroup>
+          )}
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className="rounded-card bg-panel">
           <EmptyState icon={<CheckCircle2 />} title="سررسیدی نداری" description="قسط، چک یا اشتراک که بسازی، اینجا به ترتیب تاریخ می‌آید." />
         </div>
+      ) : shown.length === 0 ? (
+        <div className="rounded-card bg-panel">
+          <EmptyState compact title="با این فیلتر چیزی نیست" />
+        </div>
       ) : (
         buckets.map((b) => {
-          const list = items.filter((i) => i.bucket === b).slice(0, b === 'later' ? 6 : undefined);
+          const list = shown.filter((i) => i.bucket === b).slice(0, b === 'later' && kindFilter === 'all' && catFilter === 'all' ? 6 : undefined);
           if (list.length === 0) return null;
           return (
             <Section key={b} title={BUCKET_LABEL[b]} description={`${list.length.toLocaleString('fa-IR')} مورد`}>
@@ -175,7 +244,7 @@ export function PlanTabV2() {
                           {item.assetId ? (
                             <span className="tabular text-callout">{item.amount.toLocaleString('fa-IR', { maximumFractionDigits: 6 })}</span>
                           ) : (
-                            <Amount value={item.amount} currency={item.currency === 'USD' ? 'USD' : 'TOMAN'} size="sm" compact />
+                            <DeadlineAmount value={item.amount} currency={item.currency} />
                           )}
                           <span className="flex items-center gap-1">
                             <IconButton size="sm" aria-label={`گزینه‌های ${item.title}`} icon={<MoreHorizontal />} onClick={() => setMenuFor(item)} />
@@ -200,8 +269,23 @@ export function PlanTabV2() {
         })
       )}
 
-      {loans.length > 0 && (
-        <Section title="وام‌ها" action={<Button variant="link" size="sm" render={<Link href="/deadlines/loans" />} nativeButton={false}>همه</Button>}>
+      <Section title="مدیریت">
+        <List>
+          {HUBS.filter((h) => h.href !== '/deadlines/persons' && h.href !== '/deadlines/loans').map((h) => (
+            <ListRow key={h.href} render={<Link href={h.href} />} leading={<Avatar tone={h.tone} fallback={h.icon} />} title={h.title} subtitle={h.subtitle} />
+          ))}
+        </List>
+      </Section>
+      </>
+      )}
+
+      {view === 'loans' && loans.length === 0 && (
+        <div className="rounded-card bg-panel">
+          <EmptyState icon={<Landmark />} title="وامی نداری" action={<Button render={<Link href="/deadlines/loans" />} nativeButton={false}>ساخت وام</Button>} />
+        </div>
+      )}
+      {view === 'loans' && loans.length > 0 && (
+        <Section title="وام‌ها" action={<Button variant="link" size="sm" render={<Link href="/deadlines/loans" />} nativeButton={false}>مدیریت و وام جدید</Button>}>
           <List>
             {loans.map((loan) => {
               const rows = allInstallments.filter((i) => i.loan_id === loan.id);
@@ -231,8 +315,25 @@ export function PlanTabV2() {
         </Section>
       )}
 
-      {debts.length > 0 && (
-        <Section title="طلب و بدهی" action={<Button variant="link" size="sm" render={<Link href="/deadlines/persons" />} nativeButton={false}>همه</Button>}>
+      {view === 'people' && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-card bg-panel p-4">
+            <Text variant="caption" tone="subtle">طلب من</Text>
+            <Amount value={owedToMe} size="md" compact tone="positive" />
+          </div>
+          <div className="rounded-card bg-panel p-4">
+            <Text variant="caption" tone="subtle">بدهی من</Text>
+            <Amount value={iOwe} size="md" compact tone="negative" />
+          </div>
+        </div>
+      )}
+      {view === 'people' && debts.length === 0 && (
+        <div className="rounded-card bg-panel">
+          <EmptyState icon={<Users />} title="با کسی حساب باز نداری" action={<Button render={<Link href="/deadlines/persons" />} nativeButton={false}>اشخاص</Button>} />
+        </div>
+      )}
+      {view === 'people' && debts.length > 0 && (
+        <Section title="طلب و بدهی" action={<Button variant="link" size="sm" render={<Link href="/deadlines/persons" />} nativeButton={false}>همه اشخاص</Button>}>
           <List>
             {debts.map(({ person, balance }) => {
               const url = settleWallet ? buildPersonSettleTransactionUrl({ personId: person.id, walletId: settleWallet, balance }) : null;
@@ -263,14 +364,6 @@ export function PlanTabV2() {
           </List>
         </Section>
       )}
-
-      <Section title="بخش‌ها">
-        <List>
-          {HUBS.map((h) => (
-            <ListRow key={h.href} render={<Link href={h.href} />} leading={<Avatar tone={h.tone} fallback={h.icon} />} title={h.title} subtitle={h.subtitle} />
-          ))}
-        </List>
-      </Section>
 
       <ActionSheet
         open={menuFor !== null}

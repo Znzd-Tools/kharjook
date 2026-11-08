@@ -6,10 +6,10 @@ describe('flags', () => {
     expect(parseFlags(undefined)).toEqual(defaultFlags());
     expect(parseFlags('%%%not-json')).toEqual(defaultFlags());
   });
-  it('reads booleans and ignores unknown keys', () => {
+  it('rollout done: an old "off" cookie is ignored', () => {
     const raw = serializeFlags({ 'v2.shell': false, nope: true } as never);
     const f = parseFlags(raw);
-    expect(f['v2.shell']).toBe(false);
+    expect(f['v2.shell']).toBe(true);
     expect('nope' in f).toBe(false);
   });
 });

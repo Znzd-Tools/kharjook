@@ -20,6 +20,7 @@ export * from './components/Checkbox';
 export * from './components/Chip';
 export * from './components/ChoiceGrid';
 export * from './components/DateField';
+export * from './components/DateWheel';
 export * from './components/Delta';
 export * from './components/DesignSystemProvider';
 export * from './components/Dialog';
