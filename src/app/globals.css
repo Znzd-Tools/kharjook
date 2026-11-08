@@ -1,15 +1,17 @@
 @import "tailwindcss";
 @import "../design-system/styles/tokens.css";
+@import "./legacy-bridge.css";
 
 :root {
-  --background: #0F1015;
-  --foreground: #e2e8f0;
-  --surface-shell: #161722;
-  --surface-raised: #1A1B26;
-  --surface-hover: #222436;
-  --surface-inset: #0F1015;
-  --accent-purple: #9333ea;
-  --accent-purple-soft: rgba(168, 85, 247, 0.15);
+  /* Legacy surface names → design tokens (see legacy-bridge.css). */
+  --background: var(--color-canvas);
+  --foreground: var(--color-fg);
+  --surface-shell: var(--color-canvas);
+  --surface-raised: var(--color-panel);
+  --surface-hover: var(--color-elevated);
+  --surface-inset: var(--color-sunken);
+  --accent-purple: var(--color-accent);
+  --accent-purple-soft: var(--color-accent-soft);
   color-scheme: dark;
 }
 

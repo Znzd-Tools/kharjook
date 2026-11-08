@@ -14,10 +14,10 @@ import {
 } from '@/features/wallets/utils/wallet-payment-details';
 
 const inputClassName =
-  'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 font-mono';
+  'w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 font-mono';
 
 const textInputClassName =
-  'w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500';
+  'w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500';
 
 export interface WalletPaymentDetailsSheetProps {
   open: boolean;

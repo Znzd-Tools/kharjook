@@ -29,7 +29,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="absolute bottom-0 w-full bg-[#1A1B26]/90 backdrop-blur-md border-t border-white/5 px-4 py-2 flex justify-between items-end pb-safe z-40">
+    <nav className="absolute bottom-0 w-full bg-panel/90 backdrop-blur-md border-t border-white/5 px-4 py-2 flex justify-between items-end pb-safe z-40">
       <div className="flex justify-around flex-1 items-center pb-2">
         <NavItem
           icon={<Home size={22} />}
@@ -52,7 +52,7 @@ export function BottomNav() {
           aria-label="ثبت تراکنش جدید"
           aria-disabled={isLoadingData}
           tabIndex={isLoadingData ? -1 : undefined}
-          className={`w-14 h-14 bg-purple-600 hover:bg-purple-500 rounded-full flex justify-center items-center text-white shadow-[0_4px_15px_rgba(147,51,234,0.5)] border-[5px] border-[#161722] transition-transform active:scale-95 ${
+          className={`w-14 h-14 bg-purple-600 hover:bg-purple-500 rounded-full flex justify-center items-center text-white shadow-[0_4px_15px_rgba(147,51,234,0.5)] border-[5px] border-canvas transition-transform active:scale-95 ${
             isLoadingData ? 'opacity-50 pointer-events-none' : ''
           }`}
         >

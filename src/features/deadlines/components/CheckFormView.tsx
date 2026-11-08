@@ -175,8 +175,8 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   }));
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
@@ -195,7 +195,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           <input
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
             placeholder="مثال: اجاره دفتر"
             required
           />
@@ -206,7 +206,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           <input
             value={form.bankName}
             onChange={(e) => setForm((prev) => ({ ...prev, bankName: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
             placeholder="اختیاری"
           />
         </div>
@@ -216,7 +216,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           <input
             value={form.checkNumber}
             onChange={(e) => setForm((prev) => ({ ...prev, checkNumber: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
             dir="ltr"
             placeholder="اختیاری"
           />
@@ -227,7 +227,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           <FormattedNumberInput
             value={form.amount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -236,7 +236,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         <button
           type="button"
           onClick={() => setWalletOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
         >
           <div>
             <p className="text-xs text-slate-500">کیف پول (ارز و تسویه پیش‌فرض)</p>
@@ -252,7 +252,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         <button
           type="button"
           onClick={() => setCategoryOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
         >
           <div>
             <p className="text-xs text-slate-500">دسته هزینه</p>
@@ -269,7 +269,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         <button
           type="button"
           onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition"
+          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition"
         >
           <Calendar size={16} className="text-purple-400" />
           <div className="flex-1">
@@ -288,7 +288,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
             value={form.note}
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={3}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
             placeholder="اختیاری"
           />
         </div>

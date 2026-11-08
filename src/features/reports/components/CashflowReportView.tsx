@@ -114,13 +114,13 @@ export function CashflowReportView() {
   };
 
   return (
-    <div className="bg-[#161722] min-h-full">
-      <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="bg-canvas min-h-full">
+      <header className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-[#1A1B26] border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          className="w-9 h-9 rounded-xl bg-panel border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
         >
           <ChevronRight size={18} />
         </button>
@@ -219,7 +219,7 @@ function FilterChip({
       className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
         active
           ? 'bg-purple-500/20 border-purple-500/40 text-white'
-          : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+          : 'bg-panel border-white/5 text-slate-400 hover:text-white'
       }`}
     >
       {label}
@@ -238,7 +238,7 @@ function CashflowNetBanner({
 }) {
   const net = income - expense;
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1A1B26] p-4">
+    <div className="rounded-2xl border border-white/5 bg-panel p-4">
       <p className="text-xs text-slate-400 mb-1">مانده دوره</p>
       <p
         className={`text-2xl font-black ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
@@ -317,7 +317,7 @@ function TabCard({
       type="button"
       onClick={onClick}
       className={`flex flex-col items-start gap-1 border rounded-2xl p-3 text-right transition ${
-        active ? activeRing : 'bg-[#1A1B26] border-white/5 hover:bg-white/5'
+        active ? activeRing : 'bg-panel border-white/5 hover:bg-white/5'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ function CategoryList({
 
   if (nodes.length === 0 && uncategorized.total === 0) {
     return (
-      <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-8 text-center">
+      <div className="bg-panel border border-white/5 rounded-2xl p-8 text-center">
         <FolderOpen size={28} className="text-slate-600 mx-auto mb-2" />
         <p className="text-sm text-slate-400">
           در این بازه، {tab === 'income' ? 'درآمدی' : 'هزینه‌ای'} ثبت نشده.
@@ -434,7 +434,7 @@ function CategoryRow({
   return (
     <Component
       {...(node.hasChildren ? { type: 'button' as const, onClick: handleClick } : {})}
-      className={`w-full flex items-center gap-2 bg-[#1A1B26] border border-white/5 rounded-xl px-3 py-2.5 text-right transition ${
+      className={`w-full flex items-center gap-2 bg-panel border border-white/5 rounded-xl px-3 py-2.5 text-right transition ${
         node.hasChildren ? 'hover:bg-white/5 cursor-pointer' : ''
       } ${empty ? 'opacity-50' : ''}`}
       style={{ paddingInlineStart: `${12 + node.depth * 16}px` }}
@@ -476,7 +476,7 @@ function UncategorizedRow({
 }) {
   const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
   return (
-    <div className="flex items-center gap-2 bg-[#1A1B26] border border-dashed border-white/10 rounded-xl px-3 py-2.5">
+    <div className="flex items-center gap-2 bg-panel border border-dashed border-white/10 rounded-xl px-3 py-2.5">
       <WalletIcon size={14} className="text-slate-500 shrink-0" />
       <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
         <span className="text-[13px] text-slate-300 truncate">

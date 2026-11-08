@@ -215,7 +215,7 @@ export function WalletSavingsPotsSection({
   };
 
   return (
-    <section className="bg-[#1A1B26] rounded-2xl border border-white/5 p-4 space-y-4">
+    <section className="bg-panel rounded-2xl border border-white/5 p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <PiggyBank size={16} className="text-emerald-400 shrink-0" />
@@ -271,7 +271,7 @@ export function WalletSavingsPotsSection({
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="نام (مثلا: سفر، اضطراری)"
-            className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
+            className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
             maxLength={64}
             required
           />
@@ -294,7 +294,7 @@ export function WalletSavingsPotsSection({
               <FormattedNumberInput
                 value={form.currentAmount}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
+                className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
                 dir="ltr"
               />
             </div>
@@ -303,7 +303,7 @@ export function WalletSavingsPotsSection({
               <FormattedNumberInput
                 value={form.targetAmount}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
+                className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
                 dir="ltr"
                 placeholder="—"
               />

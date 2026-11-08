@@ -68,7 +68,7 @@ export function PendingChecksWidget({ checks }: { checks: Check[] }) {
   const overdueCount = rows.filter((row) => row.daysUntil != null && row.daysUntil < 0).length;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-300">

@@ -29,7 +29,7 @@ export function ConvertTransactionCard({
   const buyPrice = Number(group.buy.price_toman ?? 0);
 
   return (
-    <div className="bg-[#1A1B26] p-4 rounded-2xl border border-violet-500/20 flex flex-col gap-3 relative overflow-hidden">
+    <div className="bg-panel p-4 rounded-2xl border border-violet-500/20 flex flex-col gap-3 relative overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">

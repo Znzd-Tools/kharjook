@@ -212,13 +212,13 @@ export function AssetsReportView() {
   };
 
   return (
-    <div className="bg-[#161722] min-h-full">
-      <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="bg-canvas min-h-full">
+      <header className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-[#1A1B26] border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          className="w-9 h-9 rounded-xl bg-panel border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
         >
           <ChevronRight size={18} />
         </button>
@@ -256,7 +256,7 @@ export function AssetsReportView() {
         />
 
         {sorted.length === 0 ? (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-8 text-center">
+          <div className="bg-panel border border-white/5 rounded-2xl p-8 text-center">
             <Coins size={28} className="text-slate-600 mx-auto mb-2" />
             <p className="text-sm text-slate-400">دارایی‌ای برای نمایش نیست.</p>
           </div>
@@ -316,7 +316,7 @@ function AssetFilterChips({
               className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
                 value === null
                   ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                  : 'bg-panel border-white/5 text-slate-400 hover:text-white'
               }`}
             >
               همه دارایی‌ها
@@ -329,7 +329,7 @@ function AssetFilterChips({
                 className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
                   value === a.id
                     ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                    : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                    : 'bg-panel border-white/5 text-slate-400 hover:text-white'
                 }`}
               >
                 {a.name}
@@ -370,7 +370,7 @@ function ZeroValueChip({
       className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
         active
           ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-100'
-          : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+          : 'bg-panel border-white/5 text-slate-400 hover:text-white'
       }`}
     >
       {label}
@@ -412,7 +412,7 @@ function SummaryCard({
   const positive = total >= 0;
 
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <div className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -568,7 +568,7 @@ function AssetRow({
   const decimals = assetDecimals(asset);
 
   return (
-    <div className="bg-[#1A1B26] border border-white/5 rounded-2xl overflow-hidden">
+    <div className="bg-panel border border-white/5 rounded-2xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

@@ -66,7 +66,7 @@ export function TelegramConnectionSection() {
   const connected = connection?.is_active !== false && !!connection;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-3xl p-5 space-y-4">
+    <section className="bg-panel border border-white/5 rounded-3xl p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
           <Link2 size={20} />

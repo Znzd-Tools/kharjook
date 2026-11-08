@@ -152,7 +152,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
   if (!wallet || !stats) {
     return (
-      <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
+      <div className="bg-sunken min-h-full flex items-center justify-center p-6">
         <div className="text-center text-slate-500 text-sm">
           کیف پول پیدا نشد.
         </div>
@@ -220,8 +220,8 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
@@ -278,7 +278,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
         <WalletSavingsPotsSection wallet={wallet} walletBalance={stats.balance} />
 
-        <div className="bg-[#1A1B26] rounded-2xl border border-white/5 p-4 space-y-3">
+        <div className="bg-panel rounded-2xl border border-white/5 p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <CreditCard size={16} className="text-purple-300 shrink-0" />
@@ -454,7 +454,7 @@ function TxRow({
   const Icon = tx.type === 'TRANSFER' ? ArrowLeftRight : isIn ? ArrowDownRight : ArrowUpRight;
 
   return (
-    <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
+    <div className="bg-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 min-w-0">

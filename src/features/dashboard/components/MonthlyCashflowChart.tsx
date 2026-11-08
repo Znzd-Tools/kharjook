@@ -27,7 +27,7 @@ export function MonthlyCashflowChart({
   const totalExpense = months.reduce((s, m) => s + m.expense, 0);
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-panel p-4">
       <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-emerald-500/5 blur-3xl" />
       <div className="absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-rose-500/5 blur-3xl" />
 

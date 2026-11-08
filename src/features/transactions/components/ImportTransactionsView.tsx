@@ -130,8 +130,8 @@ export function ImportTransactionsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
@@ -143,7 +143,7 @@ export function ImportTransactionsView() {
       </div>
 
       <div className="p-6 space-y-5">
-        <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+        <div className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
           <p className="text-sm text-slate-300 leading-relaxed">
             فایل CSV با ستون‌های{' '}
             <span className="text-purple-300 font-mono text-xs" dir="ltr">
@@ -210,7 +210,7 @@ export function ImportTransactionsView() {
         )}
 
         {resolution.resolved.length > 0 && (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="bg-panel border border-white/5 rounded-2xl overflow-hidden">
             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
               <p className="text-sm font-bold text-white">پیش‌نمایش</p>
               <span className="text-[11px] text-slate-500">

@@ -106,8 +106,8 @@ export function CurrencyRatesView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
           className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
@@ -131,7 +131,7 @@ export function CurrencyRatesView() {
           return (
             <div
               key={c}
-              className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-2"
+              className="bg-panel p-4 rounded-2xl border border-white/5 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -151,7 +151,7 @@ export function CurrencyRatesView() {
               <FormattedNumberInput
                 value={local[c]}
                 onValueChange={(canonical) => setOne(c, canonical)}
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
+                className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
                 dir="ltr"
                 placeholder="0"
               />

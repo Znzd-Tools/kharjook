@@ -273,7 +273,7 @@ export function PriceSourceCatalogSection() {
         {visibleSources.map((source) => (
           <div
             key={source.slug}
-            className="flex items-start gap-2 bg-[#222436] border border-white/5 rounded-xl p-3"
+            className="flex items-start gap-2 bg-elevated border border-white/5 rounded-xl p-3"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{source.label}</p>
@@ -306,7 +306,7 @@ export function PriceSourceCatalogSection() {
       </div>
 
       {showForm && (
-        <div className="bg-[#222436] border border-white/10 rounded-2xl p-4 space-y-3">
+        <div className="bg-elevated border border-white/10 rounded-2xl p-4 space-y-3">
           <p className="text-sm text-slate-200">
             {adding ? 'منبع جدید' : 'ویرایش منبع'}
           </p>
@@ -329,7 +329,7 @@ export function PriceSourceCatalogSection() {
                     className={`rounded-xl py-2 text-xs font-medium ${
                       form.provider === option.value
                         ? 'bg-cyan-600 text-white'
-                        : 'bg-[#1A1B26] text-slate-400 border border-white/5'
+                        : 'bg-panel text-slate-400 border border-white/5'
                     }`}
                   >
                     {option.label}
@@ -344,7 +344,7 @@ export function PriceSourceCatalogSection() {
             <input
               value={form.label}
               onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
             />
           </div>
 
@@ -356,7 +356,7 @@ export function PriceSourceCatalogSection() {
                 handleFetchKeyChange(e.target.value, form.provider)
               }
               disabled={fetchKeyLocked}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
+              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
               dir="ltr"
             />
           </div>
@@ -372,7 +372,7 @@ export function PriceSourceCatalogSection() {
                     slug: e.target.value.trim().toLowerCase(),
                   }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
+                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
                 dir="ltr"
               />
             </div>
@@ -391,7 +391,7 @@ export function PriceSourceCatalogSection() {
               type="button"
               onClick={cancelForm}
               disabled={isSaving}
-              className="px-4 bg-[#1A1B26] border border-white/10 text-slate-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
+              className="px-4 bg-panel border border-white/10 text-slate-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
             >
               انصراف
             </button>

@@ -19,6 +19,12 @@ export async function stubNetwork(page: Page) {
   await page.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (r) => r.abort());
 }
 
+/** Go to a page and wait until it is interactive (hydrated, data loaded). */
+export async function open(page: Page, path: string) {
+  await page.goto(path);
+  await page.waitForLoadState('networkidle');
+}
+
 export async function loginViaUi(page: Page) {
   await page.goto('/login');
   await page.locator('input[type="email"]').fill('test@kharjook.dev');

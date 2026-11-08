@@ -88,7 +88,7 @@ export function ListSheetPicker({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="جستجو..."
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+              className="w-full bg-panel border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
               autoFocus
             />
           </div>
@@ -103,7 +103,7 @@ export function ListSheetPicker({
             className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
               value === null
                 ? 'bg-purple-500/10 border-purple-500/40'
-                : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                : 'bg-panel border-white/5 hover:bg-elevated'
             }`}
           >
             <span className={value === null ? 'text-purple-300' : 'text-slate-500'}>
@@ -136,7 +136,7 @@ export function ListSheetPicker({
                 className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
                   selected
                     ? 'bg-purple-500/10 border-purple-500/40'
-                    : 'bg-[#1A1B26] border-white/5 hover:bg-[#222436]'
+                    : 'bg-panel border-white/5 hover:bg-elevated'
                 } ${it.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {it.leading && (

@@ -251,8 +251,8 @@ export function ManageRecurringTransactionsView() {
   if (!user) return null;
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
@@ -293,11 +293,11 @@ export function ManageRecurringTransactionsView() {
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             placeholder="عنوان (مثلا: اجاره)"
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-purple-500"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-purple-500"
             required
           />
 
-          <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl">
             {(['EXPENSE', 'INCOME'] as const).map((type) => (
               <button
                 key={type}
@@ -321,7 +321,7 @@ export function ManageRecurringTransactionsView() {
           <FormattedNumberInput
             value={form.amountToman}
             onValueChange={(value) => setForm((prev) => ({ ...prev, amountToman: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
             dir="ltr"
             placeholder="مبلغ (تومان)"
             required
@@ -330,7 +330,7 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setWalletOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
           >
             <div>
               <p className="text-xs text-slate-500">کیف پول</p>
@@ -342,7 +342,7 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setCategoryOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right"
           >
             <div>
               <p className="text-xs text-slate-500">دسته</p>
@@ -361,7 +361,7 @@ export function ManageRecurringTransactionsView() {
               <FormattedNumberInput
                 value={form.intervalNumber}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
+                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white outline-none text-left"
                 dir="ltr"
               />
             </div>
@@ -375,7 +375,7 @@ export function ManageRecurringTransactionsView() {
                     intervalPeriod: e.target.value as LoanIntervalPeriod,
                   }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none"
+                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white outline-none"
               >
                 {INTERVAL_OPTIONS.map((opt) => (
                   <option key={opt.id} value={opt.id}>
@@ -389,7 +389,7 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setNextDueOpen(true)}
-            className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right"
+            className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right"
           >
             <Calendar size={16} className="text-purple-400" />
             <div className="flex-1">
@@ -405,7 +405,7 @@ export function ManageRecurringTransactionsView() {
           <button
             type="button"
             onClick={() => setEndDateOpen(true)}
-            className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right"
+            className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right"
           >
             <Calendar size={16} className="text-slate-500" />
             <div className="flex-1">
@@ -425,10 +425,10 @@ export function ManageRecurringTransactionsView() {
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={2}
             placeholder="یادداشت (اختیاری)"
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white outline-none resize-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white outline-none resize-none"
           />
 
-          <label className="flex items-center justify-between bg-[#1A1B26] border border-white/10 rounded-xl p-3">
+          <label className="flex items-center justify-between bg-panel border border-white/10 rounded-xl p-3">
             <span className="text-sm text-slate-200">فعال</span>
             <input
               type="checkbox"
@@ -461,7 +461,7 @@ export function ManageRecurringTransactionsView() {
             return (
               <div
                 key={row.id}
-                className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-2"
+                className="bg-panel border border-white/5 rounded-2xl p-4 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

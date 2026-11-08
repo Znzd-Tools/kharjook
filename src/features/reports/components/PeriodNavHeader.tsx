@@ -32,7 +32,7 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
   return (
     <div className="space-y-3">
       {/* Kind tabs */}
-      <div className="flex bg-[#1A1B26] rounded-xl border border-white/5 p-1">
+      <div className="flex bg-panel rounded-xl border border-white/5 p-1">
         {PERIOD_KINDS.map((k) => (
           <button
             key={k}
@@ -58,8 +58,8 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
           disabled={isAllPeriod}
           className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
             isAllPeriod
-              ? 'bg-[#1A1B26] text-slate-700 cursor-not-allowed'
-              : 'bg-[#1A1B26] text-slate-300 hover:bg-white/5'
+              ? 'bg-panel text-slate-700 cursor-not-allowed'
+              : 'bg-panel text-slate-300 hover:bg-white/5'
           }`}
         >
           <ChevronRight size={18} />
@@ -89,8 +89,8 @@ export function PeriodNavHeader({ period, onChange }: PeriodNavHeaderProps) {
           disabled={isAllPeriod}
           className={`shrink-0 w-9 h-9 rounded-xl border border-white/5 flex items-center justify-center transition ${
             isAllPeriod
-              ? 'bg-[#1A1B26] text-slate-700 cursor-not-allowed'
-              : 'bg-[#1A1B26] text-slate-300 hover:bg-white/5'
+              ? 'bg-panel text-slate-700 cursor-not-allowed'
+              : 'bg-panel text-slate-300 hover:bg-white/5'
           }`}
         >
           <ChevronLeft size={18} />

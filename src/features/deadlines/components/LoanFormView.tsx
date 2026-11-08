@@ -433,8 +433,8 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
       : [];
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
@@ -453,7 +453,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <input
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
             placeholder="مثال: خرید لپ‌تاپ"
             required
           />
@@ -461,7 +461,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
         <div>
           <label className="block text-xs text-slate-400 mb-1">نوع وام</label>
-          <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl">
             <button
               type="button"
               disabled={isEdit}
@@ -492,7 +492,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         {!isEdit && (
           <div>
             <label className="block text-xs text-slate-400 mb-1">واحد وام</label>
-            <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+            <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() =>
@@ -538,7 +538,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <button
             type="button"
             onClick={() => setCurrencyWalletOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
           >
             <div>
               <p className="text-xs text-slate-500">کیف پول مبنا (ارز وام)</p>
@@ -556,7 +556,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <button
             type="button"
             onClick={() => setAssetOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
           >
             <div>
               <p className="text-xs text-slate-500">دارایی وام</p>
@@ -571,7 +571,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         )}
 
         {isEdit && form.denomination === 'asset' && selectedAsset && (
-          <div className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right">
+          <div className="w-full bg-panel border border-white/10 rounded-xl p-3 text-right">
             <p className="text-xs text-slate-500">دارایی وام</p>
             <p className="text-sm text-slate-100 mt-1">
               {selectedAsset.name} · {selectedAsset.unit}
@@ -584,7 +584,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             type="button"
             disabled={isEdit}
             onClick={() => setCategoryOpen(true)}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition disabled:opacity-60"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition disabled:opacity-60"
           >
             <div>
               <p className="text-xs text-slate-500">دسته هزینه</p>
@@ -612,7 +612,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, totalAmount: value }))
                 }
-                className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
                 dir="ltr"
                 disabled={isEdit}
               />
@@ -620,7 +620,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
             {!isEdit && (
               <>
-                <label className="flex items-center justify-between bg-[#1A1B26] border border-white/10 rounded-xl p-3 cursor-pointer">
+                <label className="flex items-center justify-between bg-panel border border-white/10 rounded-xl p-3 cursor-pointer">
                   <span className="text-sm text-slate-200">
                     {form.denomination === 'asset'
                       ? 'ثبت دریافت دارایی خودکار'
@@ -644,7 +644,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
                   <button
                     type="button"
                     onClick={() => setAutoWalletOpen(true)}
-                    className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+                    className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
                   >
                     <div>
                       <p className="text-xs text-slate-500">کیف پول دریافت</p>
@@ -677,7 +677,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <FormattedNumberInput
             value={form.installmentAmount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
             dir="ltr"
             required
             disabled={isEdit}
@@ -688,7 +688,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           type="button"
           disabled={isEdit}
           onClick={() => setLoanStartDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition disabled:opacity-60"
+          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition disabled:opacity-60"
         >
           <Calendar size={16} className="text-purple-400" />
           <div className="flex-1">
@@ -705,7 +705,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           type="button"
           disabled={isEdit}
           onClick={() => setFirstDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition disabled:opacity-60"
+          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition disabled:opacity-60"
         >
           <Calendar size={16} className="text-purple-400" />
           <div className="flex-1">
@@ -724,7 +724,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             <FormattedNumberInput
               value={form.repeatCount}
               onValueChange={(value) => setForm((prev) => ({ ...prev, repeatCount: value }))}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
               dir="ltr"
               required
               disabled={isEdit}
@@ -737,7 +737,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
               onValueChange={(value) =>
                 setForm((prev) => ({ ...prev, intervalNumber: value }))
               }
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
               dir="ltr"
               required
               disabled={isEdit}
@@ -747,7 +747,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
         <div>
           <label className="block text-xs text-slate-400 mb-1">واحد فاصله</label>
-          <div className="grid grid-cols-4 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+          <div className="grid grid-cols-4 gap-1 bg-panel p-1 rounded-xl">
             {INTERVAL_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -800,7 +800,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         </div>
 
         {previewDates.length > 0 && (
-          <div className="bg-[#1A1B26] border border-white/5 rounded-xl p-3">
+          <div className="bg-panel border border-white/5 rounded-xl p-3">
             <p className="text-xs text-slate-500 mb-2">پیش‌نمایش سررسیدها</p>
             <div className="space-y-1">
               {previewDates.map((date) => (
@@ -817,7 +817,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
           <textarea
             value={form.description}
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none min-h-[80px]"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none min-h-[80px]"
           />
         </div>
 

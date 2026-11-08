@@ -322,8 +322,8 @@ export function ManageWalletsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
           className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
@@ -335,7 +335,7 @@ export function ManageWalletsView() {
 
       <form
         onSubmit={handleSubmit}
-        className="p-6 mt-4 mx-6 rounded-2xl border border-white/5 bg-[#1A1B26]"
+        className="p-6 mt-4 mx-6 rounded-2xl border border-white/5 bg-panel"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm text-slate-400">
@@ -370,7 +370,7 @@ export function ManageWalletsView() {
               placeholder="مثلا: ملی، صرافی نوبیتکس، نقد دلاری"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
+              className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
               required
               maxLength={64}
             />
@@ -392,7 +392,7 @@ export function ManageWalletsView() {
                     className={`p-2 rounded-xl border text-xs font-bold transition-all ${
                       selected
                         ? 'bg-purple-600 border-purple-500 text-white'
-                        : 'bg-[#222436] border-white/10 text-slate-300 hover:bg-[#2a2c40]'
+                        : 'bg-elevated border-white/10 text-slate-300 hover:bg-elevated'
                     } ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
                   >
                     <div className="text-base leading-none" dir="ltr">
@@ -419,7 +419,7 @@ export function ManageWalletsView() {
               onValueChange={(canonical) =>
                 setForm({ ...form, initialBalance: canonical })
               }
-              className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
+              className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
               dir="ltr"
               placeholder="0"
             />
@@ -504,7 +504,7 @@ function SortableWalletRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 shadow-lg ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+      className={`bg-panel p-4 rounded-2xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 shadow-lg ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <button

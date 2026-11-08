@@ -124,6 +124,8 @@ const UIContext = createContext<UIValue | null>(null);
 
 const FALLBACK_USD_RATE = 60000;
 
+const CURRENCY_MODE_KEY = 'kj_currency_mode';
+
 export interface PortfolioProviderProps {
   initialUser: AuthUser | null;
   children: ReactNode;
@@ -156,7 +158,30 @@ export function PortfolioProvider({
     Array<LoanInstallment & { loanTitle?: string; loanCurrency?: Loan['currency'] }>
   >([]);
 
-  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('TOMAN');
+  const [currencyMode, setCurrencyModeState] = useState<CurrencyMode>('TOMAN');
+
+  // Remember the display currency on this device. Read after mount so the
+  // first client render matches the server (TOMAN).
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(CURRENCY_MODE_KEY);
+      if (saved === 'USD' || saved === 'TOMAN') setCurrencyModeState(saved);
+    } catch {
+      // storage blocked: keep default
+    }
+  }, []);
+
+  const setCurrencyMode = useCallback<Dispatch<SetStateAction<CurrencyMode>>>((next) => {
+    setCurrencyModeState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      try {
+        window.localStorage.setItem(CURRENCY_MODE_KEY, value);
+      } catch {
+        // storage blocked: still works for this session
+      }
+      return value;
+    });
+  }, []);
 
   const toast = useToast();
   const fetchSeq = useRef(0);
@@ -553,7 +578,7 @@ export function PortfolioProvider({
 
   const toggleCurrency = useCallback(() => {
     setCurrencyMode((prev) => (prev === 'USD' ? 'TOMAN' : 'USD'));
-  }, []);
+  }, [setCurrencyMode]);
 
   const authValue = useMemo<AuthValue>(
     () => ({ user, isLoadingAuth, logout }),

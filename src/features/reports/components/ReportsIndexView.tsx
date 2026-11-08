@@ -238,13 +238,13 @@ export function ReportsIndexView() {
   const assetsHref = buildReportHref('assets', assetsSummary.period);
 
   return (
-    <div className="bg-[#161722] min-h-full">
-      <header className="sticky top-0 z-10 bg-[#161722]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="bg-canvas min-h-full">
+      <header className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-[#1A1B26] border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          className="w-9 h-9 rounded-xl bg-panel border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
         >
           <ChevronRight size={18} />
         </button>
@@ -266,7 +266,7 @@ export function ReportsIndexView() {
               className={`flex-1 rounded-xl py-2 text-xs font-bold border transition ${
                 scope === kind
                   ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                  : 'bg-[#1A1B26] border-white/5 text-slate-400 hover:text-white'
+                  : 'bg-panel border-white/5 text-slate-400 hover:text-white'
               }`}
             >
               {formatCurrentPeriodLabel(kind)}
@@ -276,7 +276,7 @@ export function ReportsIndexView() {
 
         <Link
           href={cashflowHref}
-          className="block bg-[#1A1B26] border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
+          className="block bg-panel border border-white/5 hover:border-emerald-500/25 rounded-2xl p-4 transition group"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 text-emerald-300">
@@ -306,7 +306,7 @@ export function ReportsIndexView() {
 
         <Link
           href={assetsHref}
-          className="block bg-[#1A1B26] border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
+          className="block bg-panel border border-white/5 hover:border-amber-500/25 rounded-2xl p-4 transition group"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 text-amber-300">
@@ -350,7 +350,7 @@ export function ReportsIndexView() {
         )}
 
         {convertCount > 0 && (
-          <div className="bg-[#1A1B26] border border-violet-500/15 rounded-2xl p-4">
+          <div className="bg-panel border border-violet-500/15 rounded-2xl p-4">
             <div className="flex items-center gap-2 text-violet-300">
               <Coins size={16} />
               <span className="text-sm font-bold text-white">تبدیل دارایی</span>

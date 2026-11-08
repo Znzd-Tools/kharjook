@@ -149,7 +149,7 @@ function SettingsToggle({
         </span>
       </div>
 
-      <div className="flex gap-3 rounded-2xl bg-[#0F1015] border border-white/5 p-4">
+      <div className="flex gap-3 rounded-2xl bg-sunken border border-white/5 p-4">
         <Icon size={18} className={`${styles.iconAccent} shrink-0 mt-0.5`} />
         <p className="text-xs text-slate-400 leading-relaxed">{meta.description}</p>
       </div>
@@ -161,7 +161,7 @@ function SettingsToggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`w-full flex items-center justify-between gap-4 rounded-2xl border p-4 text-right transition-colors disabled:opacity-50 ${
-          checked ? styles.toggleOn : 'bg-[#0F1015] border-white/5 hover:border-white/10'
+          checked ? styles.toggleOn : 'bg-sunken border-white/5 hover:border-white/10'
         }`}
       >
         <div>
@@ -240,7 +240,7 @@ export function NotificationSettingsSection() {
 
   if (isLoading || !settings) {
     return (
-      <section className="bg-[#1A1B26] border border-white/5 rounded-3xl p-5">
+      <section className="bg-panel border border-white/5 rounded-3xl p-5">
         <p className="text-sm text-slate-500 animate-pulse">در حال بارگذاری...</p>
       </section>
     );
@@ -254,7 +254,7 @@ export function NotificationSettingsSection() {
   ];
 
   return (
-    <section className="overflow-hidden bg-[#1A1B26] border border-white/5 rounded-3xl">
+    <section className="overflow-hidden bg-panel border border-white/5 rounded-3xl">
       <div className="bg-linear-to-l from-purple-500/15 via-violet-500/5 to-transparent px-5 pt-5 pb-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center border bg-purple-500/15 border-purple-500/30 text-purple-300">
@@ -277,7 +277,7 @@ export function NotificationSettingsSection() {
               onChange={(next) => void patchSetting(key, next)}
             />
             {key === 'report_enabled' && settings.report_enabled ? (
-              <div className="rounded-2xl bg-[#0F1015] border border-white/5 p-4 space-y-2">
+              <div className="rounded-2xl bg-sunken border border-white/5 p-4 space-y-2">
                 <p className="text-xs text-slate-400">بازه ارسال گزارش</p>
                 <div className="flex gap-2">
                   {(['daily', 'weekly'] as const).map((interval) => (
@@ -301,7 +301,7 @@ export function NotificationSettingsSection() {
           </div>
         ))}
 
-        <div className="rounded-2xl bg-[#0F1015] border border-white/5 p-4 space-y-2">
+        <div className="rounded-2xl bg-sunken border border-white/5 p-4 space-y-2">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <MessageCircle size={14} className="text-sky-400" />
             <span>منوی بات: ثبت سریع، گزارش‌ها، قیمت‌ها، تنظیمات</span>

@@ -198,8 +198,8 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
       : null;
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
         <button
           type="button"
           onClick={() => router.back()}
@@ -218,7 +218,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
           <input
             value={form.platform}
             onChange={(e) => setForm((prev) => ({ ...prev, platform: e.target.value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
             placeholder="مثال: Netflix"
             required
           />
@@ -227,7 +227,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
         <button
           type="button"
           onClick={() => setWalletOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
         >
           <div>
             <p className="text-xs text-slate-500">کیف پول پیش‌فرض</p>
@@ -245,7 +245,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
           <FormattedNumberInput
             value={form.amount}
             onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
             dir="ltr"
             required
           />
@@ -257,7 +257,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
         <button
           type="button"
           onClick={() => setCategoryOpen(true)}
-          className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-[#222436] transition"
+          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
         >
           <div>
             <p className="text-xs text-slate-500">دسته هزینه</p>
@@ -271,7 +271,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
         <button
           type="button"
           onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-right hover:bg-[#222436] transition"
+          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition"
         >
           <Calendar size={16} className="text-purple-400" />
           <div className="flex-1">
@@ -290,14 +290,14 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
             <FormattedNumberInput
               value={form.intervalNumber}
               onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
-              className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
+              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
               dir="ltr"
               required
             />
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1">واحد</label>
-            <div className="grid grid-cols-2 gap-1 bg-[#1A1B26] p-1 rounded-xl h-[46px]">
+            <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl h-[46px]">
               {INTERVAL_OPTIONS.map((option) => (
                 <button
                   key={option.id}
@@ -356,7 +356,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
             value={form.note}
             onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
             rows={2}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
           />
         </div>
 

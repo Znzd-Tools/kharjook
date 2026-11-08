@@ -15,7 +15,7 @@ export default function GlobalError({
 
   return (
     <html lang="fa" dir="rtl">
-      <body className="min-h-dvh bg-[#0F1015] text-slate-200 flex items-center justify-center p-6">
+      <body className="min-h-dvh bg-sunken text-slate-200 flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <h1 className="text-lg font-bold text-white">خطای سیستمی</h1>
           <p className="text-sm text-slate-400">اپ دچار مشکل شد. صفحه را دوباره بارگذاری کن.</p>

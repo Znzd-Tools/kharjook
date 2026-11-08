@@ -57,8 +57,8 @@ export function ActivePnlCard({
       aria-label="سود و زیان باز"
       className={`relative overflow-hidden rounded-[1.75rem] border p-4 ${
         positive
-          ? 'border-emerald-400/20 bg-linear-to-br from-emerald-500/12 via-[#1A1B26] to-[#1A1B26]'
-          : 'border-rose-400/20 bg-linear-to-br from-rose-500/12 via-[#1A1B26] to-[#1A1B26]'
+          ? 'border-emerald-400/20 bg-linear-to-br from-emerald-500/12 via-panel to-panel'
+          : 'border-rose-400/20 bg-linear-to-br from-rose-500/12 via-panel to-panel'
       }`}
     >
       <div

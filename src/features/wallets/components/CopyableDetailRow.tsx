@@ -38,7 +38,7 @@ export function CopyableDetailRow({
     <button
       type="button"
       onClick={() => void copy()}
-      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#222436]/60 px-4 py-3 text-right hover:border-purple-500/30 hover:bg-[#222436] transition-colors"
+      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-elevated/60 px-4 py-3 text-right hover:border-purple-500/30 hover:bg-elevated transition-colors"
     >
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-slate-500 mb-1">{label}</p>

@@ -35,7 +35,7 @@ export function DistributionChartCard({
   const topRow = rows[0] ?? null;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-panel p-4">
       <div className="absolute -left-14 bottom-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="relative mb-4 flex items-start justify-between gap-3">
         <div>
@@ -64,7 +64,7 @@ export function DistributionChartCard({
               className="absolute inset-0 rounded-full shadow-2xl shadow-purple-950/30"
               style={{ background: `conic-gradient(${donutStops})` }}
             />
-            <div className="absolute inset-4 rounded-full bg-[#1A1B26] ring-1 ring-white/10" />
+            <div className="absolute inset-4 rounded-full bg-panel ring-1 ring-white/10" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
               <span className="text-[10px] text-slate-500">کل</span>
               <span className="text-lg font-black text-white">

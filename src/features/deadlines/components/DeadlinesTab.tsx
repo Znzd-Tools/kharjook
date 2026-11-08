@@ -62,10 +62,10 @@ function DeadlinesItem({
       type="button"
       disabled={item.disabled}
       onClick={onClick}
-      className={`w-full bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors ${
+      className={`w-full bg-panel border border-white/5 p-4 rounded-2xl flex items-center justify-between text-right transition-colors ${
         item.disabled
           ? 'opacity-50 cursor-not-allowed'
-          : 'hover:bg-[#222436] hover:border-purple-500/20'
+          : 'hover:bg-elevated hover:border-purple-500/20'
       }`}
     >
       <div className="flex items-center gap-4">

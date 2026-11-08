@@ -20,14 +20,14 @@ export function TopAllocationCard({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-[#1A1B26] p-6 text-center text-xs text-slate-500">
+      <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-panel p-6 text-center text-xs text-slate-500">
         دارایی‌ای در سبد ثبت نشده.
       </div>
     );
   }
 
   return (
-    <div className="rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4 space-y-3">
+    <div className="rounded-[1.75rem] border border-white/5 bg-panel p-4 space-y-3">
       <p className="text-sm font-bold text-white">بیشترین سهم سبد</p>
       {rows.map((row, index) => (
         <div key={row.name} className="space-y-1.5">

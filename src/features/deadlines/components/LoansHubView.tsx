@@ -520,7 +520,7 @@ export function LoansHubView() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="grid grid-cols-3 gap-1 bg-panel p-1 rounded-xl">
         <button
           type="button"
           onClick={() => setTab('loans')}
@@ -567,7 +567,7 @@ export function LoansHubView() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3">
+            <div className="bg-panel border border-white/5 rounded-2xl p-3">
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -621,7 +621,7 @@ export function LoansHubView() {
               return (
                 <div
                   key={loan.id}
-                  className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl space-y-3"
+                  className="bg-panel border border-white/5 p-4 rounded-2xl space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -701,7 +701,7 @@ export function LoansHubView() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-4">
+          <div className="bg-panel border border-white/5 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">جمع باقی‌مانده</span>
               <span className="text-sm font-semibold text-slate-100" dir="ltr">
@@ -767,7 +767,7 @@ export function LoansHubView() {
                 return (
                   <div
                     key={installment.id}
-                    className="bg-[#1A1B26] border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
+                    className="bg-panel border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -820,7 +820,7 @@ export function LoansHubView() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3 space-y-3">
+          <div className="bg-panel border border-white/5 rounded-2xl p-3 space-y-3">
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -896,7 +896,7 @@ export function LoansHubView() {
             </div>
           </div>
 
-          <div className="bg-[#1A1B26] border border-white/5 rounded-2xl p-3 space-y-3">
+          <div className="bg-panel border border-white/5 rounded-2xl p-3 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-100">{selectedDayLabel}</h3>
               <span className="text-xs text-slate-400" dir="ltr">
@@ -984,7 +984,7 @@ export function LoansHubView() {
           : !!settlementWalletId && !!settlementPayAmount.trim();
         return (
         <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-[#13141C] border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
+          <div className="bg-sunken border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
             <div>
               <label className="text-[11px] text-slate-500 block mb-1">
                 {assetSettle ? `مقدار پرداخت (${unitLabel})` : `مبلغ پرداخت (${unitLabel})`}
@@ -996,7 +996,7 @@ export function LoansHubView() {
                 onChange={(e) => setSettlementPayAmount(e.target.value)}
                 disabled={isSubmitting}
                 dir="ltr"
-                className="w-full bg-[#222436] border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-purple-500 disabled:opacity-50"
+                className="w-full bg-elevated border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-purple-500 disabled:opacity-50"
               />
               <p className="text-[10px] text-slate-500 mt-1" dir="ltr">
                 باقی‌مانده: {canonicalInstallmentAmount(remaining)} {unitLabel}

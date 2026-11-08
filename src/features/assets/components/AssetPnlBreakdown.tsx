@@ -40,7 +40,7 @@ function Row({
           ? v !== null && v < 0
             ? 'border-rose-400/25 bg-rose-500/8'
             : 'border-emerald-400/25 bg-emerald-500/8'
-          : 'border-white/5 bg-[#1A1B26]'
+          : 'border-white/5 bg-panel'
       }`}
     >
       <div className="flex items-start justify-between gap-3">

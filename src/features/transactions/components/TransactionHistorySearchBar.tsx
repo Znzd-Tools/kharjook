@@ -20,7 +20,7 @@ export function TransactionHistorySearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder="جستجو در یادداشت، دسته، مبلغ..."
         aria-label="جستجو در تاریخچه تراکنش‌ها"
-        className="w-full bg-[#1A1B26] border border-white/10 rounded-xl py-2.5 pr-9 pl-9 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
+        className="w-full bg-panel border border-white/10 rounded-xl py-2.5 pr-9 pl-9 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
       />
       {value.trim().length > 0 && (
         <button

@@ -34,7 +34,7 @@ export function PeriodComparisonCard({
   if (metrics.length === 0) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
       <div>
         <h3 className="text-sm font-bold text-white">{title}</h3>
         <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>

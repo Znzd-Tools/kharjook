@@ -1,68 +1,96 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, LogOut, User as UserIcon } from 'lucide-react';
-import { useAuth } from '@/features/portfolio/PortfolioProvider';
+import { Avatar, Button, List, ListRow, Section, SegmentedControl, TopBar, useConfirm } from '@/design-system';
+import { Download, LayoutGrid, Percent, Repeat, Target, TrendingUp } from '@/design-system/icons';
+import { useAuth, useUI } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { TelegramConnectionSection } from '@/features/settings/components/TelegramConnectionSection';
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
+import { LabsSettingsSection } from '@/features/settings/components/LabsSettingsSection';
+
+const LINKS = [
+  { href: '/manage/categories', title: 'دسته‌بندی‌ها و سقف هزینه', icon: <LayoutGrid />, tone: 'peach' as const },
+  { href: '/manage/recurring', title: 'تراکنش‌های دوره‌ای', icon: <Repeat />, tone: 'mint' as const },
+  { href: '/manage/goals', title: 'اهداف تخصیص', icon: <Target />, tone: 'lilac' as const },
+  { href: '/manage/rates', title: 'نرخ ارزها', icon: <Percent />, tone: 'sky' as const },
+  { href: '/manage/price-sources', title: 'منابع قیمت', icon: <TrendingUp />, tone: 'lemon' as const },
+  { href: '/manage/import', title: 'ورود تراکنش از CSV', icon: <Download />, tone: 'rose' as const },
+];
 
 export function SettingsTab() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { user, logout } = useAuth();
+  const { currencyMode, setCurrencyMode } = useUI();
 
   if (!user) return null;
 
-  const displayPhone = user.email ? user.email.split('@')[0] : user.phone ?? '';
+  const displayName = user.email ? user.email.split('@')[0] : user.phone ?? '';
 
   const handleLogout = async () => {
+    const ok = await confirm({ title: 'از حساب خارج می‌شوی؟', confirmLabel: 'خروج', tone: 'danger' });
+    if (!ok) return;
     await logout();
     router.replace('/login');
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-          aria-label="بازگشت"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">تنظیمات</h2>
-      </div>
+    <div className="min-h-full bg-canvas pb-24">
+      <TopBar onBack={() => router.back()} title="تنظیمات" />
 
-      <div className="p-6 space-y-6">
-        <div className="bg-linear-to-r from-purple-500/20 to-transparent border border-purple-500/20 p-5 rounded-3xl flex items-center gap-4">
-          <div className="w-14 h-14 bg-[#161722] rounded-full flex items-center justify-center border-2 border-purple-500/50 text-purple-400">
-            <UserIcon size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-slate-400">اکانت</p>
-            <p className="text-sm font-bold text-white mt-1" dir="ltr">
-              {latinizeDigits(displayPhone)}
+      <div className="space-y-6 px-(--ds-gutter) pt-2">
+        <div className="flex items-center gap-4 rounded-card bg-panel p-4">
+          <Avatar size="lg" tone="lilac" name={displayName} />
+          <div className="min-w-0">
+            <p className="text-caption text-fg-subtle">حساب</p>
+            <p className="truncate text-body font-semibold text-fg" dir="ltr">
+              {latinizeDigits(displayName)}
             </p>
           </div>
         </div>
 
+        <Section title="نمایش">
+          <div className="flex items-center justify-between gap-4 rounded-card bg-panel p-4">
+            <span className="text-callout font-medium text-fg">واحد نمایش مبالغ</span>
+            <SegmentedControl
+              aria-label="واحد نمایش مبالغ"
+              size="sm"
+              fullWidth={false}
+              value={currencyMode}
+              onValueChange={setCurrencyMode}
+              options={[
+                { value: 'TOMAN', label: 'تومان' },
+                { value: 'USD', label: 'دلار' },
+              ]}
+            />
+          </div>
+        </Section>
+
+        <Section title="مدیریت">
+          <List>
+            {LINKS.map((l) => (
+              <ListRow
+                key={l.href}
+                render={<Link href={l.href} />}
+                leading={<Avatar size="sm" tone={l.tone} fallback={l.icon} />}
+                title={l.title}
+                size="sm"
+              />
+            ))}
+          </List>
+        </Section>
+
         <TelegramConnectionSection />
         <PasskeySettingsSection />
         <NotificationSettingsSection />
+        <LabsSettingsSection />
 
-        <button
-          onClick={handleLogout}
-          className="w-full bg-[#1A1B26] hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:bg-rose-500/20 transition-colors">
-              <LogOut size={20} />
-            </div>
-            <span className="font-medium text-rose-400">خروج از حساب</span>
-          </div>
-        </button>
+        <Button variant="danger" fullWidth size="lg" onClick={handleLogout}>
+          خروج از حساب
+        </Button>
       </div>
     </div>
   );

@@ -190,7 +190,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
 
   if (!asset) {
     return (
-      <div className="bg-[#0F1015] min-h-full flex items-center justify-center p-6">
+      <div className="bg-sunken min-h-full flex items-center justify-center p-6">
         <div className="text-center text-slate-500 text-sm">
           دارایی پیدا نشد.
         </div>
@@ -255,8 +255,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
           className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
@@ -333,7 +333,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
         {pnl && pnl.included && <AssetPnlBreakdown pnl={pnl} mode={currencyMode} />}
 
         {assetGoals.length > 0 && (
-          <div className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3">
+          <div className="bg-panel p-4 rounded-2xl border border-white/5 space-y-3">
             <div className="flex items-center gap-2 text-purple-300">
               <TargetIcon size={16} />
               <h3 className="text-sm font-semibold">پیشرفت هدف</h3>
@@ -482,7 +482,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
               return (
               <div
                 key={tx.id}
-                className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden group"
+                className="bg-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden group"
               >
                 <div
                   className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`}

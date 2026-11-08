@@ -93,7 +93,7 @@ export function WalletsTab() {
                 key={wallet.id}
                 type="button"
                 onClick={() => router.push(`/wallets/${wallet.id}`)}
-                className="w-full bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex items-center justify-between hover:bg-[#222436] active:scale-[0.99] transition-all text-right"
+                className="w-full bg-panel border border-white/5 p-4 rounded-2xl flex items-center justify-between hover:bg-elevated active:scale-[0.99] transition-all text-right"
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <EntityIcon

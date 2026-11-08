@@ -300,7 +300,7 @@ export function ChecksHubView() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 bg-[#1A1B26] p-1 rounded-xl">
+      <div className="grid grid-cols-3 gap-1 bg-panel p-1 rounded-xl">
         {(
           [
             ['pending', 'در انتظار'],
@@ -349,7 +349,7 @@ export function ChecksHubView() {
             return (
               <div
                 key={check.id}
-                className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl space-y-3"
+                className="bg-panel border border-white/5 p-4 rounded-2xl space-y-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -462,7 +462,7 @@ export function ChecksHubView() {
 
       {settlementTarget && (
         <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-[#13141C] border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
+          <div className="bg-sunken border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
             <button
               type="button"
               onClick={handleSettle}

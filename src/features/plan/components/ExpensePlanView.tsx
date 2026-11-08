@@ -503,7 +503,7 @@ export function ExpensePlanView() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-[#1A1B26] border border-white/5 rounded-2xl px-3 py-2">
+      <div className="flex items-center justify-between bg-panel border border-white/5 rounded-2xl px-3 py-2">
         <button
           type="button"
           onClick={() => setTargetPeriod((p) => shiftPeriod(p, -1))}
@@ -609,7 +609,7 @@ export function ExpensePlanView() {
                   return (
                     <div
                       key={item.id}
-                      className={`rounded-2xl border border-white/5 bg-[#1A1B26] p-4 space-y-2 ${isPending ? 'opacity-60' : ''}`}
+                      className={`rounded-2xl border border-white/5 bg-panel p-4 space-y-2 ${isPending ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <button
@@ -716,7 +716,7 @@ export function ExpensePlanView() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
           <form
             onSubmit={(e) => void handleManualSubmit(e)}
-            className="w-full sm:max-w-md bg-[#1A1B26] border border-white/10 rounded-2xl p-5 space-y-4"
+            className="w-full sm:max-w-md bg-panel border border-white/10 rounded-2xl p-5 space-y-4"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white">

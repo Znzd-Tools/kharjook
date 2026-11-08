@@ -41,7 +41,7 @@ export function GoalsDriftWidget() {
   if (driftRows.length === 0) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-purple-500/15 rounded-2xl p-4 space-y-3">
+    <section className="bg-panel border border-purple-500/15 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300">

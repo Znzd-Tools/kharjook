@@ -163,8 +163,8 @@ export function ManagePersonsView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
@@ -177,7 +177,7 @@ export function ManagePersonsView() {
 
       <form
         onSubmit={onSubmit}
-        className="p-6 space-y-4 border-b border-white/5 bg-[#1A1B26]"
+        className="p-6 space-y-4 border-b border-white/5 bg-panel"
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-purple-400">
@@ -199,7 +199,7 @@ export function ManagePersonsView() {
           placeholder="نام شخص"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-[#222436] border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none"
+          className="w-full bg-elevated border border-white/5 rounded-xl p-3 text-white text-sm placeholder-slate-600 focus:border-purple-500 outline-none"
           required
         />
 
@@ -279,7 +279,7 @@ function SortablePersonRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-[#1A1B26] p-4 rounded-xl border flex items-center justify-between ${isEditing ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''}`}
+      className={`bg-panel p-4 rounded-xl border flex items-center justify-between ${isEditing ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/5'} ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <button

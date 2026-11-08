@@ -698,7 +698,7 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/reports')}
-          className="bg-[#1A1B26] border border-white/5 hover:border-purple-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+          className="bg-panel border border-white/5 hover:border-purple-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:bg-purple-500/20 transition-colors">
@@ -711,7 +711,7 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/prices')}
-          className="bg-[#1A1B26] border border-white/5 hover:border-cyan-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
+          className="bg-panel border border-white/5 hover:border-cyan-500/20 p-4 rounded-2xl flex items-center justify-between text-right transition-colors group"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
@@ -761,7 +761,7 @@ export function HomeTab() {
         <button
           type="button"
           onClick={() => router.push('/deadlines')}
-          className="group relative overflow-hidden rounded-[1.75rem] border border-amber-300/10 bg-[#1A1B26] p-4 text-right transition hover:border-amber-300/20 hover:bg-[#222436]"
+          className="group relative overflow-hidden rounded-[1.75rem] border border-amber-300/10 bg-panel p-4 text-right transition hover:border-amber-300/20 hover:bg-elevated"
         >
           <div className="absolute -left-12 -top-12 h-28 w-28 rounded-full bg-amber-400/10 blur-2xl transition group-hover:bg-amber-400/15" />
           <div className="relative flex items-center justify-between gap-3">
@@ -864,7 +864,7 @@ function PortfolioHeroCard({
   cashShare: number;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-4xl border border-purple-400/20 bg-[#1A1B26] p-5 shadow-2xl shadow-purple-950/20">
+    <div className="relative overflow-hidden rounded-4xl border border-purple-400/20 bg-panel p-5 shadow-2xl shadow-purple-950/20">
       <div className="absolute -top-20 -left-16 h-48 w-48 rounded-full bg-purple-500/20 blur-3xl" />
       <div className="absolute -bottom-24 right-8 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="relative flex flex-col gap-5">
@@ -879,14 +879,14 @@ function PortfolioHeroCard({
               {totalLabel}
             </p>
           </div>
-          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0F1015]/80 ring-1 ring-white/10">
+          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-sunken/80 ring-1 ring-white/10">
             <div
               className="absolute inset-2 rounded-full"
               style={{
                 background: `conic-gradient(#8b5cf6 0 ${assetShare}%, #06b6d4 ${assetShare}% ${Math.min(100, assetShare + cashShare)}%, rgba(255,255,255,0.08) 0)`,
               }}
             />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[#151622] text-center">
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-canvas text-center">
               <span className="text-lg font-bold text-white" dir="ltr">
                 {assetShare.toFixed(0)}%
               </span>
@@ -963,7 +963,7 @@ function MetricCard({
     danger: 'bg-rose-400/10 text-rose-300',
   }[tone];
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#1A1B26] p-4 transition hover:border-white/10 hover:bg-[#202234]">
+    <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-panel p-4 transition hover:border-white/10 hover:bg-elevated">
       <div className="absolute -left-8 -top-8 h-16 w-16 rounded-full bg-white/5 blur-xl opacity-0 transition group-hover:opacity-100" />
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -1002,7 +1002,7 @@ function SummaryInsightCard({
       : 'bg-purple-400/10 text-purple-300';
   const glowClass = tone === 'cyan' ? 'bg-cyan-400/10' : 'bg-purple-400/10';
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-[#1A1B26] p-4">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-white/5 bg-panel p-4">
       <div className={`absolute -left-12 -top-12 h-28 w-28 rounded-full blur-2xl ${glowClass}`} />
       <div className="relative flex items-start gap-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
@@ -1043,7 +1043,7 @@ function HomeGoalsSection({
       : `${value.toLocaleString('en-US', { maximumFractionDigits: 4 })}${row.unit ? ` ${row.unit}` : ''}`;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-[#1A1B26] p-4">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-purple-400/15 bg-panel p-4">
       <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-emerald-500/5 blur-3xl" />
       <div className="absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-rose-500/5 blur-3xl" />
       <div className="relative mb-4 flex items-start justify-between gap-3">

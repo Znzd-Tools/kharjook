@@ -444,8 +444,8 @@ export function DailyPricesView() {
   };
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           onClick={() => router.back()}
           className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
@@ -499,7 +499,7 @@ export function DailyPricesView() {
           <FormattedNumberInput
             value={localUsd}
             onValueChange={handleUsdRateChange}
-            className="w-full bg-[#1A1B26] border border-white/10 rounded-xl p-3 text-white text-left focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
+            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-left focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
             dir="ltr"
           />
         </div>
@@ -512,7 +512,7 @@ export function DailyPricesView() {
               return (
                 <div
                   key={c}
-                  className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-2"
+                  className="bg-panel p-4 rounded-2xl border border-white/5 space-y-2"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -533,7 +533,7 @@ export function DailyPricesView() {
                     onValueChange={(canonical) =>
                       setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))
                     }
-                    className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
+                    className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
                     dir="ltr"
                     placeholder="0"
                   />
@@ -552,7 +552,7 @@ export function DailyPricesView() {
           {visibleAssets.map((asset) => (
             <div
               key={asset.id}
-              className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-4"
+              className="bg-panel p-4 rounded-2xl border border-white/5 space-y-4"
             >
               <h3 className="font-semibold text-white">{asset.name}</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -565,7 +565,7 @@ export function DailyPricesView() {
                     <FormattedNumberInput
                       value={localPrices[asset.id]?.usd || ''}
                       onValueChange={(c) => handlePriceChange(asset.id, 'usd', c)}
-                      className="w-full bg-[#222436] border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
+                      className="w-full bg-elevated border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
                       dir="ltr"
                     />
                   </div>
@@ -579,7 +579,7 @@ export function DailyPricesView() {
                     <FormattedNumberInput
                       value={localPrices[asset.id]?.toman || ''}
                       onValueChange={(c) => handlePriceChange(asset.id, 'toman', c)}
-                      className="w-full bg-[#222436] border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
+                      className="w-full bg-elevated border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
                       dir="ltr"
                     />
                   </div>
@@ -588,7 +588,7 @@ export function DailyPricesView() {
             </div>
           ))}
           {visibleAssets.length === 0 && (
-            <div className="bg-[#1A1B26] p-6 rounded-2xl border border-white/5 text-center text-slate-500 text-sm">
+            <div className="bg-panel p-6 rounded-2xl border border-white/5 text-center text-slate-500 text-sm">
               دارایی با مقدار بیشتر از صفر برای بروزرسانی قیمت وجود ندارد.
             </div>
           )}
@@ -598,7 +598,7 @@ export function DailyPricesView() {
           <button
             type="button"
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="w-full flex items-center justify-between p-4 bg-[#1A1B26] text-right hover:bg-[#222436] transition-colors"
+            className="w-full flex items-center justify-between p-4 bg-panel text-right hover:bg-elevated transition-colors"
           >
             <span className="text-sm font-medium text-slate-300">تنظیمات پیشرفته</span>
             <ChevronDown
@@ -607,7 +607,7 @@ export function DailyPricesView() {
             />
           </button>
           {advancedOpen && (
-            <div className="p-4 pt-0 bg-[#1A1B26] border-t border-white/5 space-y-6">
+            <div className="p-4 pt-0 bg-panel border-t border-white/5 space-y-6">
               <PriceSourceCatalogSection />
               <div className="border-t border-white/5 pt-4">
                 <p className="text-xs font-medium text-slate-400 mb-3">ضرایب تبدیل</p>

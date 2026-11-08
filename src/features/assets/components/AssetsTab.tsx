@@ -345,7 +345,7 @@ function AssetListRow({
   return (
     <div
       onClick={onOpen}
-      className="bg-[#1A1B26] border border-white/5 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-[#222436] transition-colors active:scale-[0.98]"
+      className="bg-panel border border-white/5 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-elevated transition-colors active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
         <EntityIcon

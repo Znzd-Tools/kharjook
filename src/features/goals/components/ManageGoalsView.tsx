@@ -437,8 +437,8 @@ export function ManageGoalsView() {
   if (!user) return null;
 
   return (
-    <div className="bg-[#0F1015] min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-[#161722]/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
+    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
+      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
         <button
           type="button"
           onClick={() => router.back()}
@@ -453,7 +453,7 @@ export function ManageGoalsView() {
       <div className="p-6 space-y-6">
         <form
           onSubmit={handleSubmit}
-          className="bg-[#1A1B26] border border-white/5 rounded-3xl p-5 space-y-4"
+          className="bg-panel border border-white/5 rounded-3xl p-5 space-y-4"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-purple-300">
@@ -474,7 +474,7 @@ export function ManageGoalsView() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#0F1015] p-1">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-sunken p-1">
             <button
               type="button"
               onClick={() => switchScope('asset')}
@@ -545,7 +545,7 @@ export function ManageGoalsView() {
                 value={form.targetValue}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, targetValue: value }))}
                 placeholder={effectiveTargetKind === 'quantity' ? 'مثلا 2.5' : 'مثلا 25'}
-                className="w-full bg-[#0F1015] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:border-purple-500 outline-none"
+                className="w-full bg-sunken border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:border-purple-500 outline-none"
               />
               {effectiveTargetKind === 'allocation_percent' && (
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
@@ -568,7 +568,7 @@ export function ManageGoalsView() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-[#0F1015] p-3 space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-sunken p-3 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-300">خلاصه بودجه درصدی</p>
               <p className="text-[10px] text-slate-500">محاسبه زنده با پیش‌نمایش فرم فعلی</p>
@@ -650,7 +650,7 @@ export function ManageGoalsView() {
           </div>
 
           {sortedGoals.length === 0 ? (
-            <div className="text-center text-slate-500 text-sm py-8 bg-[#1A1B26] border border-white/5 rounded-2xl">
+            <div className="text-center text-slate-500 text-sm py-8 bg-panel border border-white/5 rounded-2xl">
               هنوز هدفی ثبت نشده است.
             </div>
           ) : (
@@ -750,7 +750,7 @@ function PickerButton({
     <button
       type="button"
       onClick={onClick}
-      className="w-full bg-[#0F1015] border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-right hover:border-purple-500/40 transition"
+      className="w-full bg-sunken border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 text-right hover:border-purple-500/40 transition"
     >
       <span className="text-slate-500">{icon}</span>
       <span className="flex-1 min-w-0">
@@ -782,7 +782,7 @@ function TargetKindButton({
       className={`rounded-xl border p-3 text-sm flex items-center justify-center gap-2 transition ${
         selected
           ? 'bg-purple-500/10 border-purple-500/40 text-purple-200'
-          : 'bg-[#0F1015] border-white/10 text-slate-400 hover:text-white'
+          : 'bg-sunken border-white/10 text-slate-400 hover:text-white'
       }`}
     >
       {icon}
@@ -815,7 +815,7 @@ function GoalRow({
 
   return (
     <div
-      className={`bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3 ${
+      className={`bg-panel border border-white/5 rounded-2xl p-4 space-y-3 ${
         pending ? 'opacity-60' : ''
       }`}
     >

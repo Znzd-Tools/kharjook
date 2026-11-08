@@ -89,7 +89,7 @@ export function PasskeySettingsSection() {
   if (!supported) return null;
 
   return (
-    <section className="bg-[#1A1B26] border border-white/5 rounded-2xl p-4 space-y-3">
+    <section className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">

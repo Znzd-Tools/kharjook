@@ -199,7 +199,7 @@ function PriceSourceAdvancedSectionInner({
         return (
           <div
             key={source.slug}
-            className="bg-[#1A1B26] p-4 rounded-2xl border border-white/5 space-y-3"
+            className="bg-panel p-4 rounded-2xl border border-white/5 space-y-3"
           >
             <p className="text-slate-200 text-sm font-medium">{source.label}</p>
 
@@ -210,7 +210,7 @@ function PriceSourceAdvancedSectionInner({
                 onValueChange={(canonical) =>
                   setConversionRate(source.slug, canonical)
                 }
-                className="w-full bg-[#222436] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 text-left"
+                className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 text-left"
                 dir="ltr"
                 placeholder="1"
               />
@@ -229,7 +229,7 @@ function PriceSourceAdvancedSectionInner({
                       className={`rounded-xl py-2 text-xs font-medium transition-colors ${
                         active
                           ? 'bg-cyan-600 text-white'
-                          : 'bg-[#222436] text-slate-400 border border-white/5 hover:text-slate-200'
+                          : 'bg-elevated text-slate-400 border border-white/5 hover:text-slate-200'
                       }`}
                     >
                       {option.label}
@@ -247,7 +247,7 @@ function PriceSourceAdvancedSectionInner({
           type="button"
           onClick={() => void handleSave()}
           disabled={isSaving}
-          className="w-full bg-[#222436] hover:bg-[#2a2c40] border border-white/10 text-slate-200 p-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          className="w-full bg-elevated hover:bg-elevated border border-white/10 text-slate-200 p-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
         >
           {isSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات پیشرفته'}
         </button>
