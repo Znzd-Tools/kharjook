@@ -10,6 +10,7 @@ import { TelegramConnectionSection } from '@/features/settings/components/Telegr
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
 import { SmsSettingsSection } from '@/features/sms/components/SmsSettingsSection';
+import { NotificationCenterSection } from '@/features/settings/components/NotificationCenterSection';
 import { PushSettingsSection } from '@/features/settings/components/PushSettingsSection';
 
 const LINKS = [
@@ -88,6 +89,7 @@ export function SettingsTab() {
         <PasskeySettingsSection />
         <NotificationSettingsSection />
         <PushSettingsSection />
+        <NotificationCenterSection />
         <SmsSettingsSection />
 
         <Button variant="danger" fullWidth size="lg" onClick={handleLogout}>

@@ -24,7 +24,9 @@ export type NotificationDeliveryKind =
   | 'loan_reminder'
   | 'expense_alert'
   | 'category_cap_alert'
-  | 'push_reminder';
+  | 'push_reminder'
+  | 'expense_reminder'
+  | 'price_update';
 export type GoalScope = 'asset' | 'asset_group';
 export type GoalTargetKind = 'quantity' | 'allocation_percent';
 
@@ -398,6 +400,8 @@ export interface Check {
   cleared_at: string | null;
   paid_transaction_id: string | null;
   note: string | null;
+  /** Days before the due date to remind (Telegram + push). */
+  reminder_days_before?: number[];
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

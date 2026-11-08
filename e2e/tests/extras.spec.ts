@@ -72,3 +72,17 @@ test('offline: a new expense waits in the queue and is sent once online', async 
   await page.waitForTimeout(500);
   expect((await dbRows<Tx>('transactions')).filter((t) => !before.has(t.id))).toHaveLength(1);
 });
+
+test('notification center: per notification, Telegram and app switches are saved', async ({ page }) => {
+  await open(page, '/settings');
+  const center = page.getByRole('region', { name: 'مرکز اعلان‌ها' });
+  await expect(center.getByRole('checkbox', { name: 'ثبت هزینه‌های امروز در اپ' })).not.toBeChecked();
+  await expect(center.getByRole('checkbox', { name: 'چک‌ها در اپ' })).toBeChecked();
+  await center.getByRole('checkbox', { name: 'اشتراک‌ها در اپ' }).click();
+  await center.getByRole('checkbox', { name: 'به‌روزرسانی قیمت‌ها در اپ' }).click();
+  await expect
+    .poll(async () => (await dbRows<{ channels: Record<string, Record<string, boolean>> }>('notification_settings'))[0]?.channels)
+    .toMatchObject({ 'due_today.subscription': { push: false }, price_update: { push: true } });
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'مرکز اعلان‌ها' }).getByRole('checkbox', { name: 'اشتراک‌ها در اپ' })).not.toBeChecked();
+});

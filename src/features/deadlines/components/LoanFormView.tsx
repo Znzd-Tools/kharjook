@@ -73,7 +73,7 @@ function initialState(): LoanFormState {
     intervalPeriod: 'month',
     autoIncomeOnCreate: false,
     autoIncomeWalletId: null,
-    reminderDaysBefore: [3],
+    reminderDaysBefore: [2],
   };
 }
 
@@ -540,7 +540,7 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
             options={INTERVAL_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
           />
         </Field>
-        <Field label="یادآوری تلگرام قبل از سررسید" hint="علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیری.">
+        <Field label="یادآوری قبل از سررسید (تلگرام و اپ)" hint="علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیری.">
           <ChipGroup
             aria-label="روزهای یادآوری"
             multiple

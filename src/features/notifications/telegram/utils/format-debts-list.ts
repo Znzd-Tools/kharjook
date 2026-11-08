@@ -32,6 +32,7 @@ export type CheckListItem = {
   amountToman: number;
   daysUntilDue: number;
   bankName?: string | null;
+  reminderDaysBefore?: number[];
 };
 
 export type SubscriptionListItem = {

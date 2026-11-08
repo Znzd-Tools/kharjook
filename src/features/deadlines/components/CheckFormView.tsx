@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AmountField, Button, DateField, Field, Input, PickerField, Skeleton, Textarea, TopBar } from '@/design-system';
+import { AmountField, Button, Chip, ChipGroup, DateField, Field, Input, PickerField, Skeleton, Textarea, TopBar } from '@/design-system';
+import { LOAN_REMINDER_DAY_OPTIONS, normalizeReminderDaysBefore } from '@/features/deadlines/utils/loan-reminder-days';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { categoryOptions, walletOptions } from '@/features/deadlines/v2/form-options';
@@ -21,6 +22,7 @@ type CheckFormState = {
   categoryId: string | null;
   dueDate: string;
   note: string;
+  reminderDaysBefore: number[];
 };
 
 function initialState(): CheckFormState {
@@ -33,6 +35,7 @@ function initialState(): CheckFormState {
     categoryId: null,
     dueDate: formatJalaali(todayJalaali()),
     note: '',
+    reminderDaysBefore: [2],
   };
 }
 
@@ -79,6 +82,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           categoryId: check.category_id,
           dueDate: check.due_date_string,
           note: check.note ?? '',
+          reminderDaysBefore: check.reminder_days_before ?? [2],
         });
       } catch (error) {
         console.error(error);
@@ -132,6 +136,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         wallet_id: form.walletId,
         category_id: form.categoryId,
         note: form.note.trim() || null,
+        reminder_days_before: normalizeReminderDaysBefore(form.reminderDaysBefore),
         updated_at: new Date().toISOString(),
       };
 
@@ -199,6 +204,20 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
             <Input value={form.checkNumber} onChange={(e) => set('checkNumber', e.target.value)} placeholder="اختیاری" dir="ltr" inputMode="numeric" />
           </Field>
         </div>
+        <Field label="یادآوری قبل از سررسید (تلگرام و اپ)">
+          <ChipGroup
+            aria-label="روزهای یادآوری"
+            multiple
+            value={form.reminderDaysBefore.map(String)}
+            onValueChange={(v) => set('reminderDaysBefore', normalizeReminderDaysBefore(v.map(Number)))}
+          >
+            {LOAN_REMINDER_DAY_OPTIONS.map((days) => (
+              <Chip key={days} value={String(days)}>
+                {days.toLocaleString('fa-IR')} روز قبل
+              </Chip>
+            ))}
+          </ChipGroup>
+        </Field>
         <Field label="یادداشت">
           <Textarea value={form.note} onChange={(e) => set('note', e.target.value)} rows={3} placeholder="اختیاری" />
         </Field>

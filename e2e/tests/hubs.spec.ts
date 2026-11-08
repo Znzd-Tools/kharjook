@@ -37,3 +37,19 @@ test('persons: add a person in the new screen', async ({ page }) => {
   await expect(page).toHaveURL(/\/deadlines\/persons\/p-ali/);
   await expect(page.getByRole('region', { name: 'مانده حساب' })).toBeVisible();
 });
+
+test('check form: reminder days default to 2 and are saved', async ({ page }) => {
+  await open(page, '/deadlines/checks/new');
+  await expect(page.getByRole('button', { name: '۲ روز قبل' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('عنوان / دریافت‌کننده').fill('چک تست');
+  await page.getByLabel('مبلغ چک').fill('1000000');
+  await page.getByLabel('کیف پول').click();
+  await page.getByRole('option', { name: /ملت/ }).click();
+  await page.getByLabel('دسته هزینه').click();
+  await page.getByRole('option', { name: 'اجاره' }).click();
+  await page.getByRole('button', { name: '۷ روز قبل' }).click();
+  await page.getByRole('button', { name: 'ثبت چک' }).click();
+  await expect
+    .poll(async () => (await dbRows<{ title: string; reminder_days_before: number[] }>('checks')).find((c) => c.title === 'چک تست')?.reminder_days_before)
+    .toEqual([2, 7]);
+});

@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   '/api/prices/quotes',
   '/api/telegram/webhook',
   '/api/cron/notifications',
+  '/api/cron/evening',
   '/api/sms/ingest',
   '/manifest.webmanifest',
   '/sw.js',

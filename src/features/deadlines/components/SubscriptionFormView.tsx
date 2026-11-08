@@ -45,7 +45,7 @@ function initialState(): SubscriptionFormState {
     nextDueDate: formatJalaali(todayJalaali()),
     intervalNumber: '1',
     intervalPeriod: 'month',
-    reminderDaysBefore: [],
+    reminderDaysBefore: [2],
     note: '',
   };
 }
@@ -226,7 +226,7 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
             />
           </div>
         </Field>
-        <Field label="یادآوری تلگرام قبل از سررسید">
+        <Field label="یادآوری قبل از سررسید (تلگرام و اپ)">
           <ChipGroup
             aria-label="روزهای یادآوری"
             multiple

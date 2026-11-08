@@ -66,6 +66,8 @@ import {
   type BotNotificationSettings,
 } from '@/features/notifications/services/bot-notification-settings';
 import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
+import { isOn } from '@/features/notifications/utils/notification-prefs';
+import { notifyPriceUpdates } from '@/features/notifications/services/notification-center';
 
 /** Defaults for new rows. */
 export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
@@ -203,6 +205,7 @@ async function loadPendingChecks(userId: string): Promise<CheckListItem[]> {
       amountToman: row.amount * rate,
       daysUntilDue: daysUntil,
       bankName: row.bank_name,
+      reminderDaysBefore: row.reminder_days_before ?? [2],
     });
   }
   return items;
@@ -467,7 +470,7 @@ function formatPriceChangeAlert(
 export async function sendDebtsListForUser(
   userId: string,
   connection: TelegramConnection,
-  options?: { skipDedup?: boolean; todayOnly?: boolean }
+  options?: { skipDedup?: boolean; todayOnly?: boolean; channels?: unknown }
 ): Promise<boolean> {
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
   const dedupKey = formatJalaali(today);
@@ -481,9 +484,11 @@ export async function sendDebtsListForUser(
   let checks = await loadPendingChecks(userId);
   let subscriptions = await loadUpcomingSubscriptions(userId);
   if (options?.todayOnly) {
-    items = items.filter((item) => item.daysUntilDue === 0);
-    checks = checks.filter((item) => item.daysUntilDue === 0);
-    subscriptions = subscriptions.filter((item) => item.daysUntilDue === 0);
+    // Notification center: each type can be switched off for Telegram.
+    const ch = options.channels;
+    items = isOn(ch, 'due_today.installment', 'telegram') ? items.filter((item) => item.daysUntilDue === 0) : [];
+    checks = isOn(ch, 'due_today.check', 'telegram') ? checks.filter((item) => item.daysUntilDue === 0) : [];
+    subscriptions = isOn(ch, 'due_today.subscription', 'telegram') ? subscriptions.filter((item) => item.daysUntilDue === 0) : [];
     if (items.length === 0 && checks.length === 0 && subscriptions.length === 0) return false;
   }
 
@@ -510,8 +515,17 @@ export async function sendAdvanceLoanRemindersForUser(
 ): Promise<boolean> {
   const allItems = await loadUnpaidDebtItems(userId);
   const allSubscriptions = await loadUpcomingSubscriptions(userId);
+  const allChecks = await loadPendingChecks(userId);
   const dueToday: DebtListItem[] = [];
   const dueSubscriptions: SubscriptionListItem[] = [];
+  const dueChecks: CheckListItem[] = [];
+
+  for (const item of allChecks) {
+    if (item.daysUntilDue <= 0) continue;
+    if (!(item.reminderDaysBefore ?? []).includes(item.daysUntilDue)) continue;
+    if (await wasDelivered(userId, 'loan_reminder', `advance:chk:${item.checkId}:${item.daysUntilDue}`)) continue;
+    dueChecks.push(item);
+  }
 
   for (const item of allItems) {
     if (item.daysUntilDue <= 0) continue;
@@ -533,10 +547,14 @@ export async function sendAdvanceLoanRemindersForUser(
     dueSubscriptions.push(item);
   }
 
-  if (dueToday.length === 0 && dueSubscriptions.length === 0) return false;
+  if (dueToday.length === 0 && dueSubscriptions.length === 0 && dueChecks.length === 0) return false;
 
-  const text = formatDebtsListMessage(dueToday, 'advance', [], dueSubscriptions);
+  const text = formatDebtsListMessage(dueToday, 'advance', dueChecks, dueSubscriptions);
   await sendTelegramToConnection(connection, text);
+
+  for (const item of dueChecks) {
+    await markDelivered(userId, 'loan_reminder', `advance:chk:${item.checkId}:${item.daysUntilDue}`);
+  }
 
   for (const item of dueToday) {
     await markDelivered(userId, 'loan_reminder', `advance:${item.installmentId}:${item.daysUntilDue}`);
@@ -607,7 +625,7 @@ export async function sendScheduledReportForUser(
   return true;
 }
 
-/** Daily cron at 09:00 Tehran — installments, reports, caps, recurring txs, auto prices. */
+/** Daily cron at 10:00 Tehran — installments, reports, caps, recurring txs, auto prices. */
 export async function processScheduledNotifications(): Promise<{
   debtsDigestsSent: number;
   reportsDigestsSent: number;
@@ -622,6 +640,11 @@ export async function processScheduledNotifications(): Promise<{
 
   const priceRefreshResult = await processAutoPriceRefresh();
   errors.push(...priceRefreshResult.errors);
+  try {
+    await notifyPriceUpdates(priceRefreshResult.perUser);
+  } catch (err) {
+    errors.push(`price-notify:${err instanceof Error ? err.message : String(err)}`);
+  }
 
   const admin = createSupabaseAdminClient();
   const { data: connections } = await admin
@@ -646,16 +669,18 @@ export async function processScheduledNotifications(): Promise<{
   const { data: settingsRows } = await admin
     .from('notification_settings')
     .select(
-      'user_id, enabled, report_enabled, report_interval, report_day_of_week, show_portfolio_irt, show_portfolio_usd, show_cashflow_irt, show_cashflow_usd'
+      'user_id, enabled, channels, report_enabled, report_interval, report_day_of_week, show_portfolio_irt, show_portfolio_usd, show_cashflow_irt, show_cashflow_usd'
     )
     .in('user_id', userIds);
 
   const enabledByUser = new Map<string, boolean>();
+  const channelsByUser = new Map<string, unknown>();
   const reportByUser = new Map<string, ReportNotificationSettings>();
   for (const row of settingsRows ?? []) {
     const settings = row as {
       user_id: string;
       enabled: boolean;
+      channels?: unknown;
       report_enabled?: boolean;
       report_interval?: ReportNotificationSettings['report_interval'];
       report_day_of_week?: number;
@@ -665,6 +690,7 @@ export async function processScheduledNotifications(): Promise<{
       show_cashflow_usd?: boolean;
     };
     enabledByUser.set(settings.user_id, settings.enabled);
+    channelsByUser.set(settings.user_id, settings.channels);
     reportByUser.set(settings.user_id, {
       report_enabled: settings.report_enabled ?? DEFAULT_REPORT_SETTINGS.report_enabled,
       report_interval: settings.report_interval ?? DEFAULT_REPORT_SETTINGS.report_interval,
@@ -689,7 +715,7 @@ export async function processScheduledNotifications(): Promise<{
     const enabled = enabledByUser.get(conn.user_id) ?? BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled;
     if (enabled) {
       try {
-        const sent = await sendDebtsListForUser(conn.user_id, conn, { todayOnly: true });
+        const sent = await sendDebtsListForUser(conn.user_id, conn, { todayOnly: true, channels: channelsByUser.get(conn.user_id) });
         if (sent) debtsDigestsSent += 1;
       } catch (err) {
         errors.push(
@@ -698,7 +724,9 @@ export async function processScheduledNotifications(): Promise<{
       }
 
       try {
-        const sentAdvance = await sendAdvanceLoanRemindersForUser(conn.user_id, conn);
+        const sentAdvance = isOn(channelsByUser.get(conn.user_id), 'advance', 'telegram')
+          ? await sendAdvanceLoanRemindersForUser(conn.user_id, conn)
+          : false;
         if (sentAdvance) debtsDigestsSent += 1;
       } catch (err) {
         errors.push(

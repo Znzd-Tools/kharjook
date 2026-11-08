@@ -1,6 +1,6 @@
 /**
- * Which deadlines get a push today (UX plan S30): due today or tomorrow,
- * not paid yet. Pure, so it is unit-tested; the cron does the I/O.
+ * Which deadlines get a push today: due today (per type switch) or on one
+ * of the item's "N days before" (advance switch), not paid yet. Pure, so it is unit-tested; the cron does the I/O.
  */
 export type PushKind = 'check' | 'installment' | 'subscription';
 
@@ -17,46 +17,52 @@ export interface PushReminder {
 }
 
 export interface ReminderInput {
-  checks: { id: string; title: string; due_date_string: string; wallet_id: string | null; amountLabel: string }[];
-  installments: { id: string; loanTitle: string; due_date_string: string; amountLabel: string }[];
-  subscriptions: { id: string; platform: string; next_due_date_string: string; wallet_id: string | null; amountLabel: string }[];
+  checks: { id: string; title: string; due_date_string: string; wallet_id: string | null; amountLabel: string; reminderDays?: number[] }[];
+  installments: { id: string; loanTitle: string; due_date_string: string; amountLabel: string; reminderDays?: number[] }[];
+  subscriptions: { id: string; platform: string; next_due_date_string: string; wallet_id: string | null; amountLabel: string; reminderDays?: number[] }[];
   /** Days from today to a Jalaali date, or null if unreadable. */
   daysUntil: (dateString: string) => number | null;
+  /** Notification center switches (push channel). Default: all on. */
+  prefs?: { dueToday: Record<PushKind, boolean>; advance: boolean };
 }
 
-const when = (d: number) => (d === 0 ? 'امروز' : 'فردا');
+const when = (d: number) => (d === 0 ? 'امروز' : d === 1 ? 'فردا' : `${d.toLocaleString('fa-IR')} روز دیگر`);
 
-export function buildPushReminders({ checks, installments, subscriptions, daysUntil }: ReminderInput): PushReminder[] {
+export function buildPushReminders({ checks, installments, subscriptions, daysUntil, prefs }: ReminderInput): PushReminder[] {
   const out: PushReminder[] = [];
-  const soon = (date: string) => {
+  const p = prefs ?? { dueToday: { check: true, installment: true, subscription: true }, advance: true };
+  /** Same day (if that type is on) or one of the item's "N days before" (if advance is on). */
+  const at = (kind: PushKind, date: string, days: number[] | undefined) => {
     const d = daysUntil(date);
-    return d === 0 || d === 1 ? d : null;
+    if (d === 0) return p.dueToday[kind] ? 0 : null;
+    if (d != null && d > 0 && p.advance && (days ?? [2]).includes(d)) return d;
+    return null;
   };
   for (const c of checks) {
-    const d = soon(c.due_date_string);
+    const d = at('check', c.due_date_string, c.reminderDays);
     if (d == null) continue;
     out.push({
       kind: 'check', id: c.id, dueDateString: c.due_date_string, walletId: c.wallet_id,
       title: `چک «${c.title}» ${when(d)}`, body: `${c.amountLabel} · سررسید ${c.due_date_string}`,
-      key: `check:${c.id}:${c.due_date_string}`,
+      key: `check:${c.id}:${c.due_date_string}:${d}`,
     });
   }
   for (const i of installments) {
-    const d = soon(i.due_date_string);
+    const d = at('installment', i.due_date_string, i.reminderDays);
     if (d == null) continue;
     out.push({
       kind: 'installment', id: i.id, dueDateString: i.due_date_string, walletId: null,
       title: `قسط «${i.loanTitle}» ${when(d)}`, body: `${i.amountLabel} · سررسید ${i.due_date_string}`,
-      key: `installment:${i.id}:${i.due_date_string}`,
+      key: `installment:${i.id}:${i.due_date_string}:${d}`,
     });
   }
   for (const s of subscriptions) {
-    const d = soon(s.next_due_date_string);
+    const d = at('subscription', s.next_due_date_string, s.reminderDays);
     if (d == null) continue;
     out.push({
       kind: 'subscription', id: s.id, dueDateString: s.next_due_date_string, walletId: s.wallet_id,
       title: `اشتراک «${s.platform}» ${when(d)}`, body: `${s.amountLabel} · سررسید ${s.next_due_date_string}`,
-      key: `subscription:${s.id}:${s.next_due_date_string}`,
+      key: `subscription:${s.id}:${s.next_due_date_string}:${d}`,
     });
   }
   return out;

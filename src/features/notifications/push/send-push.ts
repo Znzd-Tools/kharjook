@@ -8,6 +8,7 @@ import { installmentDaysUntilDue, TEHRAN_TIMEZONE } from '@/features/notificatio
 import { formatTelegramMoney } from '@/features/notifications/telegram/utils/format-helpers';
 import type { Check, CurrencyRate, Loan, LoanInstallment, Subscription } from '@/shared/types/domain';
 import { buildPushReminders, settleRequest } from './reminders';
+import { isOn } from '@/features/notifications/utils/notification-prefs';
 
 /** Server only (service-role client). Web Push works only when the VAPID keys are set. Without them nothing runs. */
 export function isPushConfigured(): boolean {
@@ -89,6 +90,10 @@ export async function processPushReminders(): Promise<{ sent: number; errors: st
   let sent = 0;
   const { data: subs } = await admin.from('push_subscriptions').select('user_id');
   const userIds = Array.from(new Set(((subs ?? []) as { user_id: string }[]).map((s) => s.user_id)));
+  const { data: settingsRows } = userIds.length
+    ? await admin.from('notification_settings').select('user_id, channels').in('user_id', userIds)
+    : { data: [] };
+  const channelsOf = (id: string) => ((settingsRows ?? []) as { user_id: string; channels: unknown }[]).find((r) => r.user_id === id)?.channels ?? {};
   const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
   const daysUntil = (d: string) => installmentDaysUntilDue(d, today);
 
@@ -114,23 +119,35 @@ export async function processPushReminders(): Promise<{ sent: number; errors: st
       const assetsById = new Map(((assetRows ?? []) as { id: string; price_toman: number }[]).map((a) => [a.id, { price_toman: Number(a.price_toman) }]));
       const money = (toman: number) => formatTelegramMoney(toman, 'TOMAN');
 
+      const ch = channelsOf(userId);
       const reminders = buildPushReminders({
         daysUntil,
+        prefs: {
+          dueToday: {
+            check: isOn(ch, 'due_today.check', 'push'),
+            installment: isOn(ch, 'due_today.installment', 'push'),
+            subscription: isOn(ch, 'due_today.subscription', 'push'),
+          },
+          advance: isOn(ch, 'advance', 'push'),
+        },
         checks: ((checks.data ?? []) as Check[]).map((c) => ({
           id: c.id, title: c.title, due_date_string: c.due_date_string, wallet_id: c.wallet_id,
           amountLabel: money(c.amount * tomanPerUnit(c.currency, rateRows)),
+          reminderDays: c.reminder_days_before ?? [2],
         })),
         installments: inst.flatMap((i) => {
           const loan = loanById.get(i.loan_id);
           if (!loan) return [];
           return [{
             id: i.id, loanTitle: loan.title, due_date_string: i.due_date_string,
+            reminderDays: loan.reminder_days_before ?? [2],
             amountLabel: money(loanAmountToToman(installmentRemainingAmount(i), loan, rateRows, assetsById)),
           }];
         }),
         subscriptions: ((subscriptions.data ?? []) as Subscription[]).map((s) => ({
           id: s.id, platform: s.platform, next_due_date_string: s.next_due_date_string, wallet_id: s.wallet_id,
           amountLabel: money(s.amount * tomanPerUnit(s.currency, rateRows)),
+          reminderDays: s.reminder_days_before ?? [2],
         })),
       });
 

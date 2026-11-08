@@ -262,6 +262,8 @@ export async function processAutoPriceRefresh(): Promise<{
   usersProcessed: number;
   assetsUpdated: number;
   errors: string[];
+  /** Per user, for the "prices updated" notification. */
+  perUser: { userId: string; updatedCount: number; usdRate: number; failedProviders: string[] }[];
 }> {
   const admin = createSupabaseAdminClient();
   const { data: rows, error } = await admin
@@ -270,17 +272,19 @@ export async function processAutoPriceRefresh(): Promise<{
     .not('price_source_id', 'is', null);
 
   if (error) {
-    return { usersProcessed: 0, assetsUpdated: 0, errors: [error.message] };
+    return { usersProcessed: 0, assetsUpdated: 0, errors: [error.message], perUser: [] };
   }
 
   const userIds = Array.from(new Set((rows ?? []).map((row) => row.user_id as string)));
   let assetsUpdated = 0;
   const errors: string[] = [];
+  const perUser: { userId: string; updatedCount: number; usdRate: number; failedProviders: string[] }[] = [];
 
   for (const userId of userIds) {
     try {
       const result = await refreshUserPricesFromProviders(userId);
       assetsUpdated += result.updatedCount;
+      perUser.push({ userId, ...result });
       if (result.failedProviders.length > 0) {
         errors.push(`${userId}:providers:${result.failedProviders.join(',')}`);
       }
@@ -289,7 +293,7 @@ export async function processAutoPriceRefresh(): Promise<{
     }
   }
 
-  return { usersProcessed: userIds.length, assetsUpdated, errors };
+  return { usersProcessed: userIds.length, assetsUpdated, errors, perUser };
 }
 
 export async function loadUserAssetsWithRates(userId: string): Promise<{

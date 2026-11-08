@@ -1,4 +1,4 @@
-export const LOAN_REMINDER_DAY_OPTIONS = [1, 3, 7, 14] as const;
+export const LOAN_REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 14] as const;
 
 export function normalizeReminderDaysBefore(values: number[]): number[] {
   return Array.from(
