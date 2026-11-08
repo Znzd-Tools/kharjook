@@ -6,7 +6,7 @@ export interface FormatMoneyOptions {
   currency?: Currency;
   /** Show `+` for positive values. Default: false. */
   signed?: boolean;
-  /** Compact notation: ۱٫۲ میلیون / ۳۵۰ هزار. Default: false. */
+  /** Compact notation: ۱٫۴۵ میلیون / ۳۵۰ هزار (max 2 decimals). Default: false. */
   compact?: boolean;
   /** Override decimals. Default: 0 for TOMAN, 2 for USD. */
   fractionDigits?: number;
@@ -58,7 +58,8 @@ export function formatMoney(value: number, options: FormatMoneyOptions = {}): Fo
 
   const raw = scaled.toLocaleString('en-US', {
     minimumFractionDigits: compact && scaleLabel ? 0 : digits,
-    maximumFractionDigits: compact && scaleLabel ? 1 : digits,
+    // Compact keeps 2 decimals: 1,450,000 → ۱٫۴۵ میلیون (not ۱٫۵).
+    maximumFractionDigits: compact && scaleLabel ? 2 : digits,
   });
   const number = persianDigits ? toPersianDigits(raw).replace(/\./g, '٫').replace(/,/g, '٬') : raw;
 

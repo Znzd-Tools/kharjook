@@ -60,7 +60,7 @@ const HUBS = [
 
 export function PlanTabV2() {
   const router = useRouter();
-  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, currencyRates, categories } = useData();
+  const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, currencyRates } = useData();
   const today = useMemo(() => todayJalaali(), []);
 
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -78,7 +78,6 @@ export function PlanTabV2() {
     window.history.replaceState(null, '', url);
   };
   const [kindFilter, setKindFilter] = useState<'all' | TimelineItem['kind']>('all');
-  const [catFilter, setCatFilter] = useState<string>('all');
   const [menuFor, setMenuFor] = useState<TimelineItem | null>(null);
   const [walletPickFor, setWalletPickFor] = useState<TimelineItem | null>(null);
   const [partialFor, setPartialFor] = useState<TimelineItem | null>(null);
@@ -120,7 +119,6 @@ export function PlanTabV2() {
             ...i,
             loanAssetId: loanById.get(i.loan_id)?.asset_id ?? null,
             loanWalletId: loanById.get(i.loan_id)?.auto_income_wallet_id ?? null,
-            loanCategoryId: loanById.get(i.loan_id)?.category_id ?? null,
           })),
         },
         today
@@ -154,11 +152,8 @@ export function PlanTabV2() {
   const settleWallet = pickDefaultSettleWallet(wallets)?.id ?? defaultWallet;
 
   const shown = items.filter(
-    (i) => (kindFilter === 'all' || i.kind === kindFilter) && (catFilter === 'all' || i.categoryId === catFilter)
+    (i) => kindFilter === 'all' || i.kind === kindFilter
   );
-  const usedCats = Array.from(new Set(items.map((i) => i.categoryId).filter((c): c is string => !!c)))
-    .map((id) => categories.find((c) => c.id === id))
-    .filter((c): c is NonNullable<typeof c> => !!c);
   const owedToMe = debts.filter((d) => d.balance > 0).reduce((s2, d) => s2 + d.balance, 0);
   const iOwe = debts.filter((d) => d.balance < 0).reduce((s2, d) => s2 - d.balance, 0);
 
@@ -177,6 +172,17 @@ export function PlanTabV2() {
 
       {view === 'due' && (
       <>
+      <nav aria-label="مدیریت" className="grid grid-cols-2 gap-2">
+        {HUBS.filter((h) => h.href !== '/deadlines/persons' && h.href !== '/deadlines/loans').map((h) => (
+          <Link key={h.href} href={h.href} className="ds-focus flex items-center gap-2.5 rounded-card bg-panel p-3 hover:bg-hover">
+            <Avatar size="sm" tone={h.tone} fallback={h.icon} />
+            <span className="min-w-0">
+              <span className="block truncate text-callout font-semibold text-fg">{h.title}</span>
+              <span className="block truncate text-micro text-fg-subtle">مدیریت و ثبت جدید</span>
+            </span>
+          </Link>
+        ))}
+      </nav>
       <div className="flex items-center justify-between gap-3 rounded-card bg-panel p-4">
         <div>
           <Text variant="caption" tone="subtle">
@@ -195,16 +201,6 @@ export function PlanTabV2() {
             <Chip value="installment">قسط</Chip>
             <Chip value="subscription">اشتراک</Chip>
           </ChipGroup>
-          {usedCats.length > 0 && (
-            <ChipGroup aria-label="دسته" value={[catFilter]} onValueChange={(v) => v[0] && setCatFilter(v[0])}>
-              <Chip value="all">همه دسته‌ها</Chip>
-              {usedCats.map((c) => (
-                <Chip key={c.id} value={c.id}>
-                  {c.name}
-                </Chip>
-              ))}
-            </ChipGroup>
-          )}
         </div>
       )}
 
@@ -218,7 +214,7 @@ export function PlanTabV2() {
         </div>
       ) : (
         buckets.map((b) => {
-          const list = shown.filter((i) => i.bucket === b).slice(0, b === 'later' && kindFilter === 'all' && catFilter === 'all' ? 6 : undefined);
+          const list = shown.filter((i) => i.bucket === b).slice(0, b === 'later' && kindFilter === 'all' ? 6 : undefined);
           if (list.length === 0) return null;
           return (
             <Section key={b} title={BUCKET_LABEL[b]} description={`${list.length.toLocaleString('fa-IR')} مورد`}>
@@ -269,13 +265,6 @@ export function PlanTabV2() {
         })
       )}
 
-      <Section title="مدیریت">
-        <List>
-          {HUBS.filter((h) => h.href !== '/deadlines/persons' && h.href !== '/deadlines/loans').map((h) => (
-            <ListRow key={h.href} render={<Link href={h.href} />} leading={<Avatar tone={h.tone} fallback={h.icon} />} title={h.title} subtitle={h.subtitle} />
-          ))}
-        </List>
-      </Section>
       </>
       )}
 
@@ -284,36 +273,50 @@ export function PlanTabV2() {
           <EmptyState icon={<Landmark />} title="وامی نداری" action={<Button render={<Link href="/deadlines/loans" />} nativeButton={false}>ساخت وام</Button>} />
         </div>
       )}
-      {view === 'loans' && loans.length > 0 && (
-        <Section title="وام‌ها" action={<Button variant="link" size="sm" render={<Link href="/deadlines/loans" />} nativeButton={false}>مدیریت و وام جدید</Button>}>
-          <List>
-            {loans.map((loan) => {
-              const rows = allInstallments.filter((i) => i.loan_id === loan.id);
-              const paidCount = rows.filter((i) => i.is_paid).length;
-              const next = rows.find((i) => !i.is_paid);
-              return (
-                <ListRow
-                  key={loan.id}
-                  render={<Link href="/deadlines/loans" />}
-                  leading={<Avatar tone="sky" fallback={<Landmark />} />}
-                  title={loan.title}
-                  subtitle={
-                    <span className="block w-full space-y-1 pt-1">
-                      <ProgressBar
-                        tone="positive"
-                        value={paidCount}
-                        max={Math.max(rows.length, 1)}
-                        valueLabel={`${paidCount.toLocaleString('fa-IR')} از ${rows.length.toLocaleString('fa-IR')} قسط`}
-                      />
-                      {next && <span className="text-micro text-fg-subtle">قسط بعد: {formatJalaaliHuman(parseJalaali(next.due_date_string)!)}</span>}
-                    </span>
-                  }
-                />
-              );
-            })}
-          </List>
-        </Section>
-      )}
+      {view === 'loans' && loans.length > 0 && (() => {
+        const row = (loan: Loan) => {
+          const rows = allInstallments.filter((i) => i.loan_id === loan.id);
+          const paidCount = rows.filter((i) => i.is_paid).length;
+          const next = rows.find((i) => !i.is_paid);
+          return (
+            <ListRow
+              key={loan.id}
+              render={<Link href="/deadlines/loans" />}
+              leading={<Avatar tone="sky" fallback={<Landmark />} />}
+              title={loan.title}
+              subtitle={
+                <span className="block w-full space-y-1 pt-1">
+                  <ProgressBar
+                    tone="positive"
+                    value={paidCount}
+                    max={Math.max(rows.length, 1)}
+                    valueLabel={`${paidCount.toLocaleString('fa-IR')} از ${rows.length.toLocaleString('fa-IR')} قسط`}
+                  />
+                  {next && <span className="text-micro text-fg-subtle">قسط بعد: {formatJalaaliHuman(parseJalaali(next.due_date_string)!)}</span>}
+                </span>
+              }
+            />
+          );
+        };
+        const isDone = (loan: Loan) => {
+          const rows = allInstallments.filter((i) => i.loan_id === loan.id);
+          return rows.length > 0 && rows.every((i) => i.is_paid);
+        };
+        const active = loans.filter((l) => !isDone(l));
+        const done = loans.filter(isDone);
+        return (
+          <>
+            <Section title="وام‌های فعال" action={<Button variant="link" size="sm" render={<Link href="/deadlines/loans" />} nativeButton={false}>مدیریت و وام جدید</Button>}>
+              {active.length ? <List>{active.map(row)}</List> : <Text variant="caption" tone="subtle">همه وام‌ها تسویه شده‌اند.</Text>}
+            </Section>
+            {done.length > 0 && (
+              <Section title={`تمام‌شده (${done.length.toLocaleString('fa-IR')})`}>
+                <List>{done.map(row)}</List>
+              </Section>
+            )}
+          </>
+        );
+      })()}
 
       {view === 'people' && (
         <div className="grid grid-cols-2 gap-2">

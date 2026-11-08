@@ -25,8 +25,6 @@ export interface TimelineItem {
   /** Days from today; negative = overdue. */
   daysLeft: number;
   partial: boolean;
-  /** Category of the check, subscription or loan (for filters). */
-  categoryId: string | null;
 }
 
 type InstallmentWithLoan = LoanInstallment & {
@@ -34,7 +32,6 @@ type InstallmentWithLoan = LoanInstallment & {
   loanCurrency?: Currency;
   loanAssetId?: string | null;
   loanWalletId?: string | null;
-  loanCategoryId?: string | null;
 };
 
 function daysBetween(fromStr: string, toStr: string, today: JalaaliDate): number {
@@ -70,7 +67,6 @@ export function buildTimeline(
       key: `check:${c.id}`, kind: 'check', id: c.id, title: c.title, due: c.due_date_string,
       amount: Number(c.amount), currency: c.currency, assetId: null, walletId: c.wallet_id,
       bucket: bucketFor(c.due_date_string, today), daysLeft: daysBetween(t, c.due_date_string, today), partial: false,
-      categoryId: c.category_id ?? null,
     });
   }
   for (const i of input.installments) {
@@ -82,7 +78,6 @@ export function buildTimeline(
       due: i.due_date_string, amount: remaining, currency: i.loanCurrency ?? 'IRT', assetId: i.loanAssetId ?? null,
       walletId: i.loanWalletId ?? null, bucket: bucketFor(i.due_date_string, today),
       daysLeft: daysBetween(t, i.due_date_string, today), partial: Number(i.paid_amount) > 0,
-      categoryId: i.loanCategoryId ?? null,
     });
   }
   for (const s of input.subscriptions) {
@@ -91,7 +86,6 @@ export function buildTimeline(
       key: `subscription:${s.id}`, kind: 'subscription', id: s.id, title: s.platform, due: s.next_due_date_string,
       amount: Number(s.amount), currency: s.currency, assetId: null, walletId: s.wallet_id,
       bucket: bucketFor(s.next_due_date_string, today), daysLeft: daysBetween(t, s.next_due_date_string, today), partial: false,
-      categoryId: s.category_id ?? null,
     });
   }
   return items.sort((a, b) => a.due.localeCompare(b.due) || a.key.localeCompare(b.key));

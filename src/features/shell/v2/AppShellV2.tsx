@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Fab, TabBar, type TabBarItem } from '@/design-system';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fab, Spinner, TabBar, type TabBarItem } from '@/design-system';
+import { RefreshCw } from '@/design-system/icons';
+import { usePullToRefresh } from './use-pull-to-refresh';
 import { CalendarDays, Home, PieChart, Receipt } from '@/design-system/icons';
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { countDueSoon } from '@/features/deadlines/utils/due-soon';
@@ -29,7 +31,12 @@ const ICONS = {
 export function AppShellV2({ children, modal }: { children: ReactNode; modal: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { upcomingDeadlines, checks, activeSubscriptions } = useData();
+  const { upcomingDeadlines, checks, activeSubscriptions, refresh } = useData();
+  const mainRef = useRef<HTMLElement>(null);
+  const ptr = usePullToRefresh(mainRef, async () => {
+    await refresh();
+    router.refresh();
+  });
   const [quickOpen, setQuickOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -61,8 +68,26 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
       <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-canvas sm:max-w-md sm:border-x sm:border-line">
         <RouteTransitionBar />
         <PwaInstallPrompt />
+        {(ptr.pull > 0 || ptr.busy) && (
+          <div
+            aria-live="polite"
+            aria-label={ptr.busy ? 'در حال به‌روزرسانی' : ptr.ready ? 'رها کن تا به‌روز شود' : 'برای به‌روزرسانی بکش'}
+            className="pointer-events-none absolute inset-x-0 top-0 z-(--ds-z-sticky) flex justify-center"
+            style={{ transform: `translateY(${Math.max(ptr.pull - 36, 8)}px)` }}
+          >
+            <span className="flex size-9 items-center justify-center rounded-full bg-elevated text-accent-ink shadow-raised">
+              {ptr.busy ? (
+                <Spinner size="sm" />
+              ) : (
+                <RefreshCw className="size-4.5 transition-transform" style={{ transform: `rotate(${ptr.pull * 3}deg)`, opacity: ptr.ready ? 1 : 0.6 }} aria-hidden />
+              )}
+            </span>
+          </div>
+        )}
         <main
+          ref={mainRef}
           data-app-scroll="main"
+          style={ptr.pull ? { transform: `translateY(${ptr.pull * 0.4}px)` } : undefined}
           className={root ? 'relative flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide pb-28' : 'relative flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide'}
         >
           {root && tab && <TabHeader tab={tab} pathname={pathname} onSearch={() => setSearchOpen(true)} />}

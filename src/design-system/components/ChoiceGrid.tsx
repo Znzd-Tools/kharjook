@@ -4,6 +4,7 @@ import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
+import { Check } from '../icons';
 
 export interface Choice<T extends string = string> {
   value: T;
@@ -61,9 +62,10 @@ export function ChoiceGrid<T extends string>({
           key={c.value}
           value={c.value}
           className={cn(
-            'ds-focus group flex cursor-pointer flex-col items-center gap-1.5 rounded-card px-1 py-2.5 select-none',
-            'transition-[background-color,transform] duration-(--ds-duration-fast) hover:bg-hover active:scale-95',
-            ''
+            'ds-focus group relative flex cursor-pointer flex-col items-center gap-1.5 rounded-card px-1 py-2.5 select-none',
+            'transition-[background-color,transform,box-shadow] duration-(--ds-duration-fast) hover:bg-hover active:scale-95',
+            // Selected: the whole tile is marked, so a category's own color can never hide it.
+            'data-checked:bg-accent-soft data-checked:ring-2 data-checked:ring-accent data-checked:ring-inset'
           )}
         >
           <span
@@ -76,8 +78,14 @@ export function ChoiceGrid<T extends string>({
           >
             {c.icon}
           </span>
-          <span className="w-full truncate text-center text-micro text-fg-muted group-data-checked:font-semibold group-data-checked:text-fg">
+          <span className="w-full truncate text-center text-micro text-fg-muted group-data-checked:font-bold group-data-checked:text-accent-ink">
             {c.label}
+          </span>
+          <span
+            aria-hidden
+            className="absolute top-1 end-1 hidden size-4.5 items-center justify-center rounded-full bg-accent text-fg-on-accent group-data-checked:flex [&_svg]:size-3"
+          >
+            <Check />
           </span>
         </Radio.Root>
       ))}

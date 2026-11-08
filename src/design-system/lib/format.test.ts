@@ -15,6 +15,9 @@ describe('formatMoney', () => {
   });
   it('compacts large numbers', () => {
     expect(formatMoney(12_500_000, { compact: true }).text).toBe('۱۲٫۵ میلیون تومان');
+    // Two decimals, not one: 1,450,000 is ۱٫۴۵, not ۱٫۵.
+    expect(formatMoney(1_450_000, { compact: true }).text).toBe('۱٫۴۵ میلیون تومان');
+    expect(formatMoney(1_456_000, { compact: true }).text).toBe('۱٫۴۶ میلیون تومان');
   });
   it('puts $ before USD numbers', () => {
     expect(formatMoney(12.5, { currency: 'USD' }).text).toBe('$۱۲٫۵۰');

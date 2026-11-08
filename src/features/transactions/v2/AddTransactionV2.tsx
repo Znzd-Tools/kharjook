@@ -747,14 +747,14 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
 
       <div className="fixed inset-x-0 bottom-0 z-(--ds-z-sticky) mx-auto w-full max-w-(--ds-max-width) border-t border-line bg-canvas/90 px-(--ds-gutter) pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl">
         <div className="flex gap-2">
-          <Button fullWidth size="lg" loading={submitting} onClick={() => void submit(false)}>
-            {isEdit ? 'ذخیره تغییرات' : isConvert ? 'ثبت تبدیل' : `ثبت ${TYPE_LABEL[uiMode]}`}
-          </Button>
           {!isEdit && !isConvert && (
-            <Button size="lg" variant="secondary" disabled={submitting} onClick={() => void submit(true)}>
+            <Button size="lg" variant="soft" className="shrink-0 ring-1 ring-accent/40" disabled={submitting} onClick={() => void submit(true)}>
               ثبت و بعدی
             </Button>
           )}
+          <Button fullWidth size="lg" loading={submitting} onClick={() => void submit(false)}>
+            {isEdit ? 'ذخیره تغییرات' : isConvert ? 'ثبت تبدیل' : `ثبت ${TYPE_LABEL[uiMode]}`}
+          </Button>
         </div>
       </div>
 

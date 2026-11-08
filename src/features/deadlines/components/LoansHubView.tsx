@@ -56,7 +56,6 @@ import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 
 type TabKey = 'loans' | 'installments' | 'calendar';
 type InstallmentFilter = 'all' | 'paid' | 'remaining';
-type LoanFilter = 'all' | 'remaining' | 'finished';
 type InstallmentRow = { installment: LoanInstallment; loan: Loan };
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const;
@@ -81,7 +80,6 @@ export function LoansHubView() {
   const [menuFor, setMenuFor] = useState<Loan | null>(null);
   const confirm = useConfirm();
   const goBack = useSafeBack('/deadlines?v=loans');
-  const [loanFilter, setLoanFilter] = useState<LoanFilter>('remaining');
   const [installmentFilter, setInstallmentFilter] = useState<InstallmentFilter>('remaining');
   const today = useMemo(() => todayJalaali(), []);
   const todayStr = useMemo(() => formatJalaali(today), [today]);
@@ -148,13 +146,7 @@ export function LoansHubView() {
       return { loan, paidCount, totalCount: all.length };
     });
   }, [installments, loans]);
-  const filteredLoanRows = useMemo(() => {
-    if (loanFilter === 'all') return loansRows;
-    if (loanFilter === 'finished') {
-      return loansRows.filter((row) => row.totalCount > 0 && row.paidCount >= row.totalCount);
-    }
-    return loansRows.filter((row) => row.totalCount === 0 || row.paidCount < row.totalCount);
-  }, [loanFilter, loansRows]);
+  const filteredLoanRows = loansRows;
 
   const installmentRows = useMemo<InstallmentRow[]>(() => {
     return installments
@@ -600,18 +592,23 @@ export function LoansHubView() {
             </div>
           ) : (
             <>
-              {filterChips('وضعیت وام', loanFilter, setLoanFilter, [
-                ['remaining', 'باقی‌مانده'],
-                ['finished', 'تمام‌شده'],
-                ['all', 'همه'],
-              ])}
-              {filteredLoanRows.length === 0 ? (
-                <Text variant="caption" tone="subtle" className="block py-6 text-center">
-                  موردی با این فیلتر نیست.
-                </Text>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
+              {([
+                ['وام‌های فعال', filteredLoanRows.filter((r) => !(r.totalCount > 0 && r.paidCount >= r.totalCount))],
+                ['تمام‌شده', filteredLoanRows.filter((r) => r.totalCount > 0 && r.paidCount >= r.totalCount)],
+              ] as const).map(([title, rows], gi) =>
+                rows.length === 0 ? (
+                  gi === 0 ? (
+                    <Text key={title} variant="caption" tone="subtle" className="block py-4 text-center">
+                      همه وام‌ها تسویه شده‌اند.
+                    </Text>
+                  ) : null
+                ) : (
+                  <section key={title} aria-label={title} className="space-y-2">
+                    <Text variant="caption" tone="muted" className="px-1 font-semibold">
+                      {title} ({rows.length.toLocaleString('fa-IR')})
+                    </Text>
+                    <ul className="space-y-2">
+                      {rows.map(({ loan, paidCount, totalCount }) => {
                     const category = loan.category_id ? categories.find((c) => c.id === loan.category_id) : null;
                     const loanAsset = isAssetLoan(loan) ? assetsById.get(loan.asset_id!) ?? null : null;
                     const totalDisplay = loan.total_amount ?? loan.installment_amount * loan.repeat_count;
@@ -658,7 +655,9 @@ export function LoansHubView() {
                       </li>
                     );
                   })}
-                </ul>
+                    </ul>
+                  </section>
+                )
               )}
             </>
           )
