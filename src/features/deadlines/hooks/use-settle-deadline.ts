@@ -64,7 +64,8 @@ export function useSettleDeadline(onChanged?: () => Promise<void> | void) {
     toast.success('پرداخت برگشت');
   };
 
-  const pay = async (item: TimelineItem, walletId: string | null, amount?: number) => {
+  /** Returns the new transaction id when the payment was saved. */
+  const pay = async (item: TimelineItem, walletId: string | null, amount?: number): Promise<string | undefined> => {
     const snap = snapshotOf(item);
     if (!snap) return;
     if (!walletId && !item.assetId) {
@@ -92,6 +93,7 @@ export function useSettleDeadline(onChanged?: () => Promise<void> | void) {
       toast.success(`${KIND_LABEL[item.kind]} «${item.title}» پرداخت شد`, {
         action: { label: 'برگردان', onClick: () => void undo(snap, txId) },
       });
+      return txId;
     } finally {
       setBusyKey(null);
     }

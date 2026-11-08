@@ -77,6 +77,8 @@ import {
 } from '@/features/transactions/utils/usage-stats';
 import { parseEntry } from '@/features/transactions/utils/parse-entry';
 import { enqueue, isNetworkError } from '@/shared/lib/outbox';
+import { applyDraft, draftSide, type EntryDraft } from '@/features/transactions/utils/entry-draft';
+import { markSmsDone } from '@/features/sms/utils/sms-client';
 import { categoryIcon } from './category-icon';
 import { NewCategorySheet } from './NewCategorySheet';
 
@@ -94,6 +96,8 @@ export interface AddTransactionV2Props {
   defaultUiMode?: UiTransactionMode;
   /** Shared or pasted text (bank SMS or quick text) to prefill from. */
   text?: string;
+  /** A filled form from the SMS inbox (see entry-draft.ts). */
+  draft?: EntryDraft;
 }
 
 const TYPE_LABEL: Record<UiTransactionMode, string> = {
@@ -204,6 +208,34 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
     applyParsed(text);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, categories.length]);
+
+  // Prefill from an SMS inbox draft once, after wallets load.
+  const appliedDraft = useRef(false);
+  useEffect(() => {
+    const d = props.draft;
+    if (!d || appliedDraft.current || isEdit || wallets.length === 0) return;
+    appliedDraft.current = true;
+    endpointTouched.current = true;
+    setUiMode(d.type);
+    setForm((prev) => applyDraft({ ...buildInitialForm(undefined, { defaultType: d.type }, usdRate), date: prev.date }, d, wallets));
+    if (d.type === 'BUY' && d.amt) {
+      setBuyBy('total');
+      setTotalInput(d.amt);
+    }
+    if (d.person) setPicker(d.person);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.draft, wallets.length]);
+
+  /** Link the bank SMS (and its transfer pair) to the saved transaction. */
+  const linkSms = async (transactionId: string | null) => {
+    const d = props.draft;
+    if (!d?.sms) return;
+    const side = draftSide(d);
+    const smsWallet = side === 'src' ? form.sourceId : form.targetId;
+    const pairWallet = side === 'src' ? form.targetId : form.sourceId;
+    await markSmsDone(d.sms, transactionId, form[side === 'src' ? 'sourceKind' : 'targetKind'] === 'wallet' ? smsWallet : null);
+    if (d.pair) await markSmsDone(d.pair, transactionId, form[side === 'src' ? 'targetKind' : 'sourceKind'] === 'wallet' ? pairWallet : null);
+  };
 
   const orderedTypes = useMemo(() => typeOrder(transactions), [transactions]);
 
@@ -381,6 +413,8 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
       if (error && isNetworkError(error)) {
         // Offline: keep it on the device; OutboxSync sends it later (S29).
         await enqueue(queued);
+        // Queued: the row does not exist yet, so link without the id (FK).
+        void linkSms(null).catch(() => undefined);
         toast.warning('اینترنت نیست؛ تراکنش در صف ماند و بعداً خودکار ثبت می‌شود');
         if (andNext) resetForNext();
         else goBack();
@@ -391,12 +425,14 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
       setTransactions((prev) => [...inserted.slice().reverse(), ...prev]);
       await persistTradeSnapshots(inserted);
       fireExpenseAlert(inserted.filter((t) => t.type === 'EXPENSE').map((t) => t.id));
+      if (inserted[0]) await linkSms(inserted[0].id);
       showUndo(inserted.map((t) => t.id), 'تراکنش ثبت شد');
       if (andNext) resetForNext();
       else goBack();
     } catch (e) {
       if (queued && isNetworkError(e)) {
         await enqueue(queued);
+        void linkSms(null).catch(() => undefined);
         toast.warning('اینترنت نیست؛ تراکنش در صف ماند و بعداً خودکار ثبت می‌شود');
         goBack();
         return;

@@ -35,7 +35,8 @@ import {
   Text,
   useLongPress,
 } from '@/design-system';
-import { ArrowLeftRight, Coins, Copy, Download, Pencil, Receipt, RefreshCw, Trash2, X } from '@/design-system/icons';
+import { ArrowLeftRight, Coins, Copy, Download, MessageMoney, Pencil, Receipt, RefreshCw, Trash2, X } from '@/design-system/icons';
+import Link from 'next/link';
 import type { Transaction } from '@/shared/types/domain';
 import { addDays, formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { currentPeriod, shiftPeriod } from '@/shared/utils/period';
@@ -47,6 +48,7 @@ import { downloadTransactionCsv } from '@/features/transactions/utils/export-tra
 import { describeTransaction, netToman, type TransactionRowView } from '@/features/transactions/utils/describe-transaction';
 import { useTransactionActions } from '@/features/transactions/hooks/use-transaction-actions';
 import { categoryIcon } from './category-icon';
+import { useSmsNewCount } from '@/features/sms/hooks/use-sms-inbox';
 import { useQueuedCount } from '@/features/transactions/components/OutboxSync';
 import { collectDescendantCategoryIds } from '@/features/categories/utils/category-spending-caps';
 
@@ -95,6 +97,7 @@ export function LedgerV2() {
   const { transactions, wallets, assets, persons, categories, isLoadingData, transactionsFullyLoaded } = useData();
   const actions = useTransactionActions();
   const queued = useQueuedCount();
+  const smsNew = useSmsNewCount();
 
   // Filters can come from the URL (search, report drill-down).
   const params = useSearchParams();
@@ -298,6 +301,17 @@ export function LedgerV2() {
           <p className="col-span-3 text-micro text-fg-subtle">{summary.unpriced.toLocaleString('fa-IR')} تراکنش بدون نرخ در جمع نیامده</p>
         )}
       </div>
+
+      {smsNew > 0 && (
+        <Link
+          href="/transactions/sms"
+          className="ds-focus flex items-center gap-3 rounded-card bg-accent-soft px-4 py-3 text-callout text-accent-ink"
+        >
+          <MessageMoney className="size-5 shrink-0" aria-hidden />
+          <span className="flex-1 font-semibold">{smsNew.toLocaleString('fa-IR')} پیامک بانکی تازه</span>
+          <span className="text-caption">بررسی</span>
+        </Link>
+      )}
 
       {queued > 0 && (
         <Banner tone="info" title={`${queued.toLocaleString('fa-IR')} تراکنش در صف ارسال`}>

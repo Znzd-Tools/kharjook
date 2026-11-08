@@ -285,6 +285,11 @@ const server = createServer(async (req, res) => {
         const input = (Array.isArray(body) ? body : [body]) as Row[];
         const isUpsert = prefer.includes('resolution=');
         const conflict = (params.get('on_conflict') ?? 'id').split(',');
+        // Unique keys like Postgres: id everywhere, plus the ones tests rely on.
+        const UNIQUE: Record<string, string[]> = { sms_inbox: ['user_id', 'body_hash'] };
+        const uk = UNIQUE[table];
+        if (!isUpsert && uk && input.some((raw) => rows.some((r) => uk.every((k) => String(r[k]) === String(raw[k] ?? (k === 'user_id' ? TEST_USER.id : undefined))))))
+          return send(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint', details: null, hint: null });
         if (!isUpsert && input.some((raw) => raw.id !== undefined && rows.some((r) => String(r.id) === String(raw.id))))
           return send(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint', details: null, hint: null });
         const written: Row[] = [];
