@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { processScheduledNotifications } from '@/features/notifications/services/dispatch-notifications';
+import { processPushReminders } from '@/features/notifications/push/send-push';
 import { verifyCronSecret } from '@/features/notifications/api/auth-helpers';
 
 export const runtime = 'nodejs';
@@ -12,7 +13,9 @@ export async function GET(request: Request) {
 
   try {
     const result = await processScheduledNotifications();
-    return NextResponse.json({ ok: true, ...result });
+    // Web Push runs after Telegram and only when VAPID keys are set (S30).
+    const push = await processPushReminders();
+    return NextResponse.json({ ok: true, ...result, pushRemindersSent: push.sent, errors: [...result.errors, ...push.errors] });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Cron failed' }, { status: 500 });

@@ -1,0 +1,129 @@
+import webpush from 'web-push';
+import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { todayJalaaliInTimezone } from '@/shared/utils/jalali';
+import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { installmentRemainingAmount } from '@/features/deadlines/utils/installment-remaining';
+import { loanAmountToToman } from '@/features/deadlines/utils/loan-amount';
+import { installmentDaysUntilDue, TEHRAN_TIMEZONE } from '@/features/notifications/telegram/utils/format-debts-list';
+import { formatTelegramMoney } from '@/features/notifications/telegram/utils/format-helpers';
+import type { Check, CurrencyRate, Loan, LoanInstallment, Subscription } from '@/shared/types/domain';
+import { buildPushReminders, settleRequest } from './reminders';
+
+/** Server only (service-role client). Web Push works only when the VAPID keys are set. Without them nothing runs. */
+export function isPushConfigured(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+}
+
+let configured = false;
+function setup() {
+  if (configured) return;
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? 'mailto:admin@kharjook.app',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  configured = true;
+}
+
+interface PushRow { id: string; endpoint: string; p256dh: string; auth: string }
+
+/** Send one payload to every device of a user. Dead subscriptions are removed. */
+export async function sendPushToUser(userId: string, payload: Record<string, unknown>): Promise<number> {
+  if (!isPushConfigured()) return 0;
+  setup();
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('user_id', userId);
+  let sent = 0;
+  for (const row of (data ?? []) as PushRow[]) {
+    try {
+      await webpush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }, JSON.stringify(payload), { TTL: 60 * 60 * 12 });
+      sent++;
+    } catch (e) {
+      const status = (e as { statusCode?: number }).statusCode;
+      if (status === 404 || status === 410) await admin.from('push_subscriptions').delete().eq('id', row.id);
+      else console.error('push failed', status);
+    }
+  }
+  return sent;
+}
+
+/** Cron step: "due today / tomorrow" pushes with a one-tap "پرداخت شد". */
+export async function processPushReminders(): Promise<{ sent: number; errors: string[] }> {
+  if (!isPushConfigured()) return { sent: 0, errors: [] };
+  const admin = createSupabaseAdminClient();
+  const errors: string[] = [];
+  let sent = 0;
+  const { data: subs } = await admin.from('push_subscriptions').select('user_id');
+  const userIds = Array.from(new Set(((subs ?? []) as { user_id: string }[]).map((s) => s.user_id)));
+  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
+  const daysUntil = (d: string) => installmentDaysUntilDue(d, today);
+
+  for (const userId of userIds) {
+    try {
+      const [checks, installments, subscriptions, rates] = await Promise.all([
+        admin.from('checks').select('*').eq('user_id', userId).eq('status', 'pending').is('deleted_at', null),
+        admin.from('loan_installments').select('*').eq('user_id', userId).eq('is_paid', false),
+        admin.from('subscriptions').select('*').eq('user_id', userId).eq('status', 'active').is('deleted_at', null),
+        admin.from('currency_rates').select('*').eq('user_id', userId),
+      ]);
+      const rateRows = (rates.data ?? []) as CurrencyRate[];
+      const inst = (installments.data ?? []) as LoanInstallment[];
+      const loanIds = Array.from(new Set(inst.map((i) => i.loan_id)));
+      const { data: loans } = loanIds.length
+        ? await admin.from('loans').select('*').in('id', loanIds).is('deleted_at', null)
+        : { data: [] };
+      const loanById = new Map(((loans ?? []) as Loan[]).map((l) => [l.id, l]));
+      const assetIds = Array.from(new Set([...loanById.values()].map((l) => l.asset_id).filter((id): id is string => !!id)));
+      const { data: assetRows } = assetIds.length
+        ? await admin.from('assets').select('id, price_toman').in('id', assetIds)
+        : { data: [] as { id: string; price_toman: number }[] };
+      const assetsById = new Map(((assetRows ?? []) as { id: string; price_toman: number }[]).map((a) => [a.id, { price_toman: Number(a.price_toman) }]));
+      const money = (toman: number) => formatTelegramMoney(toman, 'TOMAN');
+
+      const reminders = buildPushReminders({
+        daysUntil,
+        checks: ((checks.data ?? []) as Check[]).map((c) => ({
+          id: c.id, title: c.title, due_date_string: c.due_date_string, wallet_id: c.wallet_id,
+          amountLabel: money(c.amount * tomanPerUnit(c.currency, rateRows)),
+        })),
+        installments: inst.flatMap((i) => {
+          const loan = loanById.get(i.loan_id);
+          if (!loan) return [];
+          return [{
+            id: i.id, loanTitle: loan.title, due_date_string: i.due_date_string,
+            amountLabel: money(loanAmountToToman(installmentRemainingAmount(i), loan, rateRows, assetsById)),
+          }];
+        }),
+        subscriptions: ((subscriptions.data ?? []) as Subscription[]).map((s) => ({
+          id: s.id, platform: s.platform, next_due_date_string: s.next_due_date_string, wallet_id: s.wallet_id,
+          amountLabel: money(s.amount * tomanPerUnit(s.currency, rateRows)),
+        })),
+      });
+
+      for (const r of reminders) {
+        const { data: done } = await admin
+          .from('notification_deliveries')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('kind', 'push_reminder')
+          .eq('dedup_key', r.key)
+          .maybeSingle();
+        if (done) continue;
+        const n = await sendPushToUser(userId, {
+          title: r.title,
+          body: r.body,
+          tag: r.key,
+          url: '/deadlines',
+          settle: settleRequest(r),
+        });
+        if (n > 0) {
+          await admin.from('notification_deliveries').insert({ user_id: userId, kind: 'push_reminder', dedup_key: r.key });
+          sent++;
+        }
+      }
+    } catch (e) {
+      errors.push(`push ${userId}: ${(e as Error).message}`);
+    }
+  }
+  return { sent, errors };
+}

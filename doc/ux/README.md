@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Draft — waiting for approval |
+| Status | Implemented on `feat/design-system` (phases 0–7). See section 13. |
 | Scope | Improve the existing app. Same features, better UX. |
 | Design | `src/design-system` (Pastel dark). Storybook: `pnpm storybook`. |
 | Baseline | Current behavior = the 46 frontend + 59 backend stories in `doc/`. |
@@ -321,3 +321,30 @@ Each phase ships on its own, behind flags, with tests green.
 | 5. Profit and loss | P1–P6 | Golden PnL numbers unchanged; position history tested |
 | 6. Dashboard v2 | Section 9 | Section 9.4 table checked |
 | 7. Extras | S4 search, S24, S25, S26–S27, S29, S30 | Each item behind its own flag |
+
+---
+
+## 13. Implementation status
+
+All phases are done on `feat/design-system`. Each v2 area has a switch in Settings → آزمایشی (`v2.shell`, `v2.addFlow`, `v2.ledger`, `v2.plan`, `v2.pnl`, `v2.dashboard`). Off = the old screen.
+
+Checks at the end of phase 7: `tsc` clean, ESLint 0 errors, 159 unit tests, 80 Playwright tests, `next build` OK.
+
+### Changes from the plan (honest list)
+
+| Ref | Plan | What was built | Why |
+| --- | --- | --- | --- |
+| S4 | `GET /api/search` + trigram indexes | Client search over the loaded data (`features/search`) | All data is already on the device; no round trip. Move to an API if the data gets too large. |
+| S6, S7, S9 | RPCs | Client usage stats (`utils/usage-stats.ts`) | Same reason. Same contract, easy to move. |
+| S10, S11 | `POST /api/transactions/parse` | Client parser (`utils/parse-entry.ts`) + manifest share target | No server needed for parsing. |
+| S16, S28 | Paged ledger + TanStack Query | IndexedDB cache of the portfolio (`shared/lib/cache/idb-cache.ts`), app opens with the last data | Paging needs a server summary API first. Not done. |
+| S24 | `recurring_runs.status` enum | `recurring_transaction_runs.reviewed_at` column. "Skip" = delete the transaction (with undo). | Smaller change, same result. |
+| S25 | Daily price fetch | The cron already refreshes prices. Added: "stale price" item on Home. | — |
+| S29 | Service worker queue | IndexedDB outbox (`shared/lib/outbox.ts`) sent by `OutboxSync` on start, on `online` and every 60 s. Client-made ids, so a retry never makes a copy. | Works in every browser, also without Background Sync. |
+| S30 | Push | `push_subscriptions` + `web-push` + SW actions. Off until VAPID keys are set. | — |
+| Phase 7 | "Each item behind its own flag" | Search, review and caps live inside the v2 shell/dashboard flags. Report drill-down and the outbox are always on. | They only add links or a safety net. |
+
+### Owner actions
+
+1. Apply the migrations: `20261108120000_user_preferences.sql`, `20261108130000_recurring_run_review.sql`, `20261108140000_push_subscriptions.sql`.
+2. Optional, for Web Push: `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:…`) in Vercel.

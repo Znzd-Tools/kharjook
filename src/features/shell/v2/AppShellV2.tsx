@@ -13,6 +13,7 @@ import { RouteTransitionBar } from '@/shared/components/RouteTransitionBar';
 import { isTabRoot, tabForPath, TABS } from './nav-config';
 import { QuickAddActions } from './QuickAddActions';
 import { TabHeader } from './TabHeader';
+import { GlobalSearch } from '@/features/search/GlobalSearch';
 
 const ICONS = {
   home: <Home />,
@@ -30,6 +31,7 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
   const router = useRouter();
   const { upcomingDeadlines, checks, activeSubscriptions } = useData();
   const [quickOpen, setQuickOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const tab = tabForPath(pathname);
   const root = isTabRoot(pathname);
@@ -63,7 +65,7 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
           data-app-scroll="main"
           className={root ? 'relative flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide pb-28' : 'relative flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide'}
         >
-          {root && tab && <TabHeader tab={tab} pathname={pathname} />}
+          {root && tab && <TabHeader tab={tab} pathname={pathname} onSearch={() => setSearchOpen(true)} />}
           {children}
         </main>
         {modal}
@@ -87,6 +89,7 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
           />
         )}
         <QuickAddActions open={quickOpen} onOpenChange={setQuickOpen} />
+        <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
     </div>
   );

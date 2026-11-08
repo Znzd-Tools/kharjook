@@ -112,4 +112,23 @@ export function todayMarketMove(assets: Asset[], transactions: Transaction[], da
   return priceMoves(assets, transactions, dailyPrices, usdRate, today).reduce((s, m) => s + m.valueChangeToman, 0);
 }
 
+/**
+ * Held assets whose newest stored price is older than `maxAgeDays`
+ * (S25: the daily job refreshes provider prices; this flags the rest).
+ */
+export function stalePriceAssets(assets: Asset[], transactions: Transaction[], dailyPrices: DailyPrice[], usdRate: number, today: JalaaliDate, maxAgeDays = 3): Asset[] {
+  const cutoff = formatJalaali(addDays(today, -maxAgeDays));
+  const latest = new Map<string, string>();
+  for (const p of dailyPrices) {
+    const cur = latest.get(p.asset_id);
+    if (!cur || p.date_string > cur) latest.set(p.asset_id, p.date_string);
+  }
+  return assets.filter((a) => {
+    if (a.include_in_balance === false) return false;
+    if (calculateAssetStats(a, transactions, 'TOMAN', usdRate).totalAmount <= 0) return false;
+    const last = latest.get(a.id);
+    return !last || last < cutoff;
+  });
+}
+
 export { incomeToman, expenseToman };

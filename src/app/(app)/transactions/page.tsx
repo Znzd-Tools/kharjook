@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import { TransactionsTab } from '@/features/transactions/components/TransactionsTab';
 
 export default function TransactionsPage() {
-  return <TransactionsTab />;
+  return (
+    <Suspense>
+      <TransactionsTab />
+    </Suspense>
+  );
 }

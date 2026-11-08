@@ -23,7 +23,8 @@ export type NotificationDeliveryKind =
   | 'daily_report'
   | 'loan_reminder'
   | 'expense_alert'
-  | 'category_cap_alert';
+  | 'category_cap_alert'
+  | 'push_reminder';
 export type GoalScope = 'asset' | 'asset_group';
 export type GoalTargetKind = 'quantity' | 'allocation_percent';
 

@@ -8,11 +8,12 @@
  * Every v1 feature stays: search, type filter, date range, CSV export,
  * edit, convert pairs, "loading full history" note.
  */
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Amount,
   Avatar,
+  Banner,
   Button,
   Checkbox,
   Chip,
@@ -21,6 +22,7 @@ import {
   EmptyState,
   Field,
   IconButton,
+  InputChip,
   List,
   ListHeader,
   ListRow,
@@ -45,6 +47,8 @@ import { downloadTransactionCsv } from '@/features/transactions/utils/export-tra
 import { describeTransaction, netToman, type TransactionRowView } from '@/features/transactions/utils/describe-transaction';
 import { useTransactionActions } from '@/features/transactions/hooks/use-transaction-actions';
 import { categoryIcon } from './category-icon';
+import { useQueuedCount } from '@/features/transactions/components/OutboxSync';
+import { collectDescendantCategoryIds } from '@/features/categories/utils/category-spending-caps';
 
 type TypeFilter = 'ALL' | 'EXPENSE' | 'INCOME' | 'TRANSFER' | 'BUY' | 'SELL';
 type PeriodFilter = 'month' | 'prev' | '3m' | 'year' | 'all' | 'custom';
@@ -90,17 +94,22 @@ export function LedgerV2() {
   const router = useRouter();
   const { transactions, wallets, assets, persons, categories, isLoadingData, transactionsFullyLoaded } = useData();
   const actions = useTransactionActions();
+  const queued = useQueuedCount();
 
-  const [query, setQuery] = useState('');
-  const [type, setType] = useState<TypeFilter>('ALL');
-  const [period, setPeriod] = useState<PeriodFilter>('month');
-  const [walletId, setWalletId] = useState<string | null>(null);
+  // Filters can come from the URL (search, report drill-down).
+  const params = useSearchParams();
+  const urlType = params.get('type');
+  const [query, setQuery] = useState(params.get('q') ?? '');
+  const [type, setType] = useState<TypeFilter>(TYPE_CHIPS.some(([t]) => t === urlType) ? (urlType as TypeFilter) : 'ALL');
+  const [period, setPeriod] = useState<PeriodFilter>(params.get('from') || params.get('to') ? 'custom' : params.get('category') ? 'all' : 'month');
+  const [walletId, setWalletId] = useState<string | null>(params.get('wallet'));
+  const [categoryId, setCategoryId] = useState<string | null>(params.get('category'));
   const [walletPicker, setWalletPicker] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
   const today = useMemo(() => formatJalaali(todayJalaali()), []);
   const yesterday = useMemo(() => formatJalaali(addDays(todayJalaali(), -1)), []);
-  const [customFrom, setCustomFrom] = useState(formatJalaali(currentPeriod('month').start));
-  const [customTo, setCustomTo] = useState(today);
+  const [customFrom, setCustomFrom] = useState(params.get('from') ?? formatJalaali(currentPeriod('month').start));
+  const [customTo, setCustomTo] = useState(params.get('to') ?? today);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [categorySheet, setCategorySheet] = useState(false);
   // Paging resets when filters change (no effect: keyed by the filter state).
@@ -130,29 +139,39 @@ export function LedgerV2() {
   }, [period, customFrom, customTo, today]);
 
   const lookup = useMemo(() => ({ wallets, assets, persons, categories }), [wallets, assets, persons, categories]);
+  // A category filter includes its sub-categories.
+  const categoryIds = useMemo(
+    () =>
+      categoryId
+        ? collectDescendantCategoryIds(categories, categoryId, categories.find((c) => c.id === categoryId)?.kind ?? 'expense')
+        : null,
+    [categoryId, categories]
+  );
+  const categoryName = categoryId ? categories.find((c) => c.id === categoryId)?.name ?? 'دسته' : null;
 
   const items = useMemo((): Item[] => {
     const inRange = (d: string) => (!range.from || d >= range.from) && (!range.to || d <= range.to);
     const touchesWallet = (t: Transaction) => !walletId || t.source_wallet_id === walletId || t.target_wallet_id === walletId;
+    const inCategory = (t: Transaction) => !categoryIds || (t.category_id != null && categoryIds.has(t.category_id));
     const convertIds = transactionIdsInConvertGroups(transactions);
     const singles: Item[] = transactions
       .filter((t) => !convertIds.has(t.id))
       .filter((t) => type === 'ALL' || t.type === type)
-      .filter((t) => inRange(t.date_string) && touchesWallet(t))
+      .filter((t) => inRange(t.date_string) && touchesWallet(t) && inCategory(t))
       .filter((t) => transactionMatchesSearch(t, query, lookup))
       .map((t) => ({ kind: 'single', key: t.id, date: t.date_string, created: t.created_at, tx: t, view: describeTransaction(t, lookup) }));
     const converts: Item[] = groupConvertTransactions(transactions)
       .filter(() => type === 'ALL' || type === 'BUY' || type === 'SELL')
-      .filter((g) => inRange(g.sell.date_string) && (touchesWallet(g.sell) || touchesWallet(g.buy)))
+      .filter((g) => !categoryIds && inRange(g.sell.date_string) && (touchesWallet(g.sell) || touchesWallet(g.buy)))
       .filter((g) => !query.trim() || `${g.sell.note ?? ''} ${g.buy.note ?? ''}`.includes(query.trim()) || transactionMatchesSearch(g.sell, query, lookup) || transactionMatchesSearch(g.buy, query, lookup))
       .map((g) => ({ kind: 'convert', key: `c:${g.operationId}`, date: g.sell.date_string, created: g.sell.created_at, group: g }));
     return [...singles, ...converts].sort((a, b) => b.date.localeCompare(a.date) || b.created.localeCompare(a.created));
-  }, [transactions, type, range, walletId, query, lookup]);
+  }, [transactions, type, range, walletId, query, lookup, categoryIds]);
 
   const rowsOf = (it: Item): Transaction[] => (it.kind === 'single' ? [it.tx] : [it.group.sell, it.group.buy]);
   const summary = useMemo(() => netToman(items.flatMap(rowsOf)), [items]);
 
-  const filterKey = [type, period, walletId, query, customFrom, customTo].join('|');
+  const filterKey = [type, period, walletId, query, customFrom, customTo, categoryId].join('|');
   const visible = paging.key === filterKey ? paging.count : PAGE;
   const setVisible = (update: (v: number) => number) => setPaging({ key: filterKey, count: update(visible) });
   const filterKeyRef = useRef(filterKey);
@@ -248,6 +267,14 @@ export function LedgerV2() {
         </ChipGroup>
       </div>
 
+      {categoryName && (
+        <div className="flex">
+          <InputChip onRemove={() => setCategoryId(null)} removeLabel="حذف فیلتر دسته">
+            دسته: {categoryName}
+          </InputChip>
+        </div>
+      )}
+
       {period === 'custom' && (
         <button type="button" onClick={() => setRangeOpen(true)} className="ds-focus text-caption text-accent-ink">
           از {range.from || '—'} تا {range.to || '—'} · تغییر
@@ -271,6 +298,12 @@ export function LedgerV2() {
           <p className="col-span-3 text-micro text-fg-subtle">{summary.unpriced.toLocaleString('fa-IR')} تراکنش بدون نرخ در جمع نیامده</p>
         )}
       </div>
+
+      {queued > 0 && (
+        <Banner tone="info" title={`${queued.toLocaleString('fa-IR')} تراکنش در صف ارسال`}>
+          بدون اینترنت ثبت شده؛ با برگشت اینترنت خودکار ارسال می‌شود.
+        </Banner>
+      )}
 
       {!transactionsFullyLoaded && (
         <p className="flex items-center gap-2 text-caption text-fg-subtle">

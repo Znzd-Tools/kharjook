@@ -10,6 +10,7 @@ import { TelegramConnectionSection } from '@/features/settings/components/Telegr
 import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
 import { LabsSettingsSection } from '@/features/settings/components/LabsSettingsSection';
+import { PushSettingsSection } from '@/features/settings/components/PushSettingsSection';
 
 const LINKS = [
   { href: '/manage/categories', title: 'دسته‌بندی‌ها و سقف هزینه', icon: <LayoutGrid />, tone: 'peach' as const },
@@ -86,6 +87,7 @@ export function SettingsTab() {
         <TelegramConnectionSection />
         <PasskeySettingsSection />
         <NotificationSettingsSection />
+        <PushSettingsSection />
         <LabsSettingsSection />
 
         <Button variant="danger" fullWidth size="lg" onClick={handleLogout}>

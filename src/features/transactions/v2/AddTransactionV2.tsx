@@ -76,6 +76,7 @@ import {
   type EndpointRef,
 } from '@/features/transactions/utils/usage-stats';
 import { parseEntry } from '@/features/transactions/utils/parse-entry';
+import { enqueue, isNetworkError } from '@/shared/lib/outbox';
 import { categoryIcon } from './category-icon';
 import { NewCategorySheet } from './NewCategorySheet';
 
@@ -361,6 +362,8 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
       return;
     }
     setSubmitting(true);
+    // Client-made id: a retry from the offline queue can never duplicate the row.
+    let queued: Record<string, unknown> | null = null;
     try {
       const payload = buildPayload(form, user.id, wallets, currencyRates, usdRate);
       if (isEdit && txToEdit) {
@@ -373,7 +376,16 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
         goBack();
         return;
       }
-      const { data, error } = await supabase.from('transactions').insert([payload]).select();
+      queued = { ...payload, id: crypto.randomUUID() };
+      const { data, error } = await supabase.from('transactions').insert([queued]).select();
+      if (error && isNetworkError(error)) {
+        // Offline: keep it on the device; OutboxSync sends it later (S29).
+        await enqueue(queued);
+        toast.warning('اینترنت نیست؛ تراکنش در صف ماند و بعداً خودکار ثبت می‌شود');
+        if (andNext) resetForNext();
+        else goBack();
+        return;
+      }
       if (error) throw error;
       const inserted = (data ?? []) as Transaction[];
       setTransactions((prev) => [...inserted.slice().reverse(), ...prev]);
@@ -383,6 +395,12 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
       if (andNext) resetForNext();
       else goBack();
     } catch (e) {
+      if (queued && isNetworkError(e)) {
+        await enqueue(queued);
+        toast.warning('اینترنت نیست؛ تراکنش در صف ماند و بعداً خودکار ثبت می‌شود');
+        goBack();
+        return;
+      }
       console.error(e);
       toast.error('خطا در ثبت تراکنش');
     } finally {

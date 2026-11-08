@@ -1,4 +1,4 @@
-const SW_VERSION = 'khargook-shell-v3';
+const SW_VERSION = 'khargook-shell-v4';
 const APP_SHELL_CACHE = `${SW_VERSION}-app-shell`;
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const OFFLINE_URL = '/login?source=pwa';
@@ -97,3 +97,67 @@ self.addEventListener('message', (event) => {
 });
 
 self.__SW_VERSION__ = SW_VERSION;
+
+// Web Push (UX plan S30): reminders with a one-tap "پرداخت شد".
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'خرجوک', body: event.data ? event.data.text() : '' };
+  }
+  const actions = data.settle ? [{ action: 'settle', title: 'پرداخت شد' }, { action: 'open', title: 'باز کردن' }] : [];
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'خرجوک', {
+      body: data.body || '',
+      tag: data.tag,
+      dir: 'rtl',
+      lang: 'fa',
+      icon: '/icon-192',
+      badge: '/icon-192',
+      actions,
+      data: { url: data.url || '/', settle: data.settle || null },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  const n = event.notification;
+  const { url, settle } = n.data || {};
+  n.close();
+  event.waitUntil(
+    (async () => {
+      if (event.action === 'settle' && settle) {
+        try {
+          const res = await fetch(settle.url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settle.body),
+          });
+          await self.registration.showNotification(res.ok ? 'ثبت شد ✓' : 'ثبت نشد', {
+            body: res.ok ? 'پرداخت ثبت شد.' : 'برنامه را باز کن و دوباره امتحان کن.',
+            tag: n.tag,
+            dir: 'rtl',
+            lang: 'fa',
+            icon: '/icon-192',
+            data: { url: url || '/' },
+          });
+          if (res.ok) return;
+        } catch {
+          // fall through and open the app
+        }
+      }
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const target = new URL(url || '/', self.location.origin).href;
+      for (const c of all) {
+        if ('focus' in c) {
+          await c.focus();
+          if ('navigate' in c) await c.navigate(target).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(target);
+    })()
+  );
+});

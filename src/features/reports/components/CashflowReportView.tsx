@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
@@ -27,6 +28,7 @@ import {
   cashflowCsvFilename,
 } from '@/features/reports/utils/export-cashflow-csv';
 import { downloadCsv } from '@/shared/utils/download-csv';
+import { formatJalaali } from '@/shared/utils/jalali';
 import {
   rollupCategories,
   type CashflowKind,
@@ -157,6 +159,14 @@ export function CashflowReportView() {
           expanded={expanded}
           onToggle={toggle}
           currencyMode={currencyMode}
+          drillHref={(categoryId) =>
+            `/transactions?${new URLSearchParams({
+              category: categoryId,
+              type: tab === 'income' ? 'INCOME' : 'EXPENSE',
+              from: formatJalaali(period.start),
+              to: formatJalaali(period.end),
+            }).toString()}`
+          }
         />
 
         {active.unpricedCount > 0 && (
@@ -343,12 +353,15 @@ function CategoryList({
   expanded,
   onToggle,
   currencyMode,
+  drillHref,
 }: {
   result: RollupResult;
   tab: Tab;
   expanded: Set<string>;
   onToggle: (id: string) => void;
   currencyMode: CurrencyMode;
+  /** Ledger link for one category in this period (report drill-down). */
+  drillHref: (categoryId: string) => string;
 }) {
   const { nodes, uncategorized } = result;
 
@@ -378,6 +391,7 @@ function CategoryList({
           isExpanded={expanded.has(n.id)}
           onToggle={() => onToggle(n.id)}
           currencyMode={currencyMode}
+          href={drillHref(n.id)}
         />
       ))}
       {uncategorized.total > 0 && (
@@ -415,12 +429,14 @@ function CategoryRow({
   isExpanded,
   onToggle,
   currencyMode,
+  href,
 }: {
   node: RollupNode;
   accent: 'emerald' | 'rose';
   isExpanded: boolean;
   onToggle: () => void;
   currencyMode: CurrencyMode;
+  href: string;
 }) {
   const displayValue = node.depth === 0 ? node.rolled : node.own;
   const empty = displayValue === 0;
@@ -429,11 +445,32 @@ function CategoryRow({
   const handleClick = () => {
     if (node.hasChildren) onToggle();
   };
-  const Component = (node.hasChildren ? 'button' : 'div') as 'button' | 'div';
+  if (!node.hasChildren) {
+    return (
+      <Link
+        href={href}
+        aria-label={`تراکنش‌های ${node.name}`}
+        className={`w-full flex items-center gap-2 bg-panel border border-white/5 rounded-xl px-3 py-2.5 text-right transition hover:bg-white/5 ${empty ? 'opacity-50' : ''}`}
+        style={{ paddingInlineStart: `${12 + node.depth * 16}px` }}
+      >
+        <span className="w-3.5 shrink-0" />
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: node.color }} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-white truncate">{node.name}</span>
+            <span className={`text-xs font-bold shrink-0 ${empty ? 'text-slate-500' : textColor}`}>
+              {formatCurrency(displayValue, currencyMode)}
+            </span>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+  const Component = 'button' as const;
 
   return (
     <Component
-      {...(node.hasChildren ? { type: 'button' as const, onClick: handleClick } : {})}
+      {...{ type: 'button' as const, onClick: handleClick }}
       className={`w-full flex items-center gap-2 bg-panel border border-white/5 rounded-xl px-3 py-2.5 text-right transition ${
         node.hasChildren ? 'hover:bg-white/5 cursor-pointer' : ''
       } ${empty ? 'opacity-50' : ''}`}
