@@ -12,14 +12,14 @@ import {
   registerPasskey,
   type PasskeyRecord,
 } from '@/features/auth/services/passkey-auth';
-import { browserSupportsWebAuthn } from '@/features/auth/utils/webauthn-support';
+import { useWebAuthnSupported } from '@/features/auth/hooks/use-webauthn-supported';
 
 export function PasskeySettingsSection() {
   const toast = useToast();
   const [passkeys, setPasskeys] = useState<PasskeyRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const supported = browserSupportsWebAuthn();
+  const supported = useWebAuthnSupported();
 
   const refresh = useCallback(async () => {
     if (!supported) {

@@ -43,7 +43,7 @@ importers:
         version: 1.8.0(react@19.2.4)
       next:
         specifier: 16.2.3
-        version: 16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -57,6 +57,9 @@ importers:
         specifier: 3.7.0
         version: 3.7.0
     devDependencies:
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
       '@storybook/addon-a11y':
         specifier: 10.6.3
         version: 10.6.3(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))
@@ -68,7 +71,7 @@ importers:
         version: 10.6.3(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))
       '@storybook/nextjs-vite':
         specifier: 10.6.3
-        version: 10.6.3(@babel/core@7.29.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(next@16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
+        version: 10.6.3(@babel/core@7.29.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(next@16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.2
@@ -954,6 +957,11 @@ packages:
     resolution: {integrity: sha512-VPoCAhKvCQTlG7vxqaBXcmuvbh77BfnGXj8g0pbvVXpm1F/R8rDVwqIWcEbMzrI1JvJlm8v7T9uMVQb6UctMRg==}
     cpu: [x64]
     os: [win32]
+
+  '@playwright/test@1.63.0':
+    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     resolution: {integrity: sha512-ia3DwAs0OsMGS7+IConptSiyk9pEXkOx/AbJ2n/lAGxH3QkWQus1t8d7gnAT38FCU2sQu8lUbeR6AiZFv4JxaA==}
@@ -2990,6 +2998,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
@@ -4287,6 +4305,10 @@ snapshots:
   '@oxc-resolver/binding-win32-x64-msvc@11.21.2':
     optional: true
 
+  '@playwright/test@1.63.0':
+    dependencies:
+      playwright: 1.63.0
+
   '@rolldown/binding-android-arm-eabi@1.2.16':
     optional: true
 
@@ -4462,18 +4484,18 @@ snapshots:
     dependencies:
       react: 19.2.4
 
-  '@storybook/nextjs-vite@10.6.3(@babel/core@7.29.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(next@16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))':
+  '@storybook/nextjs-vite@10.6.3(@babel/core@7.29.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(next@16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))':
     dependencies:
       '@storybook/builder-vite': 10.6.3(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
       '@storybook/react': 10.6.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)
       '@storybook/react-vite': 10.6.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
-      next: 16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      next: 16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       storybook: 10.6.3(@types/react@19.2.14)(react@19.2.4)
       styled-jsx: 5.1.6(@babel/core@7.29.0)(react@19.2.4)
       vite: 8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1)
-      vite-plugin-storybook-nextjs: 10.6.3(next@16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
+      vite-plugin-storybook-nextjs: 10.6.3(next@16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1))
     optionalDependencies:
       '@types/react': 19.2.14
       '@types/react-dom': 19.2.3(@types/react@19.2.14)
@@ -6232,7 +6254,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  next@16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  next@16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
       '@next/env': 16.2.3
       '@swc/helpers': 0.5.15
@@ -6251,6 +6273,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.2.3
       '@next/swc-win32-arm64-msvc': 16.2.3
       '@next/swc-win32-x64-msvc': 16.2.3
+      '@playwright/test': 1.63.0
       babel-plugin-react-compiler: 1.0.0
       sharp: 0.34.5
     transitivePeerDependencies:
@@ -6411,6 +6434,12 @@ snapshots:
   picomatch@4.0.4: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.63.0: {}
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   possible-typed-array-names@1.1.0: {}
 
@@ -7034,13 +7063,13 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-storybook-nextjs@10.6.3(next@16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1)):
+  vite-plugin-storybook-nextjs@10.6.3(next@16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(rollup@4.62.2)(storybook@10.6.3(@types/react@19.2.14)(react@19.2.4))(typescript@5.9.3)(vite@8.3.5(@types/node@20.19.39)(esbuild@0.28.1)(jiti@2.6.1)):
     dependencies:
       '@next/env': 16.2.3
       '@rollup/pluginutils': 5.5.1(rollup@4.62.2)
       magic-string: 0.30.21
       module-alias: 2.3.5
-      next: 16.2.3(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      next: 16.2.3(@babel/core@7.29.0)(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       pathe: 2.0.3
       probe-image-size: 7.5.0
       semver: 7.7.4

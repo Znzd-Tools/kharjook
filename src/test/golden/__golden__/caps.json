@@ -1,0 +1,29 @@
+[
+  {
+    "categoryId": "c-food",
+    "categoryName": "خوراک",
+    "categoryColor": "#f00",
+    "limitToman": 5000000,
+    "spentToman": 6500000,
+    "percent": 130,
+    "level": "over"
+  },
+  {
+    "categoryId": "c-cafe",
+    "categoryName": "کافه",
+    "categoryColor": "#f00",
+    "limitToman": 1000000,
+    "spentToman": 1300000,
+    "percent": 130,
+    "level": "over"
+  },
+  {
+    "categoryId": "c-rent",
+    "categoryName": "اجاره",
+    "categoryColor": "#f00",
+    "limitToman": 12000000,
+    "spentToman": 12000000,
+    "percent": 100,
+    "level": "over"
+  }
+]

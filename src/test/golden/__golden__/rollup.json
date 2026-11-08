@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "id": "c-rent",
+      "name": "اجاره",
+      "color": "#f00",
+      "depth": 0,
+      "parentId": null,
+      "hasChildren": false,
+      "own": 12000000,
+      "rolled": 12000000,
+      "txCount": 1
+    },
+    {
+      "id": "c-food",
+      "name": "خوراک",
+      "color": "#f00",
+      "depth": 0,
+      "parentId": null,
+      "hasChildren": true,
+      "own": 5200000,
+      "rolled": 6500000,
+      "txCount": 2
+    },
+    {
+      "id": "c-cafe",
+      "name": "کافه",
+      "color": "#f00",
+      "depth": 1,
+      "parentId": "c-food",
+      "hasChildren": false,
+      "own": 1300000,
+      "rolled": 1300000,
+      "txCount": 2
+    }
+  ],
+  "total": 18500000,
+  "childrenOf": {},
+  "uncategorized": {
+    "total": 0,
+    "count": 0
+  },
+  "unpricedCount": 1
+}

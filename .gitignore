@@ -44,3 +44,8 @@ next-env.d.ts
 # Storybook
 storybook-static/
 *storybook.log
+
+# Playwright
+/test-results/
+/playwright-report/
+/e2e/.auth/

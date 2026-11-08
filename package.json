@@ -12,7 +12,11 @@
     "db:types": "supabase gen types typescript --local > src/shared/types/database.types.ts",
     "db:pull": "supabase db pull",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "e2e": "playwright test",
+    "test:golden": "vitest run src/test/golden",
+    "typecheck": "tsc --noEmit -p .",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -33,6 +37,7 @@
     "tailwind-merge": "3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@storybook/addon-a11y": "10.6.3",
     "@storybook/addon-docs": "10.6.3",
     "@storybook/addon-themes": "10.6.3",
@@ -50,5 +55,6 @@
     "typescript": "^5",
     "vite": "8.3.5",
     "vitest": "^3.2.4"
-  }
+  },
+  "packageManager": "pnpm@10.28.0"
 }

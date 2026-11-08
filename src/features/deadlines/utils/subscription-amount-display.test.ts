@@ -11,7 +11,7 @@ describe('subscription-amount-display', () => {
 
   it('converts foreign amount to toman', () => {
     const toman = subscriptionAmountToToman(10, 'USD', [
-      { id: '1', user_id: 'u', currency: 'USD', toman_per_unit: 60000, updated_at: null },
+      { id: '1', user_id: 'u', currency: 'USD', toman_per_unit: 60000, updated_at: '2026-01-01T00:00:00Z' },
     ]);
     expect(toman).toBe(600000);
   });

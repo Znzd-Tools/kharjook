@@ -1,0 +1,25 @@
+{
+  "validation": null,
+  "funds": "موجودی مبدأ کافی نیست.",
+  "payload": {
+    "user_id": "u1",
+    "type": "EXPENSE",
+    "date_string": "1405/08/17",
+    "note": "قهوه",
+    "source_wallet_id": "w-irt",
+    "source_asset_id": null,
+    "source_person_id": null,
+    "target_wallet_id": null,
+    "target_asset_id": null,
+    "target_person_id": null,
+    "source_amount": 850000,
+    "target_amount": null,
+    "category_id": "c-cafe",
+    "asset_id": null,
+    "amount": null,
+    "price_toman": null,
+    "usd_rate": null,
+    "amount_toman_at_time": 850000,
+    "amount_usd_at_time": 8.5
+  }
+}

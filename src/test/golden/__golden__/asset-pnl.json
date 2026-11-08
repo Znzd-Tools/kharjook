@@ -1,0 +1,344 @@
+[
+  {
+    "id": "gold",
+    "pnl": {
+      "included": true,
+      "holdings": 6,
+      "active": {
+        "value": {
+          "toman": 9000000,
+          "usd": 40
+        },
+        "cost": {
+          "toman": 45000000,
+          "usd": 500
+        },
+        "since": "1405/02/05",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 11600000,
+          "usd": 54.776632
+        },
+        "realized": {
+          "toman": 2600000,
+          "usd": 14.776632
+        },
+        "open": {
+          "toman": 9000000,
+          "usd": 40
+        },
+        "base": {
+          "toman": 60000000,
+          "usd": 666.666667
+        },
+        "partial": false,
+        "empty": false
+      },
+      "allTime": {
+        "value": {
+          "toman": 24600000,
+          "usd": 116.751422
+        },
+        "realized": {
+          "toman": 15600000,
+          "usd": 76.751422
+        },
+        "open": {
+          "toman": 9000000,
+          "usd": 40
+        },
+        "invested": {
+          "toman": 115000000,
+          "usd": 1423.809524
+        }
+      }
+    }
+  },
+  {
+    "id": "usd",
+    "pnl": {
+      "included": true,
+      "holdings": 300,
+      "active": {
+        "value": {
+          "toman": 6000000,
+          "usd": 0
+        },
+        "cost": {
+          "toman": 24000000,
+          "usd": 300
+        },
+        "since": "1404/08/01",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 4500000,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 4500000,
+          "usd": 0
+        },
+        "base": {
+          "toman": 25500000,
+          "usd": 300
+        },
+        "partial": false,
+        "empty": false
+      },
+      "allTime": {
+        "value": {
+          "toman": 6000000,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 6000000,
+          "usd": 0
+        },
+        "invested": {
+          "toman": 24000000,
+          "usd": 300
+        }
+      }
+    }
+  },
+  {
+    "id": "fund",
+    "pnl": {
+      "included": true,
+      "holdings": 1500,
+      "active": {
+        "value": {
+          "toman": 11500000,
+          "usd": 115
+        },
+        "cost": {
+          "toman": 33500000,
+          "usd": 335
+        },
+        "since": "1405/01/15",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 11500000,
+          "usd": 115
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 11500000,
+          "usd": 115
+        },
+        "base": {
+          "toman": 33500000,
+          "usd": 335
+        },
+        "partial": false,
+        "empty": false
+      },
+      "allTime": {
+        "value": {
+          "toman": 11500000,
+          "usd": 115
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 11500000,
+          "usd": 115
+        },
+        "invested": {
+          "toman": 33500000,
+          "usd": 335
+        }
+      }
+    }
+  },
+  {
+    "id": "car",
+    "pnl": {
+      "included": false,
+      "holdings": 1,
+      "active": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "cost": {
+          "toman": 1500000000,
+          "usd": 15000
+        },
+        "since": "1404/01/20",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 0,
+          "usd": 0
+        },
+        "base": {
+          "toman": 0,
+          "usd": 0
+        },
+        "partial": false,
+        "empty": true
+      },
+      "allTime": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 0,
+          "usd": 0
+        },
+        "invested": {
+          "toman": 1500000000,
+          "usd": 15000
+        }
+      }
+    }
+  },
+  {
+    "id": "held",
+    "pnl": {
+      "included": true,
+      "holdings": 2,
+      "active": {
+        "value": {
+          "toman": 2400000,
+          "usd": 24
+        },
+        "cost": {
+          "toman": 15600000,
+          "usd": 156
+        },
+        "since": "1405/03/01",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 2400000,
+          "usd": 24
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 2400000,
+          "usd": 24
+        },
+        "base": {
+          "toman": 15600000,
+          "usd": 156
+        },
+        "partial": false,
+        "empty": false
+      },
+      "allTime": {
+        "value": {
+          "toman": 2400000,
+          "usd": 24
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 2400000,
+          "usd": 24
+        },
+        "invested": {
+          "toman": 15600000,
+          "usd": 156
+        }
+      }
+    }
+  },
+  {
+    "id": "coin",
+    "pnl": {
+      "included": true,
+      "holdings": 3,
+      "active": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "cost": {
+          "toman": 180000000,
+          "usd": 1800
+        },
+        "since": "1405/04/01",
+        "available": true
+      },
+      "year": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 0,
+          "usd": 0
+        },
+        "base": {
+          "toman": 180000000,
+          "usd": 1800
+        },
+        "partial": false,
+        "empty": false
+      },
+      "allTime": {
+        "value": {
+          "toman": 0,
+          "usd": 0
+        },
+        "realized": {
+          "toman": 0,
+          "usd": 0
+        },
+        "open": {
+          "toman": 0,
+          "usd": 0
+        },
+        "invested": {
+          "toman": 180000000,
+          "usd": 1800
+        }
+      }
+    }
+  }
+]

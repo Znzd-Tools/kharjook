@@ -1,0 +1,25 @@
+{
+  "validation": null,
+  "funds": null,
+  "payload": {
+    "user_id": "u1",
+    "type": "SELL",
+    "date_string": "1405/08/17",
+    "note": null,
+    "source_wallet_id": null,
+    "source_asset_id": "gold",
+    "source_person_id": null,
+    "target_wallet_id": "w-irt",
+    "target_asset_id": null,
+    "target_person_id": null,
+    "source_amount": 1,
+    "target_amount": 9000000,
+    "category_id": null,
+    "asset_id": "gold",
+    "amount": 1,
+    "price_toman": 9000000,
+    "usd_rate": 100000,
+    "amount_toman_at_time": 9000000,
+    "amount_usd_at_time": 90
+  }
+}

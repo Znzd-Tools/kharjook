@@ -1,0 +1,26 @@
+[
+  {
+    "date": "1404/12/29",
+    "total": {
+      "totalToman": 76500000,
+      "totalUsd": 810,
+      "missingPriceCount": 0
+    }
+  },
+  {
+    "date": "1405/06/31",
+    "total": {
+      "totalToman": 106500000,
+      "totalUsd": 1119,
+      "missingPriceCount": 0
+    }
+  },
+  {
+    "date": "1405/08/17",
+    "total": {
+      "totalToman": 681900000,
+      "totalUsd": 6819,
+      "missingPriceCount": 0
+    }
+  }
+]

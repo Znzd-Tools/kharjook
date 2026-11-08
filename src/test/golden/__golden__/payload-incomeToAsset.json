@@ -1,0 +1,25 @@
+{
+  "validation": null,
+  "funds": null,
+  "payload": {
+    "user_id": "u1",
+    "type": "INCOME",
+    "date_string": "1405/08/17",
+    "note": null,
+    "source_wallet_id": null,
+    "source_asset_id": null,
+    "source_person_id": null,
+    "target_wallet_id": null,
+    "target_asset_id": "usd",
+    "target_person_id": null,
+    "source_amount": null,
+    "target_amount": 50,
+    "category_id": "c-salary",
+    "asset_id": "usd",
+    "amount": 50,
+    "price_toman": 100000,
+    "usd_rate": 100000,
+    "amount_toman_at_time": 5000000,
+    "amount_usd_at_time": 50
+  }
+}

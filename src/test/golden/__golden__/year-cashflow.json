@@ -1,0 +1,102 @@
+{
+  "toman": [
+    {
+      "month": 1,
+      "label": "فروردین",
+      "income": 40000000,
+      "expense": 0
+    },
+    {
+      "month": 2,
+      "label": "اردیبهشت",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 3,
+      "label": "خرداد",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 4,
+      "label": "تیر",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 5,
+      "label": "مرداد",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 6,
+      "label": "شهریور",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 7,
+      "label": "مهر",
+      "income": 45000000,
+      "expense": 12000000
+    },
+    {
+      "month": 8,
+      "label": "آبان",
+      "income": 45000000,
+      "expense": 18600000
+    }
+  ],
+  "usd": [
+    {
+      "month": 1,
+      "label": "فروردین",
+      "income": 400,
+      "expense": 0
+    },
+    {
+      "month": 2,
+      "label": "اردیبهشت",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 3,
+      "label": "خرداد",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 4,
+      "label": "تیر",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 5,
+      "label": "مرداد",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 6,
+      "label": "شهریور",
+      "income": 0,
+      "expense": 0
+    },
+    {
+      "month": 7,
+      "label": "مهر",
+      "income": 450,
+      "expense": 120
+    },
+    {
+      "month": 8,
+      "label": "آبان",
+      "income": 450,
+      "expense": 186
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "g1",
+    "progress": {
+      "current": 6,
+      "target": 20,
+      "percentComplete": 30,
+      "remaining": 14
+    }
+  },
+  {
+    "id": "g2",
+    "progress": {
+      "current": 1.299264,
+      "target": 25,
+      "percentComplete": 5.197055,
+      "remaining": 23.700736,
+      "currentPortfolioPercent": 1.299264
+    }
+  },
+  {
+    "id": "g3",
+    "progress": {
+      "current": 10.134257,
+      "target": 40,
+      "percentComplete": 25.335643,
+      "remaining": 29.865743,
+      "currentPortfolioPercent": 10.134257
+    }
+  }
+]

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/shared/lib/supabase/client';
 import { mapPasskeyError, signInWithPasskey } from '@/features/auth/services/passkey-auth';
-import { browserSupportsWebAuthn } from '@/features/auth/utils/webauthn-support';
+import { useWebAuthnSupported } from '@/features/auth/hooks/use-webauthn-supported';
 
 const useLoginView = () => {
   const router = useRouter();
@@ -13,7 +13,7 @@ const useLoginView = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasskeySubmitting, setIsPasskeySubmitting] = useState(false);
-  const passkeySupported = browserSupportsWebAuthn();
+  const passkeySupported = useWebAuthnSupported();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
