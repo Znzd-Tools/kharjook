@@ -1,5 +1,9 @@
 'use client';
 
+import { useFlag } from '@/shared/lib/flags/client';
+import { PositionHistory } from '@/features/pnl/components/PositionHistory';
+import { positionHistory } from '@/features/pnl/utils/position-history';
+
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Activity, ArrowLeftRight, ArrowRight, Edit3, Plus, TargetIcon, Trash2 } from 'lucide-react';
@@ -63,6 +67,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
   const toast = useToast();
   const { confirm } = useConfirm();
+  const pnlV2 = useFlag('v2.pnl');
   const { assets, categories, transactions, goals, dailyPrices, setTransactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
@@ -420,6 +425,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             )}
           />
         </div>
+
+        {pnlV2 && <PositionHistory periods={positionHistory(asset, transactions, usdRate)} />}
 
         <div className="pt-6">
           <div className="flex justify-between items-center mb-3">

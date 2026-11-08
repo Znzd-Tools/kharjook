@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useId, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 export interface SectionProps {
@@ -15,7 +17,9 @@ export interface SectionProps {
 
 /** Titled group of content on a page. The main layout block. */
 export function Section({ title, description, action, children, className, id }: SectionProps) {
-  const headingId = id ? `${id}-title` : undefined;
+  const autoId = useId();
+  // Always name the region after its title (screen readers, tests).
+  const headingId = title ? `${id ?? autoId}-title` : undefined;
   return (
     <section aria-labelledby={headingId} className={cn('space-y-3', className)}>
       {(title || action) && (

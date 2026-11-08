@@ -1,5 +1,8 @@
 'use client';
 
+import { useFlag } from '@/shared/lib/flags/client';
+import { PortfolioPnlCard } from '@/features/pnl/components/PortfolioPnlCard';
+
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Activity, Plus, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
@@ -35,6 +38,7 @@ import {
 } from '@/features/assets/utils/asset-list-filters';
 
 export function AssetsTab() {
+  const pnlV2 = useFlag('v2.pnl');
   const router = useRouter();
   const { assets, categories, transactions, goals, dailyPrices, isLoadingData } = useData();
   const { currencyMode, usdRate } = useUI();
@@ -99,6 +103,7 @@ export function AssetsTab() {
 
   return (
     <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
+      {pnlV2 && <PortfolioPnlCard />}
       <div className="flex justify-between items-center gap-3">
         <h2 className="text-xl font-bold text-white shrink-0">لیست دارایی‌ها</h2>
         <div className="flex items-center gap-1.5">

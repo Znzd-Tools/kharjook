@@ -56,6 +56,7 @@ export const TABS: TabConfig[] = [
     subNav: [
       { href: '/assets', label: 'دارایی‌ها' },
       { href: '/wallets', label: 'کیف پول‌ها' },
+      { href: '/pnl', label: 'سود و زیان' },
       { href: '/prices', label: 'قیمت‌ها' },
     ],
     menu: [
