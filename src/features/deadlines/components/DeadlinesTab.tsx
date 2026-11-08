@@ -1,5 +1,8 @@
 'use client';
 
+import { useFlag } from '@/shared/lib/flags/client';
+import { PlanTabV2 } from '@/features/deadlines/v2/PlanTabV2';
+
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -92,6 +95,12 @@ function DeadlinesItem({
 }
 
 export function DeadlinesTab() {
+  const v2 = useFlag('v2.plan');
+  if (v2) return <PlanTabV2 />;
+  return <DeadlinesTabV1 />;
+}
+
+function DeadlinesTabV1() {
   const router = useRouter();
   return (
     <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">

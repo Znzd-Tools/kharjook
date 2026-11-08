@@ -40,9 +40,13 @@ function session() {
     expires_at: Math.floor(Date.now() / 1000) + 604800, refresh_token: 'mock-refresh', user,
   };
 }
+const SERVICE_KEY = 'mock-service-key';
+
 function authed(req: IncomingMessage) {
   const h = req.headers.authorization ?? '';
   const token = h.replace(/^Bearer\s+/i, '');
+  // Server code (Telegram bot, settle services) uses the service role key.
+  if (token === SERVICE_KEY || req.headers.apikey === SERVICE_KEY) return true;
   if (!token || token.split('.').length !== 3) return false;
   try {
     const payload = JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString());
