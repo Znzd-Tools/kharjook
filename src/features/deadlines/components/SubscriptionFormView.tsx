@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { AmountField, Button, Chip, ChipGroup, DateField, Field, Input, PickerField, SegmentedControl, Skeleton, Textarea, TopBar } from '@/design-system';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
+import { categoryOptions, walletOptions } from '@/features/deadlines/v2/form-options';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
-import { IOSDatePicker } from '@/shared/components/IOSDatePicker';
-import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type { LoanIntervalPeriod, Subscription, Wallet } from '@/shared/types/domain';
-import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { formatJalaali, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import {
   LOAN_REMINDER_DAY_OPTIONS,
   normalizeReminderDaysBefore,
@@ -61,14 +60,8 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
   const [form, setForm] = useState<SubscriptionFormState>(initialState);
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const [dueDateOpen, setDueDateOpen] = useState(false);
+  const goBack = useSafeBack('/deadlines/subscriptions');
 
-  const expenseCategories = useMemo(
-    () => categories.filter((category) => category.kind === 'expense'),
-    [categories]
-  );
   const selectedWallet = wallets.find((wallet) => wallet.id === form.walletId) ?? null;
 
   useEffect(() => {
@@ -181,13 +174,16 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center text-slate-500 animate-pulse">در حال دریافت...</div>;
+    return (
+      <div className="min-h-full bg-canvas">
+        <TopBar onBack={() => goBack()} title="اشتراک" />
+        <div className="space-y-3 px-(--ds-gutter)">
+          <Skeleton className="h-12 rounded-control" />
+          <Skeleton className="h-12 rounded-control" />
+        </div>
+      </div>
+    );
   }
-
-  const walletItems = wallets.map((wallet) => ({
-    id: wallet.id,
-    label: `${wallet.name} · ${wallet.currency}`,
-  }));
 
   const previewInterval =
     Number(form.intervalNumber) > 0
@@ -197,209 +193,60 @@ export function SubscriptionFormView({ subscriptionId }: { subscriptionId?: stri
         })
       : null;
 
+  const set = <K extends keyof SubscriptionFormState>(k: K, v: SubscriptionFormState[K]) => setForm((prev) => ({ ...prev, [k]: v }));
+
   return (
-    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">
-          {isEdit ? 'ویرایش اشتراک' : 'ثبت اشتراک جدید'}
-        </h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">پلتفرم / سرویس</label>
-          <input
-            value={form.platform}
-            onChange={(e) => setForm((prev) => ({ ...prev, platform: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
-            placeholder="مثال: Netflix"
-            required
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setWalletOpen(true)}
-          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-        >
-          <div>
-            <p className="text-xs text-slate-500">کیف پول پیش‌فرض</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {selectedWallet
-                ? `${selectedWallet.name} · ${selectedWallet.currency}`
-                : 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-slate-500" />
-        </button>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">مبلغ</label>
-          <FormattedNumberInput
-            value={form.amount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
-          {selectedWallet && (
-            <p className="text-[11px] text-slate-500 mt-1">ارز: {selectedWallet.currency}</p>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCategoryOpen(true)}
-          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-        >
-          <div>
-            <p className="text-xs text-slate-500">دسته هزینه</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {expenseCategories.find((c) => c.id === form.categoryId)?.name ?? 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-slate-500" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition"
-        >
-          <Calendar size={16} className="text-purple-400" />
-          <div className="flex-1">
-            <p className="text-xs text-slate-500">سررسید بعدی</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {parseJalaali(form.nextDueDate)
-                ? formatJalaaliHuman(parseJalaali(form.nextDueDate)!)
-                : form.nextDueDate}
-            </p>
-          </div>
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">فاصله تکرار</label>
-            <FormattedNumberInput
-              value={form.intervalNumber}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, intervalNumber: value }))}
-              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-              dir="ltr"
-              required
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={() => goBack()} title={isEdit ? 'ویرایش اشتراک' : 'اشتراک جدید'} />
+      <form onSubmit={handleSubmit} className="space-y-4 px-(--ds-gutter)">
+        <Field label="پلتفرم / سرویس">
+          <Input value={form.platform} onChange={(e) => set('platform', e.target.value)} placeholder="مثال: Spotify" required />
+        </Field>
+        <Field label="کیف پول پیش‌فرض" hint="ارز اشتراک همان ارز این کیف پول است (مثلاً لیر).">
+          <PickerField title="کیف پول" options={walletOptions(wallets)} value={form.walletId} onValueChange={(v) => set('walletId', v)} />
+        </Field>
+        <Field label="مبلغ">
+          <AmountField value={form.amount} onValueChange={(v) => set('amount', v)} unitLabel={selectedWallet && selectedWallet.currency !== 'IRT' ? CURRENCY_META[selectedWallet.currency].label : undefined} />
+        </Field>
+        <Field label="دسته هزینه">
+          <PickerField title="دسته هزینه" options={categoryOptions(categories, 'expense')} value={form.categoryId} onValueChange={(v) => set('categoryId', v)} />
+        </Field>
+        <Field label="سررسید بعدی">
+          <DateField value={form.nextDueDate} onValueChange={(v) => set('nextDueDate', v)} quickChips={false} />
+        </Field>
+        <Field label="هر چند وقت یک بار" hint={previewInterval ? `تکرار: ${previewInterval}` : undefined}>
+          <div className="flex gap-2">
+            <Input className="w-20" value={form.intervalNumber} onChange={(e) => set('intervalNumber', e.target.value.replace(/[^\d۰-۹]/g, ''))} inputMode="numeric" dir="ltr" aria-label="تعداد" required />
+            <SegmentedControl
+              aria-label="واحد تکرار"
+              className="flex-1"
+              value={form.intervalPeriod}
+              onValueChange={(v) => set('intervalPeriod', v as LoanIntervalPeriod)}
+              options={INTERVAL_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
             />
           </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">واحد</label>
-            <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl h-[46px]">
-              {INTERVAL_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, intervalPeriod: option.id }))}
-                  className={`text-[11px] rounded-lg transition ${
-                    form.intervalPeriod === option.id
-                      ? 'bg-purple-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {previewInterval && (
-          <p className="text-[11px] text-slate-500">تکرار: {previewInterval}</p>
-        )}
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
-          <div className="flex flex-wrap gap-2">
-            {LOAN_REMINDER_DAY_OPTIONS.map((days) => {
-              const active = form.reminderDaysBefore.includes(days);
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      reminderDaysBefore: active
-                        ? prev.reminderDaysBefore.filter((d) => d !== days)
-                        : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                    active
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                  }`}
-                >
-                  {days} روز قبل
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">یادداشت</label>
-          <textarea
-            value={form.note}
-            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
-            rows={2}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت اشتراک'}
-        </button>
+        </Field>
+        <Field label="یادآوری تلگرام قبل از سررسید">
+          <ChipGroup
+            aria-label="روزهای یادآوری"
+            multiple
+            value={form.reminderDaysBefore.map(String)}
+            onValueChange={(v) => set('reminderDaysBefore', normalizeReminderDaysBefore(v.map(Number)))}
+          >
+            {LOAN_REMINDER_DAY_OPTIONS.map((days) => (
+              <Chip key={days} value={String(days)}>
+                {days.toLocaleString('fa-IR')} روز قبل
+              </Chip>
+            ))}
+          </ChipGroup>
+        </Field>
+        <Field label="یادداشت">
+          <Textarea value={form.note} onChange={(e) => set('note', e.target.value)} rows={2} placeholder="اختیاری" />
+        </Field>
+        <Button type="submit" fullWidth size="lg" loading={isSubmitting}>
+          {isEdit ? 'ذخیره تغییرات' : 'ثبت اشتراک'}
+        </Button>
       </form>
-
-      <CategorySheetPicker
-        open={categoryOpen}
-        onClose={() => setCategoryOpen(false)}
-        title="انتخاب دسته هزینه"
-        kind="expense"
-        categories={categories}
-        value={form.categoryId}
-        onSelect={(id) => {
-          setForm((prev) => ({ ...prev, categoryId: id }));
-          setCategoryOpen(false);
-        }}
-      />
-
-      <ListSheetPicker
-        open={walletOpen}
-        onClose={() => setWalletOpen(false)}
-        title="انتخاب کیف پول"
-        items={walletItems}
-        value={form.walletId}
-        onSelect={(id) => {
-          setForm((prev) => ({ ...prev, walletId: id }));
-          setWalletOpen(false);
-        }}
-      />
-
-      <IOSDatePicker
-        open={dueDateOpen}
-        onClose={() => setDueDateOpen(false)}
-        value={form.nextDueDate}
-        onChange={(value) => setForm((prev) => ({ ...prev, nextDueDate: value }))}
-      />
     </div>
   );
 }

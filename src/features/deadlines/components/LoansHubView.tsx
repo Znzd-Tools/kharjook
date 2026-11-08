@@ -2,17 +2,29 @@
 
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  Loader2,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+  ActionSheet,
+  AmountField,
+  Avatar,
+  Badge,
+  Button,
+  Chip,
+  ChipGroup,
+  EmptyState,
+  Field,
+  IconButton,
+  PickerField,
+  ProgressBar,
+  SegmentedControl,
+  Sheet,
+  Skeleton,
+  Text,
+  TopBar,
+  useConfirm,
+} from '@/design-system';
+import { CheckCircle2, ChevronLeft, ChevronRight, Landmark, MoreHorizontal, Plus } from '@/design-system/icons';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
 import { useToast } from '@/shared/components/Toast';
@@ -29,7 +41,6 @@ import {
   todayJalaali,
 } from '@/shared/utils/jalali';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import {
   canonicalInstallmentAmount,
   installmentHasPartialPay,
@@ -67,7 +78,9 @@ export function LoansHubView() {
   const [settlementTarget, setSettlementTarget] = useState<LoanInstallment | null>(null);
   const [settlementWalletId, setSettlementWalletId] = useState<string | null>(null);
   const [settlementPayAmount, setSettlementPayAmount] = useState('');
-  const [isSettlementPickerOpen, setIsSettlementPickerOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<Loan | null>(null);
+  const confirm = useConfirm();
+  const goBack = useSafeBack('/deadlines?v=loans');
   const [loanFilter, setLoanFilter] = useState<LoanFilter>('remaining');
   const [installmentFilter, setInstallmentFilter] = useState<InstallmentFilter>('remaining');
   const today = useMemo(() => todayJalaali(), []);
@@ -313,19 +326,15 @@ export function LoansHubView() {
   );
 
   const openSettle = (installment: LoanInstallment) => {
-    const loan = loansById.get(installment.loan_id);
     setSettlementTarget(installment);
     setSettlementWalletId(null);
     setSettlementPayAmount(canonicalInstallmentAmount(installmentRemainingAmount(installment)));
-    // Asset loans need no wallet pick — open confirm bar only.
-    setIsSettlementPickerOpen(loan ? !isAssetLoan(loan) : true);
   };
 
   const closeSettle = () => {
     setSettlementTarget(null);
     setSettlementWalletId(null);
     setSettlementPayAmount('');
-    setIsSettlementPickerOpen(false);
   };
 
   const handleDeleteLoan = async (loan: Loan) => {
@@ -506,541 +515,329 @@ export function LoansHubView() {
     }
   };
 
-  return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">اقساط و وام‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/loans/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          وام جدید
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-1 bg-panel p-1 rounded-xl">
-        <button
-          type="button"
-          onClick={() => setTab('loans')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'loans' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          وام‌ها
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('installments')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'installments' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          اقساط
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('calendar')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
-            tab === 'calendar' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          تقویم بدهی
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
-      ) : tab === 'loans' ? (
-        loansRows.length === 0 ? (
-          <div className="text-center py-10 space-y-3">
-            <p className="text-slate-500 text-sm">هنوز وامی ثبت نشده.</p>
-            <button
-              type="button"
-              onClick={() => router.push('/deadlines/loans/new')}
-              className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 text-sm font-medium"
-            >
-              <Plus size={16} />
-              ایجاد اولین وام
-            </button>
+  const fa = (v: number | string) => toPersianDigits(String(v));
+  const filterChips = <T extends string>(label: string, value: T, set: (v: T) => void, opts: [T, string][]) => (
+    <ChipGroup aria-label={label} value={[value]} onValueChange={(v) => v[0] && set(v[0] as T)}>
+      {opts.map(([k, l]) => (
+        <Chip key={k} value={k}>
+          {l}
+        </Chip>
+      ))}
+    </ChipGroup>
+  );
+  const installmentLine = (installment: LoanInstallment, loan: Loan) => {
+    const meta = installmentMetaByLoan.get(loan.id);
+    const total = meta?.total ?? installment.sequence_no;
+    const isLast = installment.sequence_no === (meta?.lastSeq ?? installment.sequence_no);
+    const parsed = parseJalaali(installment.due_date_string);
+    return (
+      <li key={installment.id} className="flex items-center gap-3 rounded-card bg-panel p-3.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Text variant="callout" className="truncate font-semibold">
+              {loan.title}
+            </Text>
+            <span className="shrink-0 text-caption text-fg-subtle" dir="ltr">
+              {fa(`${installment.sequence_no}/${total}`)}
+            </span>
+            {isLast && <Badge tone="warning">آخرین قسط</Badge>}
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="bg-panel border border-white/5 rounded-2xl p-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                    loanFilter === 'all'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                  }`}
-                >
-                  همه
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('remaining')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                    loanFilter === 'remaining'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                  }`}
-                >
-                  باقی‌مانده
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoanFilter('finished')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                    loanFilter === 'finished'
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                  }`}
-                >
-                  تمام‌شده
-                </button>
-              </div>
-            </div>
-            {filteredLoanRows.length === 0 ? (
-              <div className="text-center text-slate-500 text-sm py-6">
-                موردی با این فیلتر وجود ندارد.
-              </div>
-            ) : filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
-              const category = loan.category_id
-                ? categories.find((c) => c.id === loan.category_id)
-                : null;
-              const loanAsset = isAssetLoan(loan)
-                ? assetsById.get(loan.asset_id!) ?? null
-                : null;
-              const totalDisplay =
-                loan.total_amount ?? (loan.installment_amount * loan.repeat_count);
-              const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
-              return (
-                <div
-                  key={loan.id}
-                  className="bg-panel border border-white/5 p-4 rounded-2xl space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-100">{loan.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {loan.type === 'expense' ? 'خرید اعتباری' : 'وام نقدی'}
-                        {loanAsset
-                          ? ` · ${loanAsset.name}`
-                          : category
-                            ? ` · ${category.name}`
-                            : ''}
-                      </p>
-                    </div>
-                    <span className="text-[11px] text-slate-400">
-                      {paidCount}/{totalCount} تسویه
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500">پیشرفت تسویه</span>
-                      <span className="text-slate-300">{toPersianDigits(progressPercent)}٪</span>
-                    </div>
-                    <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 right-0 rounded-full bg-purple-500 transition-[width] duration-300"
-                        style={{ width: `${progressPercent > 0 ? Math.max(progressPercent, 4) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-slate-500">
-                        {isAssetLoan(loan) ? 'مقدار هر قسط' : 'مبلغ هر قسط'}
-                      </p>
-                      <p className="text-slate-200 mt-1" dir="ltr">
-                        {formatLoanQty(loan.installment_amount, loan)}
-                      </p>
-                    </div>
-                    <div className="bg-white/3 rounded-xl p-2.5">
-                      <p className="text-slate-500">جمع کل</p>
-                      <p className="text-slate-200 mt-1" dir="ltr">
-                        {formatLoanQty(totalDisplay, loan)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2">
-                    <Link
-                      href={`/deadlines/loans/${loan.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
-                    >
-                      ویرایش
-                    </Link>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleDeleteLoan(loan)}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        <Trash2 size={13} />
-                        حذف
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
-      ) : tab === 'installments' ? installmentRows.length === 0 ? (
-        <div className="text-center py-10 space-y-2">
-          <p className="text-slate-500 text-sm">قسطی برای نمایش نیست.</p>
-          <p className="text-slate-600 text-xs">بعد از ثبت وام، برنامه اقساط اینجا نمایش داده می‌شود.</p>
+          <Text variant="caption" tone="subtle">
+            {parsed ? formatJalaaliHuman(parsed) : installment.due_date_string}
+            {installmentHasPartialPay(installment) ? ' · پرداخت جزئی' : ''}
+          </Text>
+          <p className="tabular text-caption text-fg" dir="ltr">
+            {isAssetLoan(loan)
+              ? formatLoanQty(installment.is_paid ? installment.amount : installmentRemainingAmount(installment), loan)
+              : formatCurrency(displayAmount({ installment, loan }), currencyMode)}
+          </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="bg-panel border border-white/5 rounded-2xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">جمع باقی‌مانده</span>
-              <span className="text-sm font-semibold text-slate-100" dir="ltr">
-                {formatCurrency(remainingTotalDisplay, currencyMode)}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                  installmentFilter === 'all'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                }`}
-              >
-                همه
-              </button>
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('paid')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                  installmentFilter === 'paid'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                }`}
-              >
-                تسویه شده
-              </button>
-              <button
-                type="button"
-                onClick={() => setInstallmentFilter('remaining')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                  installmentFilter === 'remaining'
-                    ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                }`}
-              >
-                باقی‌مانده
-              </button>
-            </div>
-          </div>
+        {installment.is_paid ? (
+          <Badge tone="positive">
+            <CheckCircle2 className="size-3.5" aria-hidden /> تسویه‌شده
+          </Badge>
+        ) : (
+          <Button size="sm" variant="soft" onClick={() => openSettle(installment)}>
+            تسویه
+          </Button>
+        )}
+      </li>
+    );
+  };
 
-          {groupedInstallments.length === 0 ? (
-            <div className="text-center text-slate-500 text-sm py-6">
-              موردی با این فیلتر وجود ندارد.
+  return (
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar
+        onBack={() => goBack()}
+        title="اقساط و وام‌ها"
+        actions={
+          <Button size="sm" startIcon={<Plus />} onClick={() => router.push('/deadlines/loans/new')}>
+            وام جدید
+          </Button>
+        }
+      />
+      <div className="space-y-4 px-(--ds-gutter)">
+        <SegmentedControl
+          aria-label="نمای وام‌ها"
+          value={tab}
+          onValueChange={(v) => setTab(v as TabKey)}
+          options={[
+            { value: 'loans', label: 'وام‌ها' },
+            { value: 'installments', label: 'اقساط' },
+            { value: 'calendar', label: 'تقویم بدهی' },
+          ]}
+        />
+
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-28 rounded-card" />
+            <Skeleton className="h-28 rounded-card" />
+          </div>
+        ) : tab === 'loans' ? (
+          loansRows.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState icon={<Landmark />} title="هنوز وامی ثبت نشده" action={<Button onClick={() => router.push('/deadlines/loans/new')}>ساخت اولین وام</Button>} />
             </div>
-          ) : groupedInstallments.map((group) => (
-            <div key={group.key} className="space-y-2">
-              <div className="px-1 flex items-center justify-between gap-3">
-                <h3 className="text-xs font-bold text-slate-400">{group.label}</h3>
-                <span className="text-xs font-semibold text-slate-300" dir="ltr">
-                  {formatCurrency(group.total, currencyMode)}
+          ) : (
+            <>
+              {filterChips('وضعیت وام', loanFilter, setLoanFilter, [
+                ['remaining', 'باقی‌مانده'],
+                ['finished', 'تمام‌شده'],
+                ['all', 'همه'],
+              ])}
+              {filteredLoanRows.length === 0 ? (
+                <Text variant="caption" tone="subtle" className="block py-6 text-center">
+                  موردی با این فیلتر نیست.
+                </Text>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredLoanRows.map(({ loan, paidCount, totalCount }) => {
+                    const category = loan.category_id ? categories.find((c) => c.id === loan.category_id) : null;
+                    const loanAsset = isAssetLoan(loan) ? assetsById.get(loan.asset_id!) ?? null : null;
+                    const totalDisplay = loan.total_amount ?? loan.installment_amount * loan.repeat_count;
+                    return (
+                      <li key={loan.id} className="space-y-3 rounded-card bg-panel p-4" aria-label={`وام ${loan.title}`}>
+                        <div className="flex items-start gap-3">
+                          <Avatar tone="sky" fallback={<Landmark />} />
+                          <div className="min-w-0 flex-1">
+                            <Text variant="callout" className="truncate font-semibold">
+                              {loan.title}
+                            </Text>
+                            <Text variant="caption" tone="subtle">
+                              {loan.type === 'expense' ? 'خرید اعتباری' : 'وام نقدی'}
+                              {loanAsset ? ` · ${loanAsset.name}` : category ? ` · ${category.name}` : ''}
+                            </Text>
+                          </div>
+                          <IconButton size="sm" aria-label={`گزینه‌های ${loan.title}`} icon={<MoreHorizontal />} onClick={() => setMenuFor(loan)} />
+                        </div>
+                        <ProgressBar
+                          tone="positive"
+                          value={paidCount}
+                          max={Math.max(totalCount, 1)}
+                          label="پیشرفت تسویه"
+                          valueLabel={`${fa(paidCount)} از ${fa(totalCount)} قسط`}
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-control bg-sunken p-2.5">
+                            <Text variant="caption" tone="subtle">
+                              {isAssetLoan(loan) ? 'مقدار هر قسط' : 'هر قسط'}
+                            </Text>
+                            <p className="tabular text-callout text-fg" dir="ltr">
+                              {formatLoanQty(loan.installment_amount, loan)}
+                            </p>
+                          </div>
+                          <div className="rounded-control bg-sunken p-2.5">
+                            <Text variant="caption" tone="subtle">
+                              جمع کل
+                            </Text>
+                            <p className="tabular text-callout text-fg" dir="ltr">
+                              {formatLoanQty(totalDisplay, loan)}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )
+        ) : tab === 'installments' ? (
+          installmentRows.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState title="قسطی برای نمایش نیست" description="بعد از ثبت وام، برنامه اقساط اینجا می‌آید." />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between rounded-card bg-panel p-4">
+                <Text variant="caption" tone="subtle">
+                  جمع باقی‌مانده
+                </Text>
+                <span className="tabular text-headline text-fg" dir="ltr">
+                  {formatCurrency(remainingTotalDisplay, currencyMode)}
                 </span>
               </div>
-              {group.rows.map(({ installment, loan }) => {
-                const parsed = parseJalaali(installment.due_date_string);
-                const dueLabel = parsed ? formatJalaaliHuman(parsed) : installment.due_date_string;
-                const amountDisplay = displayAmount({ installment, loan });
-                const meta = installmentMetaByLoan.get(loan.id);
-                const total = meta?.total ?? installment.sequence_no;
-                const isLast = installment.sequence_no === (meta?.lastSeq ?? installment.sequence_no);
-                return (
-                  <div
-                    key={installment.id}
-                    className="bg-panel border border-white/5 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm font-semibold text-slate-100 truncate">{loan.title}</p>
-                        <span className="text-[11px] font-semibold text-slate-400 shrink-0" dir="ltr">
-                          {toPersianDigits(`${installment.sequence_no}/${total}`)}
-                        </span>
-                        {isLast && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
-                            آخرین قسط
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">{dueLabel}</p>
-                      <p className="text-xs text-slate-300 mt-1" dir="ltr">
-                        {isAssetLoan(loan)
-                          ? formatLoanQty(
-                              installment.is_paid
-                                ? installment.amount
-                                : installmentRemainingAmount(installment),
-                              loan
-                            )
-                          : formatCurrency(amountDisplay, currencyMode)}
-                      </p>
-                      {installmentHasPartialPay(installment) && (
-                        <p className="text-[10px] text-amber-300 mt-1">پرداخت جزئی</p>
-                      )}
-                    </div>
-
-                    {installment.is_paid ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 shrink-0">
-                        <CheckCircle2 size={14} />
-                        تسویه‌شده
+              {filterChips('وضعیت قسط', installmentFilter, setInstallmentFilter, [
+                ['remaining', 'باقی‌مانده'],
+                ['paid', 'تسویه شده'],
+                ['all', 'همه'],
+              ])}
+              {groupedInstallments.length === 0 ? (
+                <Text variant="caption" tone="subtle" className="block py-6 text-center">
+                  موردی با این فیلتر نیست.
+                </Text>
+              ) : (
+                groupedInstallments.map((group) => (
+                  <section key={group.key} aria-label={group.label} className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <Text variant="caption" tone="muted" className="font-semibold">
+                        {group.label}
+                      </Text>
+                      <span className="tabular text-caption text-fg-muted" dir="ltr">
+                        {formatCurrency(group.total, currencyMode)}
                       </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => openSettle(installment)}
-                        className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shrink-0"
-                      >
-                        <CreditCard size={14} />
-                        تسویه
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="bg-panel border border-white/5 rounded-2xl p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => moveCalendarMonth(1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
-                aria-label="ماه بعد"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-white">
-                  {JALALI_MONTHS[calendarMonth.jm - 1]} {toPersianDigits(calendarMonth.jy)}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  جمع بدهی ماه: {formatCurrency(monthRemainingTotal, currencyMode)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => moveCalendarMonth(-1)}
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
-                aria-label="ماه قبل"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="text-[11px] text-slate-500 py-1">
-                  {label}
+                    </div>
+                    <ul className="space-y-2">{group.rows.map(({ installment, loan }) => installmentLine(installment, loan))}</ul>
+                  </section>
+                ))
+              )}
+            </>
+          )
+        ) : (
+          <>
+            <section aria-label="تقویم بدهی" className="space-y-3 rounded-card bg-panel p-3">
+              <div className="flex items-center justify-between">
+                <IconButton aria-label="ماه قبل" icon={<ChevronRight />} onClick={() => moveCalendarMonth(-1)} />
+                <div className="text-center">
+                  <Text variant="callout" className="font-semibold">
+                    {JALALI_MONTHS[calendarMonth.jm - 1]} {fa(calendarMonth.jy)}
+                  </Text>
+                  <Text variant="caption" tone="subtle" className="block">
+                    جمع بدهی ماه: {formatCurrency(monthRemainingTotal, currencyMode)}
+                  </Text>
                 </div>
-              ))}
-              {calendarCells.map((cell, idx) => {
-                if (!cell) {
-                  return <div key={`empty-${idx}`} className="h-12 rounded-lg bg-transparent" />;
-                }
-                const isSelected = selectedCalendarDate === cell.date;
-                const isToday = cell.date === todayStr;
-                const isOverdue = cell.rows.length > 0 && cell.date < todayStr;
-                return (
-                  <button
-                    type="button"
-                    key={cell.date}
-                    onClick={() => setSelectedCalendarDate(cell.date)}
-                    className={`h-12 rounded-lg border transition relative ${
-                      isSelected
-                        ? 'bg-purple-600/30 border-purple-500/60'
-                        : cell.rows.length > 0
-                          ? 'bg-amber-500/8 border-amber-500/30 hover:bg-amber-500/15'
-                          : 'bg-white/3 border-white/5 hover:bg-white/6'
-                    }`}
-                  >
-                    <span
-                      className={`text-xs ${isSelected ? 'text-purple-100 font-bold' : 'text-slate-300'}`}
-                    >
-                      {toPersianDigits(cell.day)}
-                    </span>
-                    {cell.rows.length > 0 && (
-                      <span
-                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] px-1.5 rounded-full ${
-                          isOverdue ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'
-                        }`}
-                      >
-                        {toPersianDigits(cell.rows.length)}
-                      </span>
-                    )}
-                    {isToday && (
-                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-400" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-panel border border-white/5 rounded-2xl p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-100">{selectedDayLabel}</h3>
-              <span className="text-xs text-slate-400" dir="ltr">
-                {formatCurrency(selectedRemainingTotal, currencyMode)}
-              </span>
-            </div>
-            {selectedDayRows.length === 0 ? (
-              <p className="text-xs text-slate-500 py-3 text-center">برای این روز قسطی ثبت نشده.</p>
-            ) : (
-              <div className="space-y-2">
-                {selectedDayRows.map((row) => {
-                  const meta = installmentMetaByLoan.get(row.loan.id);
-                  const total = meta?.total ?? row.installment.sequence_no;
-                  const isLast = row.installment.sequence_no === (meta?.lastSeq ?? row.installment.sequence_no);
+                <IconButton aria-label="ماه بعد" icon={<ChevronLeft />} onClick={() => moveCalendarMonth(1)} />
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {WEEKDAY_LABELS.map((label) => (
+                  <div key={label} className="py-1 text-micro text-fg-subtle">
+                    {label}
+                  </div>
+                ))}
+                {calendarCells.map((cell, idx) => {
+                  if (!cell) return <div key={`empty-${idx}`} className="h-11" />;
+                  const isSelected = selectedCalendarDate === cell.date;
+                  const isToday = cell.date === todayStr;
+                  const has = cell.rows.length > 0;
+                  const overdue = has && cell.date < todayStr;
                   return (
-                  <div
-                    key={row.installment.id}
-                    className="bg-white/3 border border-white/5 rounded-xl p-3 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm text-slate-100 truncate">{row.loan.title}</p>
-                        {isLast && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 shrink-0">
-                            آخرین قسط
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1" dir="ltr">
-                        {toPersianDigits(`${row.installment.sequence_no}/${total}`)}
-                      </p>
-                      <p className="text-xs text-slate-200 mt-1" dir="ltr">
-                        {isAssetLoan(row.loan)
-                          ? formatLoanQty(installmentRemainingAmount(row.installment), row.loan)
-                          : formatCurrency(displayAmount(row), currencyMode)}
-                      </p>
-                      {installmentHasPartialPay(row.installment) && (
-                        <p className="text-[10px] text-amber-300 mt-1">پرداخت جزئی</p>
-                      )}
-                    </div>
                     <button
                       type="button"
-                      onClick={() => openSettle(row.installment)}
-                      className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shrink-0"
+                      key={cell.date}
+                      aria-pressed={isSelected}
+                      aria-label={`${fa(cell.day)}${has ? ` · ${fa(cell.rows.length)} قسط` : ''}`}
+                      onClick={() => setSelectedCalendarDate(cell.date)}
+                      className={`ds-focus relative h-11 rounded-control text-caption transition-colors ${
+                        isSelected ? 'bg-accent text-fg-on-accent font-bold' : has ? 'bg-warning-soft text-fg' : 'bg-sunken text-fg-muted hover:bg-hover'
+                      }`}
                     >
-                      <CreditCard size={14} />
-                      تسویه
+                      {fa(cell.day)}
+                      {has && (
+                        <span className={`absolute bottom-0.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full ${overdue ? 'bg-negative' : 'bg-warning'}`} aria-hidden />
+                      )}
+                      {isToday && !isSelected && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-accent" aria-hidden />}
                     </button>
-                  </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </section>
+            <section aria-label={selectedDayLabel} className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <Text variant="callout" className="font-semibold">
+                  {selectedDayLabel}
+                </Text>
+                <span className="tabular text-caption text-fg-muted" dir="ltr">
+                  {formatCurrency(selectedRemainingTotal, currencyMode)}
+                </span>
+              </div>
+              {selectedDayRows.length === 0 ? (
+                <Text variant="caption" tone="subtle" className="block py-3 text-center">
+                  برای این روز قسطی نیست.
+                </Text>
+              ) : (
+                <ul className="space-y-2">{selectedDayRows.map((row) => installmentLine(row.installment, row.loan))}</ul>
+              )}
+            </section>
+          </>
+        )}
+      </div>
 
-      <ListSheetPicker
-        open={isSettlementPickerOpen}
-        onClose={() => setIsSettlementPickerOpen(false)}
-        title="انتخاب کیف پول پرداخت"
-        items={walletItems}
-        value={settlementWalletId}
-        onSelect={(id) => {
-          setSettlementWalletId(id);
-          setIsSettlementPickerOpen(false);
-        }}
+      <ActionSheet
+        open={menuFor !== null}
+        onOpenChange={(o) => !o && setMenuFor(null)}
+        title={menuFor?.title}
+        actions={
+          menuFor
+            ? [
+                { key: 'edit', label: 'ویرایش وام', onSelect: () => router.push(`/deadlines/loans/${menuFor.id}/edit`) },
+                {
+                  key: 'delete',
+                  label: 'حذف وام',
+                  tone: 'danger' as const,
+                  onSelect: async () => {
+                    const target = menuFor;
+                    const ok = await confirm({ title: `وام «${target.title}» حذف شود؟`, description: 'اقساط این وام هم حذف می‌شوند.', confirmLabel: 'حذف', tone: 'danger' });
+                    if (ok) void handleDeleteLoan(target);
+                  },
+                },
+              ]
+            : []
+        }
       />
 
-      {settlementTarget && (() => {
-        const settleLoan = loansById.get(settlementTarget.loan_id);
+      {(() => {
+        const settleLoan = settlementTarget ? loansById.get(settlementTarget.loan_id) : undefined;
         const assetSettle = settleLoan ? isAssetLoan(settleLoan) : false;
-        const settleAsset =
-          assetSettle && settleLoan?.asset_id
-            ? assetsById.get(settleLoan.asset_id) ?? null
-            : null;
-        const unitLabel = assetSettle
-          ? (settleAsset?.unit ?? 'واحد')
-          : settleLoan
-            ? CURRENCY_META[settleLoan.currency].label
-            : '';
-        const remaining = installmentRemainingAmount(settlementTarget);
-        const canSubmit = assetSettle
-          ? !!settlementPayAmount.trim()
-          : !!settlementWalletId && !!settlementPayAmount.trim();
+        const settleAsset = assetSettle && settleLoan?.asset_id ? assetsById.get(settleLoan.asset_id) ?? null : null;
+        const unitLabel = assetSettle ? settleAsset?.unit ?? 'واحد' : settleLoan ? CURRENCY_META[settleLoan.currency].label : '';
+        const remaining = settlementTarget ? installmentRemainingAmount(settlementTarget) : 0;
+        const canSubmit = assetSettle ? !!settlementPayAmount.trim() : !!settlementWalletId && !!settlementPayAmount.trim();
         return (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-sunken border border-white/10 rounded-2xl p-3 shadow-2xl space-y-2">
-            <div>
-              <label className="text-[11px] text-slate-500 block mb-1">
-                {assetSettle ? `مقدار پرداخت (${unitLabel})` : `مبلغ پرداخت (${unitLabel})`}
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={settlementPayAmount}
-                onChange={(e) => setSettlementPayAmount(e.target.value)}
-                disabled={isSubmitting}
-                dir="ltr"
-                className="w-full bg-elevated border border-white/5 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-purple-500 disabled:opacity-50"
-              />
-              <p className="text-[10px] text-slate-500 mt-1" dir="ltr">
-                باقی‌مانده: {canonicalInstallmentAmount(remaining)} {unitLabel}
-                {settleAsset ? ` · ${settleAsset.name}` : ''}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSettle}
-              disabled={isSubmitting || !canSubmit}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : assetSettle ? (
-                settleAsset ? `ثبت با ${settleAsset.name}` : 'ثبت پرداخت'
-              ) : (
-                selectedSettlementWallet ? `ثبت با ${selectedSettlementWallet.name}` : 'ثبت پرداخت'
-              )}
-            </button>
-            {!assetSettle && (
-              <button
-                type="button"
-                onClick={() => setIsSettlementPickerOpen(true)}
-                disabled={isSubmitting}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
+          <Sheet
+            open={settlementTarget !== null}
+            onOpenChange={(o) => !o && closeSettle()}
+            title={settleLoan ? `تسویه قسط «${settleLoan.title}»` : 'تسویه قسط'}
+            footer={
+              <Button fullWidth size="lg" loading={isSubmitting} disabled={!canSubmit} onClick={() => void handleSettle()}>
+                {assetSettle
+                  ? settleAsset
+                    ? `ثبت با ${settleAsset.name}`
+                    : 'ثبت پرداخت'
+                  : selectedSettlementWallet
+                    ? `ثبت پرداخت از ${selectedSettlementWallet.name}`
+                    : 'ثبت پرداخت'}
+              </Button>
+            }
+          >
+            <div className="space-y-4">
+              <Field
+                label={assetSettle ? `مقدار پرداخت (${unitLabel})` : `مبلغ پرداخت (${unitLabel})`}
+                hint={`باقی‌مانده: ${canonicalInstallmentAmount(remaining)} ${unitLabel}${settleAsset ? ` · ${settleAsset.name}` : ''}`}
               >
-                {selectedSettlementWallet ? selectedSettlementWallet.name : 'کیف پول'}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
-            >
-              انصراف
-            </button>
+                <AmountField value={settlementPayAmount} onValueChange={setSettlementPayAmount} unitLabel={unitLabel} />
+              </Field>
+              {!assetSettle && (
+                <Field label="پرداخت از">
+                  <PickerField
+                    title="کیف پول پرداخت"
+                    options={walletItems.map((w) => ({ value: w.id, label: w.label, description: w.sublabel }))}
+                    value={settlementWalletId}
+                    onValueChange={setSettlementWalletId}
+                  />
+                </Field>
+              )}
             </div>
-          </div>
-        </div>
+          </Sheet>
         );
       })()}
     </div>

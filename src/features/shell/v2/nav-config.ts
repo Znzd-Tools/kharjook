@@ -98,7 +98,7 @@ export function tabForPath(pathname: string): TabConfig | null {
 const ROOTS = new Set([
   '/', '/transactions', '/reports', '/reports/cashflow', '/reports/assets',
   '/assets', '/wallets', '/prices', '/pnl',
-  '/deadlines', '/deadlines/loans', '/deadlines/checks', '/deadlines/subscriptions', '/deadlines/persons', '/budget', '/plan',
+  '/deadlines', '/budget', '/plan',
 ]);
 
 export function isTabRoot(pathname: string): boolean {

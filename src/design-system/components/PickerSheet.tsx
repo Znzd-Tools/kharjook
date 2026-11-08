@@ -130,11 +130,12 @@ export interface PickerFieldProps<T extends string = string> extends Omit<Picker
   /** Sheet title. */
   title: string;
   placeholder?: string;
+  disabled?: boolean;
   className?: string;
 }
 
 /** Form control that shows the chosen option and opens a `PickerSheet`. */
-export function PickerField<T extends string>({ title, placeholder = 'انتخاب کنید', className, ...props }: PickerFieldProps<T>) {
+export function PickerField<T extends string>({ title, placeholder = 'انتخاب کنید', disabled, className, ...props }: PickerFieldProps<T>) {
   const [open, setOpen] = useState(false);
   const field = useField();
   const selected = props.options.find((o) => o.value === props.value);
@@ -145,8 +146,9 @@ export function PickerField<T extends string>({ title, placeholder = 'انتخا
         id={field?.id}
         aria-haspopup="dialog"
         aria-describedby={field?.errorId ?? field?.descriptionId}
+        disabled={disabled}
         onClick={() => setOpen(true)}
-        className={cn(controlBox, 'ds-focus h-12 cursor-pointer text-start', field?.invalid && 'border-negative', className)}
+        className={cn(controlBox, 'ds-focus h-12 cursor-pointer text-start disabled:cursor-not-allowed disabled:opacity-60', field?.invalid && 'border-negative', className)}
       >
         {selected?.leading && <span className="shrink-0 [&>*]:size-7">{selected.leading}</span>}
         <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-fg-disabled')}>{selected?.label ?? placeholder}</span>

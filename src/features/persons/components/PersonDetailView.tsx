@@ -2,24 +2,15 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowDownRight,
-  ArrowLeftRight,
-  ArrowRight,
-  ArrowUpRight,
-  Edit3,
-  HandCoins,
-  Trash2,
-  UserRound,
-} from 'lucide-react';
+import { Amount, Avatar, Button, EmptyState, IconButton, List, ListRow, Section, Text, TopBar } from '@/design-system';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Pencil, Trash2 } from '@/design-system/icons';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
-import { EmptyState } from '@/shared/components/EmptyState';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
-import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import {
   buildPersonSettleTransactionUrl,
   pickDefaultSettleWallet,
@@ -39,6 +30,7 @@ export interface PersonDetailViewProps {
 
 export function PersonDetailView({ personId }: PersonDetailViewProps) {
   const router = useRouter();
+  const goBack = useSafeBack('/deadlines/persons');
   const toast = useToast();
   const { confirm } = useConfirm();
   const { persons, wallets, assets, categories, transactions, setTransactions } = useData();
@@ -62,15 +54,14 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
 
   if (!person) {
     return (
-      <div className="bg-sunken min-h-full flex items-center justify-center p-6">
-        <p className="text-slate-500 text-sm">شخص پیدا نشد.</p>
+      <div className="min-h-full bg-canvas">
+        <TopBar onBack={() => goBack()} title="شخص" />
+        <EmptyState title="شخص پیدا نشد" />
       </div>
     );
   }
 
-  const status = balance > 0 ? 'بدهکار' : balance < 0 ? 'بستانکار' : 'تسویه';
-  const tone =
-    balance > 0 ? 'text-amber-300' : balance < 0 ? 'text-cyan-300' : 'text-slate-400';
+  const status = balance > 0.5 ? 'به تو بدهکار است' : balance < -0.5 ? 'تو به او بدهکاری' : 'تسویه است';
 
   const openSettle = () => {
     if (!defaultWallet) {
@@ -103,140 +94,57 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
   };
 
   return (
-    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1 truncate">{person.name}</h2>
-      </div>
-
-      <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-linear-to-b from-cyan-500/10 to-transparent rounded-3xl border border-cyan-500/20">
-          <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-300 flex items-center justify-center">
-              <UserRound size={24} />
-            </div>
-          </div>
-          <p className="text-slate-400 text-sm mb-2">مانده حساب</p>
-          <p className={`text-3xl font-bold ${tone}`} dir="ltr">
-            {Math.abs(balance).toLocaleString('en-US', { maximumFractionDigits: 6 })}
-          </p>
-          <p className={`text-sm mt-2 ${tone}`}>{status}</p>
-          {balance !== 0 && (
-            <button
-              type="button"
-              onClick={openSettle}
-              className="mt-4 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors"
-            >
-              <HandCoins size={16} />
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={() => goBack()} title={person.name} />
+      <div className="space-y-5 px-(--ds-gutter)">
+        <section aria-label="مانده حساب" className="flex flex-col items-center gap-2 rounded-card bg-panel p-5 text-center">
+          <Avatar size="lg" name={person.name} tone="rose" />
+          <Text variant="caption" tone="subtle">
+            مانده حساب
+          </Text>
+          <Amount value={Math.abs(balance)} size="lg" tone={balance > 0.5 ? 'positive' : balance < -0.5 ? 'negative' : 'default'} />
+          <Text variant="callout" tone="muted">
+            {status}
+          </Text>
+          {Math.abs(balance) > 0.5 && (
+            <Button onClick={openSettle} className="mt-1">
               {balance > 0 ? 'دریافت تسویه' : 'پرداخت تسویه'}
-            </button>
+            </Button>
           )}
-        </div>
+        </section>
 
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-400">تراکنش‌ها</h3>
+        <Section title="تراکنش‌ها">
           {personTxs.length === 0 ? (
-            <EmptyState
-              icon={<ArrowLeftRight size={24} />}
-              title="تراکنشی با این شخص نیست."
-              description="از ثبت تراکنش، این شخص را در مبدأ یا مقصد انتخاب کن."
-            />
+            <div className="rounded-card bg-panel">
+              <EmptyState icon={<ArrowLeftRight />} title="تراکنشی با این شخص نیست" description="در ثبت تراکنش، این شخص را در مبدأ یا مقصد انتخاب کن." />
+            </div>
           ) : (
-            personTxs.map((tx) => (
-              <PersonTxRow
-                key={tx.id}
-                tx={tx}
-                personId={person.id}
-                wallets={wallets}
-                assets={assets}
-                categories={categories}
-                onEdit={() => router.push(`/transactions/${tx.id}/edit`)}
-                onDelete={() => void deleteTx(tx.id)}
-              />
-            ))
+            <List>
+              {personTxs.map((tx) => {
+                const isOut = tx.source_person_id === person.id;
+                const amount = isOut ? Number(tx.source_amount) : Number(tx.target_amount);
+                return (
+                  <ListRow
+                    key={tx.id}
+                    chevron={false}
+                    leading={<Avatar tone={isOut ? 'rose' : 'mint'} fallback={tx.type === 'TRANSFER' ? <ArrowLeftRight /> : isOut ? <ArrowUpLeft /> : <ArrowDownLeft />} />}
+                    title={`${TYPE_LABELS[tx.type]} · ${describePersonCounterparty(tx, person.id, wallets, assets, categories)}`}
+                    subtitle={[tx.date_string, tx.note].filter(Boolean).join(' · ')}
+                    trailing={
+                      <span className="flex flex-col items-end gap-1">
+                        <Amount value={isOut ? -Math.abs(amount) : Math.abs(amount)} size="sm" tone="auto" signed={!isOut} compact />
+                        <span className="flex">
+                          <IconButton size="sm" aria-label="ویرایش" icon={<Pencil />} onClick={() => router.push(`/transactions/${tx.id}/edit`)} />
+                          <IconButton size="sm" aria-label="حذف" icon={<Trash2 />} onClick={() => void deleteTx(tx.id)} />
+                        </span>
+                      </span>
+                    }
+                  />
+                );
+              })}
+            </List>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PersonTxRow({
-  tx,
-  personId,
-  wallets,
-  assets,
-  categories,
-  onEdit,
-  onDelete,
-}: {
-  tx: Transaction;
-  personId: string;
-  wallets: { id: string; name: string }[];
-  assets: { id: string; name: string }[];
-  categories: { id: string; name: string }[];
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const isSource = tx.source_person_id === personId;
-  const amount = isSource ? Number(tx.source_amount) : Number(tx.target_amount);
-  const isOut = isSource;
-  const accent = isOut ? 'bg-rose-500' : 'bg-emerald-500';
-  const tone = isOut ? 'text-rose-400' : 'text-emerald-400';
-  const Icon = tx.type === 'TRANSFER' ? ArrowLeftRight : isOut ? ArrowUpRight : ArrowDownRight;
-  const counterparty = describePersonCounterparty(tx, personId, wallets, assets, categories);
-
-  return (
-    <div className="bg-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center ${tone} shrink-0`}
-          >
-            <Icon size={16} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-slate-200 text-sm font-medium">{TYPE_LABELS[tx.type]}</p>
-            <p className="text-slate-500 text-xs mt-0.5 truncate">{counterparty}</p>
-          </div>
-        </div>
-        <div className="text-left shrink-0">
-          <p className={`text-sm font-bold ${tone}`} dir="ltr">
-            {isOut ? '-' : '+'}
-            {Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 6 })}
-          </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">{latinizeDigits(tx.date_string)}</p>
-        </div>
-      </div>
-      <div className="flex justify-between items-center pt-2 border-t border-white/5">
-        <span className="text-[10px] text-slate-600 truncate" dir="ltr">
-          {tx.note || ''}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-blue-400/50 hover:text-blue-400 transition-colors p-1.5"
-            aria-label="ویرایش"
-          >
-            <Edit3 size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-rose-400/50 hover:text-rose-400 transition-colors p-1.5"
-            aria-label="حذف"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
+        </Section>
       </div>
     </div>
   );

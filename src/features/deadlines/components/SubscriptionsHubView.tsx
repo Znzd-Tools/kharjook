@@ -4,28 +4,33 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  Loader2,
-  Plus,
-  Repeat,
-  RotateCcw,
-  Trash2,
-  XCircle,
-} from 'lucide-react';
+  ActionSheet,
+  Amount,
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  IconButton,
+  PickerField,
+  SegmentedControl,
+  Sheet,
+  Skeleton,
+  Text,
+  TopBar,
+  toast,
+  useConfirm,
+} from '@/design-system';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Zap } from '@/design-system/icons';
+import { DeadlineAmount } from '@/features/deadlines/v2/DeadlineAmount';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
-import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import { EmptyState } from '@/shared/components/EmptyState';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type { Subscription, SubscriptionStatus, Transaction } from '@/shared/types/domain';
-import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
 import { subscriptionDueDatesInPeriod } from '@/features/plan/utils/recurring-due-in-period';
 import { intervalLabel } from '@/features/transactions/utils/recurring-transaction-label';
-import { SubscriptionAmountDisplay } from '@/features/deadlines/components/SubscriptionAmountDisplay';
 import {
   formatSubscriptionNativeAmount,
   subscriptionAmountToToman,
@@ -36,7 +41,6 @@ import {
   shiftPeriod,
   type Period,
 } from '@/shared/utils/period';
-import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type FilterKey = 'active' | 'cancelled' | 'all';
 
@@ -47,7 +51,9 @@ const STATUS_LABEL: Record<SubscriptionStatus, string> = {
 
 export function SubscriptionsHubView() {
   const router = useRouter();
-  const toast = useToast();
+  const confirm = useConfirm();
+  const goBack = useSafeBack('/deadlines');
+  const [menuFor, setMenuFor] = useState<Subscription | null>(null);
   const { user } = useAuth();
   const { wallets, categories, currencyRates, setTransactions } = useData();
   const { currencyMode, usdRate } = useUI();
@@ -59,7 +65,6 @@ export function SubscriptionsHubView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [settlementTarget, setSettlementTarget] = useState<Subscription | null>(null);
   const [settlementWalletId, setSettlementWalletId] = useState<string | null>(null);
-  const [isSettlementPickerOpen, setIsSettlementPickerOpen] = useState(false);
 
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
@@ -81,7 +86,7 @@ export function SubscriptionsHubView() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, user]);
+  }, [user]);
 
   useEffect(() => {
     void refresh();
@@ -252,289 +257,191 @@ export function SubscriptionsHubView() {
     }
   };
 
+  const fa = (n: number) => n.toLocaleString('fa-IR');
+  const money = currencyMode === 'USD' ? 'USD' : 'TOMAN';
+
   return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">اشتراک‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/subscriptions/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          اشتراک جدید
-        </button>
-      </div>
-
-      <section className="bg-panel border border-white/5 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-white">هزینه ماهانه</h3>
-            <p className="text-[11px] text-slate-500">جمع اشتراک‌های فعال در ماه انتخاب‌شده</p>
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar
+        onBack={() => goBack()}
+        title="اشتراک‌ها"
+        actions={
+          <Button size="sm" startIcon={<Plus />} onClick={() => router.push('/deadlines/subscriptions/new')}>
+            اشتراک جدید
+          </Button>
+        }
+      />
+      <div className="space-y-5 px-(--ds-gutter)">
+        <section aria-label="هزینه ماهانه اشتراک‌ها" className="space-y-3 rounded-card bg-panel p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <Text variant="caption" tone="subtle">
+                هزینه اشتراک‌ها در {monthlySummary.label}
+              </Text>
+              <Amount value={monthlySummary.total} currency={money} size="lg" compact />
+            </div>
+            <div className="flex items-center gap-1">
+              <IconButton size="sm" aria-label="ماه قبل" icon={<ChevronRight />} onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, -1))} />
+              <IconButton size="sm" aria-label="ماه بعد" icon={<ChevronLeft />} onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, 1))} />
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, -1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
-              aria-label="previous-month"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <span className="text-xs text-slate-300 min-w-[6rem] text-center">{monthlySummary.label}</span>
-            <button
-              type="button"
-              onClick={() => setSummaryPeriod((prev) => shiftPeriod(prev, 1))}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 inline-flex items-center justify-center"
-              aria-label="next-month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5">
-          <span className="text-xs text-slate-400">جمع</span>
-          <span className="text-sm font-bold text-emerald-300" dir="ltr">
-            {formatCurrency(monthlySummary.total, currencyMode)}
-          </span>
-        </div>
-
-        {monthlySummary.lineItems.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-2">سررسیدی در این ماه نیست.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {monthlySummary.lineItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-2.5 py-1.5"
-              >
-                <div className="min-w-0">
-                  <p className="text-[11px] text-slate-200 truncate">{item.platform}</p>
-                  <p className="text-[10px] text-slate-500">
-                    {toPersianDigits(item.count)} بار
-                  </p>
-                </div>
-                <span className="text-[11px] text-slate-300 shrink-0" dir="ltr">
-                  <p>{formatCurrency(item.displayTotal, currencyMode)}</p>
-                  {item.currency !== 'IRT' && (
-                    <p className="text-[10px] text-slate-500">
-                      {formatSubscriptionNativeAmount(item.nativeTotal, item.currency)}
-                    </p>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="grid grid-cols-3 gap-1 bg-panel p-1 rounded-xl">
-        {(
-          [
-            ['active', 'فعال'],
-            ['cancelled', 'لغو شده'],
-            ['all', 'همه'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-              filter === key ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
-      ) : filteredRows.length === 0 ? (
-        <EmptyState
-          icon={<Repeat size={24} />}
-          title={filter === 'active' ? 'اشتراک فعالی ندارید.' : 'موردی برای نمایش نیست.'}
-          description={
-            filter === 'active'
-              ? 'اشتراک‌های دوره‌ای را ثبت کنید تا سررسید را از دست ندهید.'
-              : undefined
-          }
-          actionLabel={filter === 'active' ? 'ثبت اولین اشتراک' : undefined}
-          onAction={filter === 'active' ? () => router.push('/deadlines/subscriptions/new') : undefined}
-        />
-      ) : (
-        <div className="space-y-3">
-          {filteredRows.map((row) => {
-            const category = row.category_id
-              ? categories.find((c) => c.id === row.category_id)
-              : null;
-            const wallet = row.wallet_id ? wallets.find((w) => w.id === row.wallet_id) : null;
-            const due = parseJalaali(row.next_due_date_string);
-            const days = daysBetweenJalaali(todayStr, row.next_due_date_string);
-            const isOverdue = row.status === 'active' && days != null && days < 0;
-            const isToday = row.status === 'active' && days === 0;
-
-            return (
-              <div
-                key={row.id}
-                className="bg-panel border border-white/5 p-4 rounded-2xl space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-100 truncate">{row.platform}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {[intervalLabel(row), category?.name, wallet?.name]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[11px] px-2 py-1 rounded-lg shrink-0 ${
-                      row.status === 'active'
-                        ? isOverdue
-                          ? 'bg-rose-500/15 text-rose-300'
-                          : isToday
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-emerald-500/15 text-emerald-300'
-                        : 'bg-slate-500/15 text-slate-400'
-                    }`}
-                  >
-                    {STATUS_LABEL[row.status]}
+          {monthlySummary.lineItems.length === 0 ? (
+            <Text variant="caption" tone="subtle">
+              سررسیدی در این ماه نیست.
+            </Text>
+          ) : (
+            <ul className="space-y-1.5">
+              {monthlySummary.lineItems.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 text-caption">
+                  <span className="truncate text-fg-muted">
+                    {item.platform} {item.count > 1 ? `· ${fa(item.count)} بار` : ''}
                   </span>
-                </div>
+                  <span className="flex items-center gap-2">
+                    {item.currency !== 'IRT' && <span className="text-fg-subtle" dir="ltr">{formatSubscriptionNativeAmount(item.nativeTotal, item.currency)}</span>}
+                    {item.currency !== 'IRT' && !(item.displayTotal > 0) ? (
+                      <Link href="/manage/rates" className="text-warning-ink underline">
+                        نرخ ثبت نشده
+                      </Link>
+                    ) : (
+                      <Amount value={item.displayTotal} currency={money} size="xs" compact />
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">مبلغ</p>
-                    <div className="mt-1">
-                      <SubscriptionAmountDisplay
-                        amount={row.amount}
-                        currency={row.currency}
-                        currencyRates={currencyRates}
-                        currencyMode={currencyMode}
-                        usdRate={usdRate}
-                        primaryClassName="text-slate-200 text-xs"
-                      />
+        <SegmentedControl
+          aria-label="وضعیت اشتراک"
+          value={filter}
+          onValueChange={(v) => setFilter(v as FilterKey)}
+          options={[
+            { value: 'active', label: 'فعال' },
+            { value: 'cancelled', label: 'لغو شده' },
+            { value: 'all', label: 'همه' },
+          ]}
+        />
+
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-24 rounded-card" />
+            <Skeleton className="h-24 rounded-card" />
+          </div>
+        ) : filteredRows.length === 0 ? (
+          <div className="rounded-card bg-panel">
+            <EmptyState
+              icon={<Zap />}
+              title={filter === 'active' ? 'اشتراک فعالی نداری' : 'موردی برای نمایش نیست'}
+              description={filter === 'active' ? 'اشتراک‌های دوره‌ای را ثبت کن تا سررسید را از دست ندهی.' : undefined}
+              action={filter === 'active' ? <Button onClick={() => router.push('/deadlines/subscriptions/new')}>ثبت اولین اشتراک</Button> : undefined}
+            />
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {filteredRows.map((row) => {
+              const category = row.category_id ? categories.find((c) => c.id === row.category_id) : null;
+              const wallet = row.wallet_id ? wallets.find((w) => w.id === row.wallet_id) : null;
+              const due = parseJalaali(row.next_due_date_string);
+              const days = daysBetweenJalaali(todayStr, row.next_due_date_string);
+              const tone =
+                row.status !== 'active' ? 'neutral' : days != null && days < 0 ? 'negative' : days === 0 ? 'warning' : 'positive';
+              return (
+                <li key={row.id} className="space-y-3 rounded-card bg-panel p-4" aria-label={`اشتراک ${row.platform}`}>
+                  <div className="flex items-start gap-3">
+                    <Avatar tone="lemon" fallback={<Zap />} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <Text variant="callout" className="truncate font-semibold">
+                          {row.platform}
+                        </Text>
+                        <DeadlineAmount value={Number(row.amount)} currency={row.currency} />
+                      </div>
+                      <Text variant="caption" tone="subtle" className="truncate">
+                        {[intervalLabel(row), category?.name, wallet?.name].filter(Boolean).join(' · ') || '—'}
+                      </Text>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Badge tone={tone}>{STATUS_LABEL[row.status]}</Badge>
+                        <Text variant="caption" tone="muted">
+                          سررسید بعدی {due ? formatJalaaliHuman(due) : row.next_due_date_string}
+                        </Text>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">سررسید بعدی</p>
-                    <p className="text-slate-200 mt-1">
-                      {due ? toPersianDigits(formatJalaaliHuman(due)) : row.next_due_date_string}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  {row.status === 'active' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openSettle(row)}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-50"
-                      >
-                        <CreditCard size={13} />
+                  <div className="flex items-center justify-end gap-2">
+                    {row.status === 'active' ? (
+                      <Button size="sm" variant="soft" disabled={isSubmitting} onClick={() => openSettle(row)}>
                         پرداخت
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => void handleCancel(row)}
-                        className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition disabled:opacity-50"
-                      >
-                        <XCircle size={13} />
-                        لغو
-                      </button>
-                    </>
-                  )}
-                  {row.status === 'cancelled' && (
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleReactivate(row)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition disabled:opacity-50"
-                    >
-                      <RotateCcw size={13} />
-                      فعال‌سازی
-                    </button>
-                  )}
-                  <Link
-                    href={`/deadlines/subscriptions/${row.id}/edit`}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
-                  >
-                    ویرایش
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => void handleDelete(row)}
-                    className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      <Trash2 size={13} />
-                      حذف
-                    </span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="soft" disabled={isSubmitting} onClick={() => void handleReactivate(row)}>
+                        فعال‌سازی دوباره
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" render={<Link href={`/deadlines/subscriptions/${row.id}/edit`} />} nativeButton={false}>
+                      ویرایش
+                    </Button>
+                    <IconButton size="sm" aria-label={`گزینه‌های ${row.platform}`} icon={<MoreHorizontal />} onClick={() => setMenuFor(row)} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
-      <ListSheetPicker
-        open={isSettlementPickerOpen}
-        onClose={() => setIsSettlementPickerOpen(false)}
-        title="انتخاب کیف پول پرداخت"
-        items={walletItems}
-        value={settlementWalletId}
-        onSelect={(id) => {
-          setSettlementWalletId(id);
-          setIsSettlementPickerOpen(false);
-        }}
+      <ActionSheet
+        open={menuFor !== null}
+        onOpenChange={(o) => !o && setMenuFor(null)}
+        title={menuFor?.platform}
+        actions={
+          menuFor
+            ? [
+                ...(menuFor.status === 'active' ? [{ key: 'cancel', label: 'لغو اشتراک', onSelect: () => void handleCancel(menuFor) }] : []),
+                {
+                  key: 'delete',
+                  label: 'حذف اشتراک',
+                  tone: 'danger' as const,
+                  onSelect: async () => {
+                    const target = menuFor;
+                    const ok = await confirm({ title: `اشتراک «${target.platform}» حذف شود؟`, confirmLabel: 'حذف', tone: 'danger' });
+                    if (ok) void handleDelete(target);
+                  },
+                },
+              ]
+            : []
+        }
       />
 
-      {settlementTarget && (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-sunken border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void handleSettle()}
-              disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : selectedSettlementWallet ? (
-                `ثبت پرداخت با ${selectedSettlementWallet.name}`
-              ) : (
-                'ثبت پرداخت'
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettlementPickerOpen(true)}
-              disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
-            >
-              {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
-            </button>
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
-            >
-              انصراف
-            </button>
-          </div>
+      <Sheet
+        open={settlementTarget !== null}
+        onOpenChange={(o) => !o && closeSettle()}
+        title={settlementTarget ? `پرداخت «${settlementTarget.platform}»` : ''}
+        footer={
+          <Button fullWidth size="lg" loading={isSubmitting} disabled={!settlementWalletId} onClick={() => void handleSettle()}>
+            {selectedSettlementWallet ? `ثبت پرداخت از ${selectedSettlementWallet.name}` : 'ثبت پرداخت'}
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          {settlementTarget && (
+            <div className="flex items-center justify-between rounded-card bg-sunken p-3">
+              <Text variant="caption" tone="subtle">
+                مبلغ
+              </Text>
+              <DeadlineAmount value={Number(settlementTarget.amount)} currency={settlementTarget.currency} />
+            </div>
+          )}
+          <Field label="پرداخت از">
+            <PickerField
+              title="کیف پول پرداخت"
+              options={walletItems.map((w) => ({ value: w.id, label: w.label }))}
+              value={settlementWalletId}
+              onValueChange={setSettlementWalletId}
+            />
+          </Field>
         </div>
-      )}
+      </Sheet>
     </div>
   );
 }

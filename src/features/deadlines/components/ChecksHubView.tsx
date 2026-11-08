@@ -5,26 +5,32 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Ban,
-  CreditCard,
-  Loader2,
-  Plus,
-  ReceiptText,
-  Trash2,
-  XCircle,
-} from 'lucide-react';
+  ActionSheet,
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  IconButton,
+  PickerField,
+  SegmentedControl,
+  Sheet,
+  Skeleton,
+  Text,
+  TopBar,
+  toast,
+  useConfirm,
+} from '@/design-system';
+import { FileText, MoreHorizontal, Plus } from '@/design-system/icons';
+import { DeadlineAmount } from '@/features/deadlines/v2/DeadlineAmount';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
-import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import { EmptyState } from '@/shared/components/EmptyState';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type { Check, CheckStatus, Transaction } from '@/shared/types/domain';
-import { formatCurrency } from '@/shared/utils/format-currency';
 import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
-import { toPersianDigits } from '@/shared/utils/format-display-number';
 
 type FilterKey = 'pending' | 'cleared' | 'all';
 
@@ -35,26 +41,18 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
   cancelled: 'لغو شده',
 };
 
-function checkAmountToToman(
-  amount: number,
-  currency: Check['currency'],
-  currencyRates: ReturnType<typeof useData>['currencyRates']
-): number {
-  const rate = tomanPerUnit(currency, currencyRates);
-  if (!(rate > 0)) return 0;
-  return amount * rate;
-}
-
 function daysUntilDue(dueDateString: string, todayStr: string): number | null {
   return daysBetweenJalaali(todayStr, dueDateString);
 }
 
 export function ChecksHubView() {
   const router = useRouter();
-  const toast = useToast();
+  const confirm = useConfirm();
+  const goBack = useSafeBack('/deadlines');
+  const [menuFor, setMenuFor] = useState<Check | null>(null);
   const { user } = useAuth();
   const { wallets, categories, currencyRates, setTransactions } = useData();
-  const { currencyMode, usdRate } = useUI();
+  const { usdRate } = useUI();
   const rateHistories = useRateHistories();
 
   const [checks, setChecks] = useState<Check[]>([]);
@@ -63,7 +61,6 @@ export function ChecksHubView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [settlementTarget, setSettlementTarget] = useState<Check | null>(null);
   const [settlementWalletId, setSettlementWalletId] = useState<string | null>(null);
-  const [isSettlementPickerOpen, setIsSettlementPickerOpen] = useState(false);
 
   const todayStr = useMemo(() => formatJalaali(todayJalaali()), []);
 
@@ -85,7 +82,7 @@ export function ChecksHubView() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, user]);
+  }, [user]);
 
   useEffect(() => {
     void refresh();
@@ -103,16 +100,6 @@ export function ChecksHubView() {
     }
     return checks.filter((check) => check.status === 'pending');
   }, [checks, filter]);
-
-  const displayAmount = useCallback(
-    (check: Check) => {
-      const toman = checkAmountToToman(check.amount, check.currency, currencyRates);
-      if (!(toman > 0)) return check.amount;
-      if (currencyMode === 'USD' && usdRate > 0) return toman / usdRate;
-      return toman;
-    },
-    [currencyMode, currencyRates, usdRate]
-  );
 
   const walletItems = useMemo(
     () =>
@@ -286,218 +273,159 @@ export function ChecksHubView() {
     }
   };
 
+  const statusTone = (check: Check, days: number | null) =>
+    check.status === 'pending'
+      ? days != null && days < 0
+        ? 'negative'
+        : days === 0
+          ? 'warning'
+          : 'info'
+      : check.status === 'cleared'
+        ? 'positive'
+        : check.status === 'bounced'
+          ? 'negative'
+          : 'neutral';
+
   return (
-    <div className="p-6 space-y-6 animate-[fade-in_300ms_ease-out]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">چک‌ها</h2>
-        <button
-          type="button"
-          onClick={() => router.push('/deadlines/checks/new')}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          چک جدید
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-1 bg-panel p-1 rounded-xl">
-        {(
-          [
-            ['pending', 'در انتظار'],
-            ['cleared', 'بسته شده'],
-            ['all', 'همه'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={`py-2 text-xs font-bold rounded-lg transition-all ${
-              filter === key ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="text-center text-slate-500 py-10 animate-pulse">در حال دریافت...</div>
-      ) : filteredChecks.length === 0 ? (
-        <EmptyState
-          icon={<ReceiptText size={24} />}
-          title={filter === 'pending' ? 'چک در انتظاری ندارید.' : 'موردی برای نمایش نیست.'}
-          description={
-            filter === 'pending'
-              ? 'چک‌های صادره را با تاریخ سررسید ثبت کنید تا سررسید را از دست ندهید.'
-              : undefined
-          }
-          actionLabel={filter === 'pending' ? 'ثبت اولین چک' : undefined}
-          onAction={filter === 'pending' ? () => router.push('/deadlines/checks/new') : undefined}
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar
+        onBack={() => goBack()}
+        title="چک‌ها"
+        actions={
+          <Button size="sm" startIcon={<Plus />} onClick={() => router.push('/deadlines/checks/new')}>
+            چک جدید
+          </Button>
+        }
+      />
+      <div className="space-y-4 px-(--ds-gutter)">
+        <SegmentedControl
+          aria-label="وضعیت چک"
+          value={filter}
+          onValueChange={(v) => setFilter(v as FilterKey)}
+          options={[
+            { value: 'pending', label: 'در انتظار' },
+            { value: 'cleared', label: 'بسته شده' },
+            { value: 'all', label: 'همه' },
+          ]}
         />
-      ) : (
-        <div className="space-y-3">
-          {filteredChecks.map((check) => {
-            const category = check.category_id
-              ? categories.find((c) => c.id === check.category_id)
-              : null;
-            const due = parseJalaali(check.due_date_string);
-            const days = daysUntilDue(check.due_date_string, todayStr);
-            const isOverdue = check.status === 'pending' && days != null && days < 0;
-            const isToday = check.status === 'pending' && days === 0;
 
-            return (
-              <div
-                key={check.id}
-                className="bg-panel border border-white/5 p-4 rounded-2xl space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-100 truncate">{check.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {[check.bank_name, check.check_number ? `#${check.check_number}` : null, category?.name]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </p>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-24 rounded-card" />
+            <Skeleton className="h-24 rounded-card" />
+          </div>
+        ) : filteredChecks.length === 0 ? (
+          <div className="rounded-card bg-panel">
+            <EmptyState
+              icon={<FileText />}
+              title={filter === 'pending' ? 'چک در انتظاری نداری' : 'موردی برای نمایش نیست'}
+              description={filter === 'pending' ? 'چک‌های صادره را با تاریخ سررسید ثبت کن تا سررسید را از دست ندهی.' : undefined}
+              action={filter === 'pending' ? <Button onClick={() => router.push('/deadlines/checks/new')}>ثبت اولین چک</Button> : undefined}
+            />
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {filteredChecks.map((check) => {
+              const category = check.category_id ? categories.find((c) => c.id === check.category_id) : null;
+              const due = parseJalaali(check.due_date_string);
+              const days = daysUntilDue(check.due_date_string, todayStr);
+              return (
+                <li key={check.id} className="space-y-3 rounded-card bg-panel p-4" aria-label={`چک ${check.title}`}>
+                  <div className="flex items-start gap-3">
+                    <Avatar tone="peach" fallback={<FileText />} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <Text variant="callout" className="truncate font-semibold">
+                          {check.title}
+                        </Text>
+                        <DeadlineAmount value={Number(check.amount)} currency={check.currency} />
+                      </div>
+                      <Text variant="caption" tone="subtle" className="truncate">
+                        {[check.bank_name, check.check_number ? `#${check.check_number}` : null, category?.name].filter(Boolean).join(' · ') || '—'}
+                      </Text>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Badge tone={statusTone(check, days)}>{STATUS_LABEL[check.status]}</Badge>
+                        <Text variant="caption" tone="muted">
+                          سررسید {due ? formatJalaaliHuman(due) : check.due_date_string}
+                        </Text>
+                      </div>
+                    </div>
                   </div>
-                  <span
-                    className={`text-[11px] px-2 py-1 rounded-lg shrink-0 ${
-                      check.status === 'pending'
-                        ? isOverdue
-                          ? 'bg-rose-500/15 text-rose-300'
-                          : isToday
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-sky-500/15 text-sky-300'
-                        : check.status === 'cleared'
-                          ? 'bg-emerald-500/15 text-emerald-300'
-                          : check.status === 'bounced'
-                            ? 'bg-rose-500/15 text-rose-300'
-                            : 'bg-slate-500/15 text-slate-400'
-                    }`}
-                  >
-                    {STATUS_LABEL[check.status]}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">مبلغ</p>
-                    <p className="text-slate-200 mt-1" dir="ltr">
-                      {formatCurrency(displayAmount(check), currencyMode)}
-                    </p>
-                  </div>
-                  <div className="bg-white/3 rounded-xl p-2.5">
-                    <p className="text-slate-500">سررسید</p>
-                    <p className="text-slate-200 mt-1">
-                      {due ? toPersianDigits(formatJalaaliHuman(due)) : check.due_date_string}
-                    </p>
-                  </div>
-                </div>
-
-                {check.status === 'pending' && (
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openSettle(check)}
-                      disabled={isSubmitting}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-50"
-                    >
-                      <CreditCard size={13} />
-                      تسویه
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleMarkBounced(check)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition disabled:opacity-50"
-                    >
-                      <XCircle size={13} />
-                      برگشت
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleMarkCancelled(check)}
-                      className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-300 transition disabled:opacity-50"
-                    >
-                      <Ban size={13} />
-                      عودت
-                    </button>
-                    <Link
-                      href={`/deadlines/checks/${check.id}/edit`}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
-                    >
+                  <div className="flex items-center justify-end gap-2">
+                    {check.status === 'pending' && (
+                      <Button size="sm" variant="soft" disabled={isSubmitting} onClick={() => openSettle(check)}>
+                        تسویه
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" render={<Link href={`/deadlines/checks/${check.id}/edit`} />} nativeButton={false}>
                       ویرایش
-                    </Link>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleDelete(check)}
-                      className="text-[12px] px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition disabled:opacity-50"
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        <Trash2 size={13} />
-                        حذف
-                      </span>
-                    </button>
+                    </Button>
+                    <IconButton size="sm" aria-label={`گزینه‌های ${check.title}`} icon={<MoreHorizontal />} onClick={() => setMenuFor(check)} />
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
-      <ListSheetPicker
-        open={isSettlementPickerOpen}
-        onClose={() => setIsSettlementPickerOpen(false)}
-        title="انتخاب کیف پول پرداخت"
-        items={walletItems}
-        value={settlementWalletId}
-        onSelect={(id) => {
-          setSettlementWalletId(id);
-          setIsSettlementPickerOpen(false);
-        }}
+      <ActionSheet
+        open={menuFor !== null}
+        onOpenChange={(o) => !o && setMenuFor(null)}
+        title={menuFor?.title}
+        actions={
+          menuFor
+            ? [
+                ...(menuFor.status === 'pending'
+                  ? [
+                      { key: 'bounce', label: 'برگشت خورد', onSelect: () => void handleMarkBounced(menuFor) },
+                      { key: 'cancel', label: 'عودت / لغو', onSelect: () => void handleMarkCancelled(menuFor) },
+                    ]
+                  : []),
+                {
+                  key: 'delete',
+                  label: 'حذف چک',
+                  tone: 'danger' as const,
+                  onSelect: async () => {
+                    const target = menuFor;
+                    const ok = await confirm({ title: `چک «${target.title}» حذف شود؟`, confirmLabel: 'حذف', tone: 'danger' });
+                    if (ok) void handleDelete(target);
+                  },
+                },
+              ]
+            : []
+        }
       />
 
-      {settlementTarget && (
-        <div className="fixed inset-x-0 bottom-24 px-6 sm:max-w-md sm:mx-auto z-40">
-          <div className="bg-sunken border border-white/10 rounded-2xl p-3 shadow-2xl flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSettle}
-              disabled={isSubmitting || !settlementWalletId}
-              className="flex-1 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 size={14} className="animate-spin" />
-                  در حال تسویه...
-                </span>
-              ) : selectedSettlementWallet ? (
-                `ثبت تسویه با ${selectedSettlementWallet.name}`
-              ) : (
-                'ثبت تسویه'
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettlementPickerOpen(true)}
-              disabled={isSubmitting}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm disabled:opacity-50"
-            >
-              {selectedSettlementWallet ? selectedSettlementWallet.name : 'انتخاب کیف پول'}
-            </button>
-            <button
-              type="button"
-              onClick={closeSettle}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm"
-            >
-              انصراف
-            </button>
-          </div>
+      <Sheet
+        open={settlementTarget !== null}
+        onOpenChange={(o) => !o && closeSettle()}
+        title={settlementTarget ? `تسویه چک «${settlementTarget.title}»` : ''}
+        footer={
+          <Button fullWidth size="lg" loading={isSubmitting} disabled={!settlementWalletId} onClick={() => void handleSettle()}>
+            {selectedSettlementWallet ? `ثبت تسویه از ${selectedSettlementWallet.name}` : 'ثبت تسویه'}
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          {settlementTarget && (
+            <div className="flex items-center justify-between rounded-card bg-sunken p-3">
+              <Text variant="caption" tone="subtle">
+                مبلغ چک
+              </Text>
+              <DeadlineAmount value={Number(settlementTarget.amount)} currency={settlementTarget.currency} />
+            </div>
+          )}
+          <Field label="پرداخت از">
+            <PickerField
+              title="کیف پول پرداخت"
+              options={walletItems.map((w) => ({ value: w.id, label: w.label }))}
+              value={settlementWalletId}
+              onValueChange={setSettlementWalletId}
+            />
+          </Field>
         </div>
-      )}
+      </Sheet>
     </div>
   );
 }

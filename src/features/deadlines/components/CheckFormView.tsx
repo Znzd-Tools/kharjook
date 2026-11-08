@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { AmountField, Button, DateField, Field, Input, PickerField, Skeleton, Textarea, TopBar } from '@/design-system';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
+import { categoryOptions, walletOptions } from '@/features/deadlines/v2/form-options';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
-import { IOSDatePicker } from '@/shared/components/IOSDatePicker';
-import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type { Check, Wallet } from '@/shared/types/domain';
-import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { formatJalaali, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 
 type CheckFormState = {
   title: string;
@@ -47,14 +46,8 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   const [form, setForm] = useState<CheckFormState>(initialState);
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const [dueDateOpen, setDueDateOpen] = useState(false);
+  const goBack = useSafeBack('/deadlines/checks');
 
-  const expenseCategories = useMemo(
-    () => categories.filter((category) => category.kind === 'expense'),
-    [categories]
-  );
   const selectedWallet = wallets.find((wallet) => wallet.id === form.walletId) ?? null;
 
   useEffect(() => {
@@ -166,173 +159,53 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center text-slate-500 animate-pulse">در حال دریافت...</div>;
+    return (
+      <div className="min-h-full bg-canvas">
+        <TopBar onBack={() => goBack()} title="چک" />
+        <div className="space-y-3 px-(--ds-gutter)">
+          <Skeleton className="h-12 rounded-control" />
+          <Skeleton className="h-12 rounded-control" />
+        </div>
+      </div>
+    );
   }
 
-  const walletItems = wallets.map((wallet) => ({
-    id: wallet.id,
-    label: `${wallet.name} · ${wallet.currency}`,
-  }));
+  const set = <K extends keyof CheckFormState>(k: K, v: CheckFormState[K]) => setForm((prev) => ({ ...prev, [k]: v }));
 
   return (
-    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">
-          {isEdit ? 'ویرایش چک' : 'ثبت چک جدید'}
-        </h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">عنوان / دریافت‌کننده</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
-            placeholder="مثال: اجاره دفتر"
-            required
-          />
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={() => goBack()} title={isEdit ? 'ویرایش چک' : 'چک جدید'} />
+      <form onSubmit={handleSubmit} className="space-y-4 px-(--ds-gutter)">
+        <Field label="عنوان / دریافت‌کننده">
+          <Input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="مثال: اجاره دفتر" required />
+        </Field>
+        <Field label="مبلغ چک">
+          <AmountField value={form.amount} onValueChange={(v) => set('amount', v)} unitLabel={selectedWallet && selectedWallet.currency !== 'IRT' ? CURRENCY_META[selectedWallet.currency].label : undefined} />
+        </Field>
+        <Field label="تاریخ سررسید">
+          <DateField value={form.dueDate} onValueChange={(v) => set('dueDate', v)} quickChips={false} />
+        </Field>
+        <Field label="کیف پول" hint="ارز چک و کیف پیش‌فرض برای پرداخت.">
+          <PickerField title="کیف پول" options={walletOptions(wallets)} value={form.walletId} onValueChange={(v) => set('walletId', v)} />
+        </Field>
+        <Field label="دسته هزینه">
+          <PickerField title="دسته هزینه" options={categoryOptions(categories, 'expense')} value={form.categoryId} onValueChange={(v) => set('categoryId', v)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="نام بانک">
+            <Input value={form.bankName} onChange={(e) => set('bankName', e.target.value)} placeholder="اختیاری" />
+          </Field>
+          <Field label="شماره چک">
+            <Input value={form.checkNumber} onChange={(e) => set('checkNumber', e.target.value)} placeholder="اختیاری" dir="ltr" inputMode="numeric" />
+          </Field>
         </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">نام بانک</label>
-          <input
-            value={form.bankName}
-            onChange={(e) => setForm((prev) => ({ ...prev, bankName: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
-            placeholder="اختیاری"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره چک</label>
-          <input
-            value={form.checkNumber}
-            onChange={(e) => setForm((prev) => ({ ...prev, checkNumber: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-            dir="ltr"
-            placeholder="اختیاری"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">مبلغ چک</label>
-          <FormattedNumberInput
-            value={form.amount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setWalletOpen(true)}
-          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-        >
-          <div>
-            <p className="text-xs text-slate-500">کیف پول (ارز و تسویه پیش‌فرض)</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {selectedWallet
-                ? `${selectedWallet.name} · ${selectedWallet.currency}`
-                : 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-slate-500" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCategoryOpen(true)}
-          className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-        >
-          <div>
-            <p className="text-xs text-slate-500">دسته هزینه</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {form.categoryId
-                ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
-                  'انتخاب کنید'
-                : 'انتخاب کنید'}
-            </p>
-          </div>
-          <ChevronLeft size={16} className="text-slate-500" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition"
-        >
-          <Calendar size={16} className="text-purple-400" />
-          <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ سررسید</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {parseJalaali(form.dueDate)
-                ? formatJalaaliHuman(parseJalaali(form.dueDate)!)
-                : form.dueDate}
-            </p>
-          </div>
-        </button>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">یادداشت</label>
-          <textarea
-            value={form.note}
-            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
-            rows={3}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none resize-none"
-            placeholder="اختیاری"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت چک'}
-        </button>
+        <Field label="یادداشت">
+          <Textarea value={form.note} onChange={(e) => set('note', e.target.value)} rows={3} placeholder="اختیاری" />
+        </Field>
+        <Button type="submit" fullWidth size="lg" loading={isSubmitting} disabled={isLoading}>
+          {isEdit ? 'ذخیره تغییرات' : 'ثبت چک'}
+        </Button>
       </form>
-
-      <CategorySheetPicker
-        open={categoryOpen}
-        onClose={() => setCategoryOpen(false)}
-        title="انتخاب دسته هزینه"
-        kind="expense"
-        categories={categories}
-        value={form.categoryId}
-        onSelect={(id) => {
-          setForm((prev) => ({ ...prev, categoryId: id }));
-          setCategoryOpen(false);
-        }}
-      />
-
-      <ListSheetPicker
-        open={walletOpen}
-        onClose={() => setWalletOpen(false)}
-        title="انتخاب کیف پول"
-        items={walletItems}
-        value={form.walletId}
-        onSelect={(id) => {
-          setForm((prev) => ({ ...prev, walletId: id }));
-          setWalletOpen(false);
-        }}
-      />
-
-      <IOSDatePicker
-        open={dueDateOpen}
-        onClose={() => setDueDateOpen(false)}
-        value={form.dueDate}
-        onChange={(value) => setForm((prev) => ({ ...prev, dueDate: value }))}
-      />
     </div>
   );
 }

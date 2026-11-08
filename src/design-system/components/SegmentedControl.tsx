@@ -18,6 +18,8 @@ export interface SegmentedControlProps<T extends string = string> {
   onValueChange: (value: T) => void;
   size?: 'sm' | 'md';
   fullWidth?: boolean;
+  /** Lock every option (e.g. fields fixed after creation). */
+  disabled?: boolean;
   'aria-label': string;
   className?: string;
 }
@@ -32,6 +34,7 @@ export function SegmentedControl<T extends string>({
   onValueChange,
   size = 'md',
   fullWidth = true,
+  disabled,
   className,
   ...props
 }: SegmentedControlProps<T>) {
@@ -50,7 +53,7 @@ export function SegmentedControl<T extends string>({
         <Radio.Root
           key={o.value}
           value={o.value}
-          disabled={o.disabled}
+          disabled={disabled || o.disabled}
           className={cn(
             'ds-focus inline-flex flex-1 cursor-pointer select-none items-center justify-center gap-1.5 rounded-full px-3 font-medium whitespace-nowrap',
             'text-fg-muted transition-[background-color,color,box-shadow] duration-(--ds-duration-fast) ease-standard',

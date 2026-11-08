@@ -1,16 +1,14 @@
 'use client';
 
 import { useRateHistories, usdRateOn } from '@/features/rates/hooks/use-rate-histories';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, ChevronLeft } from 'lucide-react';
+import { AmountField, Banner, Button, Chip, ChipGroup, DateField, Field, Input, PickerField, SegmentedControl, Skeleton, Switch, Text, Textarea, TopBar } from '@/design-system';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { categoryOptions, walletOptions } from '@/features/deadlines/v2/form-options';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
-import { IOSDatePicker } from '@/shared/components/IOSDatePicker';
-import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
-import { ListSheetPicker } from '@/shared/components/ListSheetPicker';
 import type {
   Loan,
   LoanIntervalPeriod,
@@ -91,22 +89,11 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
   const [form, setForm] = useState<LoanFormState>(initialState);
   const [isLoading, setIsLoading] = useState<boolean>(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [currencyWalletOpen, setCurrencyWalletOpen] = useState(false);
-  const [assetOpen, setAssetOpen] = useState(false);
-  const [autoWalletOpen, setAutoWalletOpen] = useState(false);
-  const [loanStartDateOpen, setLoanStartDateOpen] = useState(false);
-  const [firstDueDateOpen, setFirstDueDateOpen] = useState(false);
+  const goBack = useSafeBack('/deadlines/loans');
 
-  const expenseCategories = useMemo(
-    () => categories.filter((category) => category.kind === 'expense'),
-    [categories]
-  );
 
   const currencyWallet = wallets.find((wallet) => wallet.id === form.currencyWalletId) ?? null;
   const selectedAsset = assets.find((asset) => asset.id === form.assetId) ?? null;
-  const autoIncomeWallet =
-    wallets.find((wallet) => wallet.id === form.autoIncomeWalletId) ?? null;
   const amountUnitLabel =
     form.denomination === 'asset' && selectedAsset ? selectedAsset.unit : null;
 
@@ -411,8 +398,12 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
 
   if (isLoading) {
     return (
-      <div className="p-6 text-center text-slate-500 animate-pulse">
-        در حال دریافت...
+      <div className="min-h-full bg-canvas">
+        <TopBar onBack={() => goBack()} title="وام" />
+        <div className="space-y-3 px-(--ds-gutter)">
+          <Skeleton className="h-12 rounded-control" />
+          <Skeleton className="h-12 rounded-control" />
+        </div>
       </div>
     );
   }
@@ -432,471 +423,156 @@ export function LoanFormView({ loanId }: { loanId?: string }) {
         })
       : [];
 
+  const set = <K extends keyof LoanFormState>(k: K, v: LoanFormState[K]) => setForm((prev) => ({ ...prev, [k]: v }));
+  const digitsOnly = (v: string) => v.replace(/[^\d۰-۹]/g, '');
+
   return (
-    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-up_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">
-          {isEdit ? 'ویرایش وام' : 'ثبت وام جدید'}
-        </h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">عنوان</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none"
-            placeholder="مثال: خرید لپ‌تاپ"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">نوع وام</label>
-          <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl">
-            <button
-              type="button"
-              disabled={isEdit}
-              onClick={() => setForm((prev) => ({ ...prev, type: 'expense' }))}
-              className={`py-2 text-xs font-bold rounded-lg transition ${
-                form.type === 'expense'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              } disabled:opacity-60`}
-            >
-              خرید اعتباری
-            </button>
-            <button
-              type="button"
-              disabled={isEdit}
-              onClick={() => setForm((prev) => ({ ...prev, type: 'loan' }))}
-              className={`py-2 text-xs font-bold rounded-lg transition ${
-                form.type === 'loan'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              } disabled:opacity-60`}
-            >
-              وام نقدی
-            </button>
-          </div>
-        </div>
-
-        {!isEdit && (
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">واحد وام</label>
-            <div className="grid grid-cols-2 gap-1 bg-panel p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    denomination: 'currency',
-                    assetId: null,
-                    autoIncomeOnCreate: false,
-                    autoIncomeWalletId: null,
-                  }))
-                }
-                className={`py-2 text-xs font-bold rounded-lg transition ${
-                  form.denomination === 'currency'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                ارز
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    denomination: 'asset',
-                    currencyWalletId: null,
-                    autoIncomeWalletId: null,
-                  }))
-                }
-                className={`py-2 text-xs font-bold rounded-lg transition ${
-                  form.denomination === 'asset'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                دارایی
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!isEdit && form.denomination === 'currency' && (
-          <button
-            type="button"
-            onClick={() => setCurrencyWalletOpen(true)}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-          >
-            <div>
-              <p className="text-xs text-slate-500">کیف پول مبنا (ارز وام)</p>
-              <p className="text-sm text-slate-100 mt-1">
-                {currencyWallet
-                  ? `${currencyWallet.name} · ${currencyWallet.currency}`
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-slate-500" />
-          </button>
-        )}
-
-        {!isEdit && form.denomination === 'asset' && (
-          <button
-            type="button"
-            onClick={() => setAssetOpen(true)}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-          >
-            <div>
-              <p className="text-xs text-slate-500">دارایی وام</p>
-              <p className="text-sm text-slate-100 mt-1">
-                {selectedAsset
-                  ? `${selectedAsset.name} · ${selectedAsset.unit}`
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-slate-500" />
-          </button>
-        )}
-
-        {isEdit && form.denomination === 'asset' && selectedAsset && (
-          <div className="w-full bg-panel border border-white/10 rounded-xl p-3 text-right">
-            <p className="text-xs text-slate-500">دارایی وام</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {selectedAsset.name} · {selectedAsset.unit}
-            </p>
-          </div>
-        )}
-
-        {form.type === 'expense' && (
-          <button
-            type="button"
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={() => goBack()} title={isEdit ? 'ویرایش وام' : 'وام جدید'} />
+      <form onSubmit={handleSubmit} className="space-y-4 px-(--ds-gutter)">
+        {isEdit && <Banner tone="info">بعد از ثبت وام فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است.</Banner>}
+        <Field label="عنوان">
+          <Input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="مثال: خرید لپ‌تاپ" required />
+        </Field>
+        <Field label="نوع وام">
+          <SegmentedControl
+            aria-label="نوع وام"
+            value={form.type}
             disabled={isEdit}
-            onClick={() => setCategoryOpen(true)}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition disabled:opacity-60"
-          >
-            <div>
-              <p className="text-xs text-slate-500">دسته هزینه</p>
-              <p className="text-sm text-slate-100 mt-1">
-                {form.categoryId
-                  ? expenseCategories.find((category) => category.id === form.categoryId)?.name ??
-                    'انتخاب کنید'
-                  : 'انتخاب کنید'}
-              </p>
-            </div>
-            <ChevronLeft size={16} className="text-slate-500" />
-          </button>
+            onValueChange={(v) => set('type', v as LoanType)}
+            options={[
+              { value: 'expense', label: 'خرید اعتباری' },
+              { value: 'loan', label: 'وام نقدی' },
+            ]}
+          />
+        </Field>
+        {!isEdit && (
+          <Field label="واحد وام">
+            <SegmentedControl
+              aria-label="واحد وام"
+              value={form.denomination}
+              onValueChange={(v) =>
+                setForm((prev) =>
+                  v === 'currency'
+                    ? { ...prev, denomination: 'currency', assetId: null, autoIncomeOnCreate: false, autoIncomeWalletId: null }
+                    : { ...prev, denomination: 'asset', currencyWalletId: null, autoIncomeWalletId: null }
+                )
+              }
+              options={[
+                { value: 'currency', label: 'پول (ارز)' },
+                { value: 'asset', label: 'دارایی (مثلاً طلا)' },
+              ]}
+            />
+          </Field>
         )}
-
+        {!isEdit && form.denomination === 'currency' && (
+          <Field label="کیف پول مبنا (ارز وام)">
+            <PickerField title="کیف پول مبنا" options={walletOptions(wallets)} value={form.currencyWalletId} onValueChange={(v) => set('currencyWalletId', v)} />
+          </Field>
+        )}
+        {!isEdit && form.denomination === 'asset' && (
+          <Field label="دارایی وام">
+            <PickerField
+              title="دارایی وام"
+              options={assets.map((a) => ({ value: a.id, label: a.name, description: a.unit }))}
+              value={form.assetId}
+              onValueChange={(v) => set('assetId', v)}
+            />
+          </Field>
+        )}
+        {isEdit && form.denomination === 'asset' && selectedAsset && (
+          <Text variant="caption" tone="subtle">
+            دارایی وام: {selectedAsset.name} · {selectedAsset.unit}
+          </Text>
+        )}
+        {form.type === 'expense' && (
+          <Field label="دسته هزینه">
+            <PickerField title="دسته هزینه" disabled={isEdit} options={categoryOptions(categories, 'expense')} value={form.categoryId} onValueChange={(v) => set('categoryId', v)} />
+          </Field>
+        )}
         {form.type === 'loan' && (
           <>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                {form.denomination === 'asset'
-                  ? `مقدار کل وام${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
-                  : 'مبلغ کل وام'}
-              </label>
-              <FormattedNumberInput
-                value={form.totalAmount}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, totalAmount: value }))
-                }
-                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-                dir="ltr"
-                disabled={isEdit}
-              />
-            </div>
-
+            <Field label={form.denomination === 'asset' ? `مقدار کل وام${amountUnitLabel ? ` (${amountUnitLabel})` : ''}` : 'مبلغ کل وام'}>
+              <AmountField value={form.totalAmount} onValueChange={(v) => set('totalAmount', v)} readOnly={isEdit} unitLabel={amountUnitLabel ?? undefined} />
+            </Field>
             {!isEdit && (
-              <>
-                <label className="flex items-center justify-between bg-panel border border-white/10 rounded-xl p-3 cursor-pointer">
-                  <span className="text-sm text-slate-200">
-                    {form.denomination === 'asset'
-                      ? 'ثبت دریافت دارایی خودکار'
-                      : 'ثبت تراکنش درآمد خودکار'}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={form.autoIncomeOnCreate}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        autoIncomeOnCreate: e.target.checked,
-                        autoIncomeWalletId: e.target.checked ? prev.autoIncomeWalletId : null,
-                      }))
-                    }
-                    className="accent-purple-600 w-4 h-4"
-                  />
-                </label>
-
+              <div className="space-y-3 rounded-card bg-panel p-4">
+                <Switch
+                  label={form.denomination === 'asset' ? 'ثبت دریافت دارایی خودکار' : 'ثبت تراکنش درآمد خودکار'}
+                  description={form.denomination === 'asset' ? 'کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.' : undefined}
+                  checked={form.autoIncomeOnCreate}
+                  onCheckedChange={(on) => setForm((prev) => ({ ...prev, autoIncomeOnCreate: on, autoIncomeWalletId: on ? prev.autoIncomeWalletId : null }))}
+                />
                 {form.autoIncomeOnCreate && form.denomination === 'currency' && (
-                  <button
-                    type="button"
-                    onClick={() => setAutoWalletOpen(true)}
-                    className="w-full bg-panel border border-white/10 rounded-xl p-3 flex items-center justify-between text-right hover:bg-elevated transition"
-                  >
-                    <div>
-                      <p className="text-xs text-slate-500">کیف پول دریافت</p>
-                      <p className="text-sm text-slate-100 mt-1">
-                        {autoIncomeWallet
-                          ? `${autoIncomeWallet.name} · ${autoIncomeWallet.currency}`
-                          : 'انتخاب کنید'}
-                      </p>
-                    </div>
-                    <ChevronLeft size={16} className="text-slate-500" />
-                  </button>
+                  <Field label="کیف پول دریافت">
+                    <PickerField title="کیف پول دریافت" options={walletOptions(wallets)} value={form.autoIncomeWalletId} onValueChange={(v) => set('autoIncomeWalletId', v)} />
+                  </Field>
                 )}
-
-                {form.autoIncomeOnCreate && form.denomination === 'asset' && (
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    کل مقدار وام به‌صورت درآمد روی همین دارایی ثبت می‌شود.
-                  </p>
-                )}
-              </>
+              </div>
             )}
           </>
         )}
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">
-            {form.denomination === 'asset'
-              ? `مقدار هر قسط${amountUnitLabel ? ` (${amountUnitLabel})` : ''}`
-              : 'مبلغ هر قسط'}
-          </label>
-          <FormattedNumberInput
-            value={form.installmentAmount}
-            onValueChange={(value) => setForm((prev) => ({ ...prev, installmentAmount: value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-            dir="ltr"
-            required
-            disabled={isEdit}
-          />
-        </div>
-
-        <button
-          type="button"
-          disabled={isEdit}
-          onClick={() => setLoanStartDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition disabled:opacity-60"
-        >
-          <Calendar size={16} className="text-purple-400" />
-          <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ شروع وام</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {parseJalaali(form.loanStartDate)
-                ? formatJalaaliHuman(parseJalaali(form.loanStartDate)!)
-                : form.loanStartDate}
-            </p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          disabled={isEdit}
-          onClick={() => setFirstDueDateOpen(true)}
-          className="w-full flex items-center gap-3 bg-panel border border-white/10 rounded-xl p-3 text-right hover:bg-elevated transition disabled:opacity-60"
-        >
-          <Calendar size={16} className="text-purple-400" />
-          <div className="flex-1">
-            <p className="text-xs text-slate-500">تاریخ اولین قسط</p>
-            <p className="text-sm text-slate-100 mt-1">
-              {parseJalaali(form.firstDueDate)
-                ? formatJalaaliHuman(parseJalaali(form.firstDueDate)!)
-                : form.firstDueDate}
-            </p>
-          </div>
-        </button>
-
+        <Field label={form.denomination === 'asset' ? `مقدار هر قسط${amountUnitLabel ? ` (${amountUnitLabel})` : ''}` : 'مبلغ هر قسط'}>
+          <AmountField value={form.installmentAmount} onValueChange={(v) => set('installmentAmount', v)} readOnly={isEdit} unitLabel={amountUnitLabel ?? (currencyWallet && currencyWallet.currency !== 'IRT' ? CURRENCY_META[currencyWallet.currency].label : undefined)} />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">تعداد اقساط</label>
-            <FormattedNumberInput
-              value={form.repeatCount}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, repeatCount: value }))}
-              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-              dir="ltr"
-              required
-              disabled={isEdit}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">فاصله تکرار</label>
-            <FormattedNumberInput
-              value={form.intervalNumber}
-              onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, intervalNumber: value }))
-              }
-              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none text-left"
-              dir="ltr"
-              required
-              disabled={isEdit}
-            />
-          </div>
+          <Field label="تاریخ شروع وام">
+            {isEdit ? <Input value={form.loanStartDate} readOnly dir="ltr" /> : <DateField value={form.loanStartDate} onValueChange={(v) => set('loanStartDate', v)} quickChips={false} />}
+          </Field>
+          <Field label="تاریخ اولین قسط">
+            {isEdit ? <Input value={form.firstDueDate} readOnly dir="ltr" /> : <DateField value={form.firstDueDate} onValueChange={(v) => set('firstDueDate', v)} quickChips={false} />}
+          </Field>
         </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">واحد فاصله</label>
-          <div className="grid grid-cols-4 gap-1 bg-panel p-1 rounded-xl">
-            {INTERVAL_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                disabled={isEdit}
-                onClick={() => setForm((prev) => ({ ...prev, intervalPeriod: option.id }))}
-                className={`py-2 text-xs rounded-lg transition ${
-                  form.intervalPeriod === option.id
-                    ? 'bg-purple-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                } disabled:opacity-60`}
-              >
-                {option.label}
-              </button>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="تعداد اقساط">
+            <Input value={form.repeatCount} onChange={(e) => set('repeatCount', digitsOnly(e.target.value))} inputMode="numeric" dir="ltr" required readOnly={isEdit} />
+          </Field>
+          <Field label="فاصله تکرار">
+            <Input value={form.intervalNumber} onChange={(e) => set('intervalNumber', digitsOnly(e.target.value))} inputMode="numeric" dir="ltr" required readOnly={isEdit} />
+          </Field>
+        </div>
+        <Field label="واحد فاصله">
+          <SegmentedControl
+            aria-label="واحد فاصله"
+            value={form.intervalPeriod}
+            disabled={isEdit}
+            onValueChange={(v) => set('intervalPeriod', v as LoanIntervalPeriod)}
+            options={INTERVAL_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
+          />
+        </Field>
+        <Field label="یادآوری تلگرام قبل از سررسید" hint="علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیری.">
+          <ChipGroup
+            aria-label="روزهای یادآوری"
+            multiple
+            value={form.reminderDaysBefore.map(String)}
+            onValueChange={(v) => set('reminderDaysBefore', normalizeReminderDaysBefore(v.map(Number)))}
+          >
+            {LOAN_REMINDER_DAY_OPTIONS.map((days) => (
+              <Chip key={days} value={String(days)}>
+                {days.toLocaleString('fa-IR')} روز قبل
+              </Chip>
+            ))}
+          </ChipGroup>
+        </Field>
+        {previewDates.length > 0 && (
+          <div className="space-y-1 rounded-card bg-panel p-3">
+            <Text variant="caption" tone="subtle">
+              پیش‌نمایش سررسیدها
+            </Text>
+            {previewDates.map((date) => (
+              <p key={date} className="text-caption text-fg">
+                {parseJalaali(date) ? formatJalaaliHuman(parseJalaali(date)!) : date}
+              </p>
             ))}
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">یادآوری تلگرام قبل از سررسید</label>
-          <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
-            علاوه بر پیام روز سررسید، در این فاصله‌ها هم یادآوری می‌گیرید.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {LOAN_REMINDER_DAY_OPTIONS.map((days) => {
-              const active = form.reminderDaysBefore.includes(days);
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      reminderDaysBefore: active
-                        ? prev.reminderDaysBefore.filter((d) => d !== days)
-                        : normalizeReminderDaysBefore([...prev.reminderDaysBefore, days]),
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                    active
-                      ? 'bg-purple-600/25 border-purple-500/50 text-purple-200'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200'
-                  }`}
-                >
-                  {days} روز قبل
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {previewDates.length > 0 && (
-          <div className="bg-panel border border-white/5 rounded-xl p-3">
-            <p className="text-xs text-slate-500 mb-2">پیش‌نمایش سررسیدها</p>
-            <div className="space-y-1">
-              {previewDates.map((date) => (
-                <p key={date} className="text-sm text-slate-200">
-                  {parseJalaali(date) ? formatJalaaliHuman(parseJalaali(date)!) : date}
-                </p>
-              ))}
-            </div>
-          </div>
         )}
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">توضیحات</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500 outline-none min-h-[80px]"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold transition-all disabled:opacity-50"
-        >
-          {isSubmitting ? 'در حال ثبت...' : isEdit ? 'ثبت تغییرات' : 'ایجاد وام'}
-        </button>
-
-        {isEdit && (
-          <p className="text-[11px] text-slate-500 text-center">
-            بعد از ثبت وام فقط عنوان، توضیحات و یادآوری‌ها قابل ویرایش است.
-          </p>
-        )}
+        <Field label="توضیحات">
+          <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={2} placeholder="اختیاری" />
+        </Field>
+        <Button type="submit" fullWidth size="lg" loading={isSubmitting}>
+          {isEdit ? 'ثبت تغییرات' : 'ایجاد وام'}
+        </Button>
       </form>
-
-      <CategorySheetPicker
-        open={categoryOpen}
-        onClose={() => setCategoryOpen(false)}
-        title="انتخاب دسته هزینه"
-        kind="expense"
-        categories={categories}
-        value={form.categoryId}
-        onSelect={(id) => setForm((prev) => ({ ...prev, categoryId: id }))}
-      />
-
-      <ListSheetPicker
-        open={currencyWalletOpen}
-        onClose={() => setCurrencyWalletOpen(false)}
-        title="انتخاب کیف پول مبنا"
-        items={wallets.map((wallet) => ({
-          id: wallet.id,
-          label: wallet.name,
-          sublabel: `${CURRENCY_META[wallet.currency].label} · ${wallet.currency}`,
-        }))}
-        value={form.currencyWalletId}
-        onSelect={(id) => setForm((prev) => ({ ...prev, currencyWalletId: id }))}
-      />
-
-      <ListSheetPicker
-        open={assetOpen}
-        onClose={() => setAssetOpen(false)}
-        title="انتخاب دارایی وام"
-        items={assets.map((asset) => ({
-          id: asset.id,
-          label: asset.name,
-          sublabel: asset.unit,
-        }))}
-        value={form.assetId}
-        onSelect={(id) => setForm((prev) => ({ ...prev, assetId: id }))}
-      />
-
-      <ListSheetPicker
-        open={autoWalletOpen}
-        onClose={() => setAutoWalletOpen(false)}
-        title="انتخاب کیف پول دریافت"
-        items={wallets.map((wallet) => ({
-          id: wallet.id,
-          label: wallet.name,
-          sublabel: `${CURRENCY_META[wallet.currency].label} · ${wallet.currency}`,
-        }))}
-        value={form.autoIncomeWalletId}
-        onSelect={(id) => setForm((prev) => ({ ...prev, autoIncomeWalletId: id }))}
-      />
-
-      <IOSDatePicker
-        open={loanStartDateOpen}
-        onClose={() => setLoanStartDateOpen(false)}
-        value={form.loanStartDate}
-        onChange={(value) => setForm((prev) => ({ ...prev, loanStartDate: value }))}
-      />
-      <IOSDatePicker
-        open={firstDueDateOpen}
-        onClose={() => setFirstDueDateOpen(false)}
-        value={form.firstDueDate}
-        onChange={(value) => setForm((prev) => ({ ...prev, firstDueDate: value }))}
-      />
     </div>
   );
 }
