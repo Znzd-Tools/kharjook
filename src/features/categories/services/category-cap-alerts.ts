@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/shared/lib/supabase/admin';
+import { sendPushToUser } from '@/features/notifications/push/send-push';
 import type { Category, CategorySpendingCap, TelegramConnection } from '@/shared/types/domain';
 import {
   capLevelForPercent,
@@ -117,9 +118,15 @@ export async function loadCapStatusesForUser(userId: string): Promise<CapStatus[
   return rows.sort((a, b) => b.percent - a.percent);
 }
 
+/**
+ * Daily: categories past 80% / 100% of their monthly cap. Goes to Telegram
+ * and/or app push (notification center "cap_alert"); one alert per threshold
+ * per month.
+ */
 export async function processCategoryCapAlertsForUser(
   userId: string,
-  connection: TelegramConnection
+  connection: TelegramConnection | null,
+  toPush: boolean
 ): Promise<number> {
   const rows = await loadCapStatusesForUser(userId);
   if (rows.length === 0) return 0;
@@ -141,16 +148,26 @@ export async function processCategoryCapAlertsForUser(
         limitToman: row.limitToman,
       });
 
-      try {
-        await sendTelegramMessage(connection.telegram_chat_id, text);
-        await markCapAlertDelivered(userId, dedupKey);
-        sent += 1;
-      } catch (err) {
-        if (err instanceof TelegramSendError && err.blocked) {
-          await markConnectionInactive(userId);
+      if (connection) {
+        try {
+          await sendTelegramMessage(connection.telegram_chat_id, text);
+        } catch (err) {
+          if (err instanceof TelegramSendError && err.blocked) {
+            await markConnectionInactive(userId);
+          }
+          throw err;
         }
-        throw err;
       }
+      if (toPush) {
+        await sendPushToUser(userId, {
+          title: `سقف «${row.categoryName}» ${threshold >= 100 ? 'پر شد' : 'به ۸۰٪ رسید'}`,
+          body: text.replace(/[🔴🟠]\s*/g, ''),
+          url: '/budget',
+          tag: `cap:${dedupKey}`,
+        });
+      }
+      await markCapAlertDelivered(userId, dedupKey);
+      sent += 1;
     }
   }
 
@@ -209,49 +226,4 @@ export async function findCapStatusForCategory(
   }
 
   return null;
-}
-
-export async function maybeNotifyCapThresholdsForExpense(
-  userId: string,
-  categoryId: string | null
-): Promise<void> {
-  const admin = createSupabaseAdminClient();
-  const { data: connectionRow } = await admin
-    .from('telegram_connections')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle();
-  const connection = (connectionRow as TelegramConnection | null) ?? null;
-  if (!connection) return;
-
-  const status = await findCapStatusForCategory(userId, categoryId);
-  if (!status || status.percent < 80) return;
-
-  const today = todayJalaaliInTimezone(TEHRAN_TIMEZONE);
-  const monthKey = monthKeyFromPeriod(periodContaining('month', today));
-
-  for (const threshold of [80, 100] as const) {
-    if (status.percent < threshold) continue;
-    const dedupKey = `${status.categoryId}:${monthKey}:${threshold}`;
-    if (await wasCapAlertDelivered(userId, dedupKey)) continue;
-
-    const text = formatCapThresholdAlertMessage({
-      categoryName: status.categoryName,
-      threshold,
-      spentToman: status.spentToman,
-      limitToman: status.limitToman,
-    });
-
-    try {
-      await sendTelegramMessage(connection.telegram_chat_id, text);
-      await markCapAlertDelivered(userId, dedupKey);
-    } catch (err) {
-      if (err instanceof TelegramSendError && err.blocked) {
-        await markConnectionInactive(userId);
-      } else {
-        console.error('maybeNotifyCapThresholdsForExpense failed', err);
-      }
-    }
-  }
 }

@@ -22,8 +22,6 @@ CREATE TYPE notification_report_interval AS ENUM ('daily', 'weekly');
 
 CREATE TABLE IF NOT EXISTS notification_settings (
   user_id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-  enabled boolean NOT NULL DEFAULT true,
-  report_enabled boolean NOT NULL DEFAULT true,
   report_interval notification_report_interval NOT NULL DEFAULT 'daily',
   report_day_of_week smallint NOT NULL DEFAULT 0 CHECK (report_day_of_week >= 0 AND report_day_of_week <= 6),
   report_time time NOT NULL DEFAULT '08:00',

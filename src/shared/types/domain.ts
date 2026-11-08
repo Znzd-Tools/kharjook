@@ -314,14 +314,8 @@ export interface TelegramConnection {
 
 export interface NotificationSettings {
   user_id: string;
-  /** Daily 9 AM Telegram digest of unpaid installments. */
-  enabled: boolean;
-  /** Notify on bot price refresh when held assets move materially. */
-  price_alert_enabled: boolean;
-  /** Notify on each expense transaction with today's running total. */
-  expense_alert_enabled: boolean;
-  /** Scheduled cashflow/portfolio digest in Telegram. */
-  report_enabled: boolean;
+  /** Per notification: { telegram, push } switches (see notification-prefs.ts). */
+  channels: Record<string, { telegram?: boolean; push?: boolean }>;
   report_interval: NotificationReportInterval;
   report_day_of_week: number;
   show_portfolio_irt: boolean;

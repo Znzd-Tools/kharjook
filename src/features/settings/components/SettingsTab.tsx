@@ -3,14 +3,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, Button, List, ListRow, Section, SegmentedControl, TopBar, useConfirm } from '@/design-system';
-import { LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
+import { Bell, LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
 import { useAuth, useUI } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
-import { TelegramConnectionSection } from '@/features/settings/components/TelegramConnectionSection';
-import { NotificationSettingsSection } from '@/features/settings/components/NotificationSettingsSection';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
-import { NotificationCenterSection } from '@/features/settings/components/NotificationCenterSection';
-import { PushSettingsSection } from '@/features/settings/components/PushSettingsSection';
 
 const LINKS = [
   { href: '/manage/categories', title: 'دسته‌بندی‌ها و سقف هزینه', icon: <LayoutGrid />, tone: 'peach' as const },
@@ -82,11 +78,19 @@ export function SettingsTab() {
           </List>
         </Section>
 
-        <TelegramConnectionSection />
+        <Section title="اعلان‌ها">
+          <List>
+            <ListRow
+              render={<Link href="/settings/notifications" />}
+              leading={<Avatar size="sm" tone="mint" fallback={<Bell />} />}
+              title="اعلان‌ها و یادآوری‌ها"
+              subtitle="تلگرام، اپ، و اینکه چه چیزی خبرت کنیم"
+              size="sm"
+            />
+          </List>
+        </Section>
+
         <PasskeySettingsSection />
-        <NotificationSettingsSection />
-        <PushSettingsSection />
-        <NotificationCenterSection />
 
         <Button variant="danger" fullWidth size="lg" onClick={handleLogout}>
           خروج از حساب

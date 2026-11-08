@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   // Keep existing notification choices; create defaults only for a new user.
   await admin
     .from('notification_settings')
-    .upsert({ user_id: consumed.userId, enabled: true, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: true });
+    .upsert({ user_id: consumed.userId, updated_at: new Date().toISOString() }, { onConflict: 'user_id', ignoreDuplicates: true });
 
   // Remove the old reply keyboard (menus are gone).
   await sendTelegramMessage(chatId, BOT_LINKED, { remove_keyboard: true });

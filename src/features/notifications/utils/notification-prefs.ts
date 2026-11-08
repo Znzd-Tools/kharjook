@@ -10,7 +10,10 @@ export type NotifKey =
   | 'due_today.installment'
   | 'advance'
   | 'expense_reminder'
-  | 'price_update';
+  | 'price_update'
+  | 'expense_alert'
+  | 'cap_alert'
+  | 'report';
 
 export type NotifChannels = Partial<Record<NotifKey, Partial<Record<NotifChannel, boolean>>>>;
 
@@ -21,6 +24,12 @@ export const NOTIF_DEFAULTS: Record<NotifKey, Record<NotifChannel, boolean>> = {
   advance: { telegram: true, push: true },
   expense_reminder: { telegram: false, push: false },
   price_update: { telegram: false, push: false },
+  /** After each new expense: amount + today's total. */
+  expense_alert: { telegram: false, push: false },
+  /** Category monthly cap reached 80% / 100%. */
+  cap_alert: { telegram: true, push: true },
+  /** Daily / weekly summary (Telegram only: long text). */
+  report: { telegram: false, push: false },
 };
 
 export const NOTIF_KEYS = Object.keys(NOTIF_DEFAULTS) as NotifKey[];

@@ -11,21 +11,20 @@ import { sendTelegramMessage } from '@/features/notifications/telegram/utils/tel
 import { formatTelegramMoney } from '@/features/notifications/telegram/utils/format-helpers';
 import { isPushConfigured, sendPushToUser } from '@/features/notifications/push/send-push';
 import { isOn, type NotifKey } from '@/features/notifications/utils/notification-prefs';
+import { processCategoryCapAlertsForUser } from '@/features/categories/services/category-cap-alerts';
 
 const TEHRAN = 'Asia/Tehran';
 const fa = (n: number) => n.toLocaleString('fa-IR');
 
 interface UserCtx {
   channels: unknown;
-  /** Telegram master switch ("اعلان‌ها روشن"). */
-  telegramEnabled: boolean;
   connection: TelegramConnection | null;
   hasPush: boolean;
 }
 
 async function loadUsers(userIds?: string[]): Promise<Map<string, UserCtx>> {
   const admin = createSupabaseAdminClient();
-  const settingsQ = admin.from('notification_settings').select('user_id, enabled, channels');
+  const settingsQ = admin.from('notification_settings').select('user_id, channels');
   const connQ = admin.from('telegram_connections').select('*').eq('is_active', true);
   const pushQ = admin.from('push_subscriptions').select('user_id');
   const [settings, conns, pushes] = await Promise.all([
@@ -39,10 +38,9 @@ async function loadUsers(userIds?: string[]): Promise<Map<string, UserCtx>> {
   for (const r of (pushes.data ?? []) as { user_id: string }[]) ids.add(r.user_id);
   const out = new Map<string, UserCtx>();
   for (const id of ids) {
-    const st = ((settings.data ?? []) as { user_id: string; enabled: boolean; channels: unknown }[]).find((r) => r.user_id === id);
+    const st = ((settings.data ?? []) as { user_id: string; channels: unknown }[]).find((r) => r.user_id === id);
     out.set(id, {
       channels: st?.channels ?? {},
-      telegramEnabled: st?.enabled ?? true,
       connection: ((conns.data ?? []) as TelegramConnection[]).find((c) => c.user_id === id) ?? null,
       hasPush: ((pushes.data ?? []) as { user_id: string }[]).some((p) => p.user_id === id),
     });
@@ -66,7 +64,7 @@ async function deliver(
   msg: { telegram: string; title: string; body: string; url: string; tag: string }
 ): Promise<number> {
   let sent = 0;
-  if (ctx.connection && ctx.telegramEnabled && isOn(ctx.channels, key, 'telegram')) {
+  if (ctx.connection && isOn(ctx.channels, key, 'telegram')) {
     try {
       await sendTelegramMessage(ctx.connection.telegram_chat_id, msg.telegram);
       sent++;
@@ -142,4 +140,24 @@ export async function processEveningReminders(): Promise<{ sent: number; errors:
     }
   }
   return { sent, errors };
+}
+
+/**
+ * Cap alerts for users who get them only in the app (the Telegram loop in
+ * dispatch-notifications already sends both channels when Telegram is on).
+ */
+export async function processPushOnlyCapAlerts(): Promise<number> {
+  if (!isPushConfigured()) return 0;
+  const users = await loadUsers();
+  let sent = 0;
+  for (const [userId, ctx] of users) {
+    if (!ctx.hasPush || !isOn(ctx.channels, 'cap_alert', 'push')) continue;
+    if (ctx.connection && isOn(ctx.channels, 'cap_alert', 'telegram')) continue;
+    try {
+      sent += await processCategoryCapAlertsForUser(userId, null, true);
+    } catch (e) {
+      console.error('push cap alerts', userId, (e as Error).message);
+    }
+  }
+  return sent;
 }

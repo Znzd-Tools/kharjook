@@ -6,7 +6,10 @@ import {
   sendTelegramMessage,
   TelegramSendError,
 } from '@/features/notifications/telegram/utils/telegram-client';
-import { loadExpenseAlertEnabled } from '@/features/notifications/services/bot-notification-settings';
+import { loadChannels } from '@/features/notifications/services/notification-channels';
+import { isOn } from '@/features/notifications/utils/notification-prefs';
+import { sendPushToUser } from '@/features/notifications/push/send-push';
+import { formatTelegramMoney } from '@/features/notifications/telegram/utils/format-helpers';
 import { findCapStatusForCategory } from '@/features/categories/services/category-cap-alerts';
 import { formatExpenseCapLine } from '@/features/notifications/telegram/utils/format-category-caps';
 import { todayJalaaliInTimezone, formatJalaali } from '@/shared/utils/jalali';
@@ -104,14 +107,15 @@ export async function notifyExpenseTransaction(
   const addedAmountToman = expenseAmountToman(tx);
   if (addedAmountToman == null) return;
 
-  const alertEnabled = await loadExpenseAlertEnabled(userId);
-  if (!alertEnabled) return;
+  const channels = await loadChannels(userId);
+  const toTelegram = isOn(channels, 'expense_alert', 'telegram');
+  const toPush = isOn(channels, 'expense_alert', 'push');
+  if (!toTelegram && !toPush) return;
 
   const claimed = await claimExpenseAlertDelivery(userId, tx.id);
   if (!claimed) return;
 
-  const connection = await loadActiveConnection(userId);
-  if (!connection) return;
+  const connection = toTelegram ? await loadActiveConnection(userId) : null;
 
   const todayJalaali = formatJalaali(todayJalaaliInTimezone(TEHRAN_TIMEZONE));
   const [todayTotalExpenseToman, categoryName, capStatus] = await Promise.all([
@@ -138,6 +142,16 @@ export async function notifyExpenseTransaction(
     capLine,
   });
 
+  if (toPush) {
+    await sendPushToUser(userId, {
+      title: `هزینه ${formatTelegramMoney(addedAmountToman, 'TOMAN')}${categoryName ? ` · ${categoryName}` : ''}`,
+      body: `جمع هزینه امروز: ${formatTelegramMoney(todayTotalExpenseToman, 'TOMAN')}${capLine ? `\n${capLine}` : ''}`,
+      url: '/transactions',
+      tag: `expense:${tx.id}`,
+    }).catch((e) => console.error('expense push failed', e));
+  }
+
+  if (!connection) return;
   try {
     await sendTelegramMessage(connection.telegram_chat_id, text);
   } catch (err) {
@@ -146,7 +160,6 @@ export async function notifyExpenseTransaction(
     } else {
       console.error('notifyExpenseTransaction failed', err);
     }
-    return;
   }
 }
 

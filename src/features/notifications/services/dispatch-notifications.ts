@@ -43,35 +43,11 @@ import {
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { periodContaining } from '@/shared/utils/period';
 import { processAutoPriceRefresh } from '@/features/notifications/services/server-price-refresh';
-import {
-  DEFAULT_NOTIFICATION_SETTINGS as BOT_DEFAULT_NOTIFICATION_SETTINGS,
-  loadNotificationEnabled,
-  type BotNotificationSettings,
-} from '@/features/notifications/services/bot-notification-settings';
 import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 import { isOn } from '@/features/notifications/utils/notification-prefs';
 import { notifyPriceUpdates } from '@/features/notifications/services/notification-center';
 
-/** Defaults for new rows. */
-export const DEFAULT_NOTIFICATION_SETTINGS: Omit<
-  NotificationSettings,
-  'user_id' | 'updated_at'
-> = {
-  enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled,
-  price_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.price_alert_enabled,
-  expense_alert_enabled: BOT_DEFAULT_NOTIFICATION_SETTINGS.expense_alert_enabled,
-  report_enabled: DEFAULT_REPORT_SETTINGS.report_enabled,
-  report_interval: DEFAULT_REPORT_SETTINGS.report_interval,
-  report_day_of_week: DEFAULT_REPORT_SETTINGS.report_day_of_week,
-  show_portfolio_irt: DEFAULT_REPORT_SETTINGS.show_portfolio_irt,
-  show_portfolio_usd: DEFAULT_REPORT_SETTINGS.show_portfolio_usd,
-  show_cashflow_irt: DEFAULT_REPORT_SETTINGS.show_cashflow_irt,
-  show_cashflow_usd: DEFAULT_REPORT_SETTINGS.show_cashflow_usd,
-};
 
-export type { BotNotificationSettings };
-
-export { loadNotificationEnabled };
 
 async function loadUserData(userId: string) {
   const admin = createSupabaseAdminClient();
@@ -494,19 +470,16 @@ export async function processScheduledNotifications(): Promise<{
   const { data: settingsRows } = await admin
     .from('notification_settings')
     .select(
-      'user_id, enabled, channels, report_enabled, report_interval, report_day_of_week, show_portfolio_irt, show_portfolio_usd, show_cashflow_irt, show_cashflow_usd'
+      'user_id, channels, report_interval, report_day_of_week, show_portfolio_irt, show_portfolio_usd, show_cashflow_irt, show_cashflow_usd'
     )
     .in('user_id', userIds);
 
-  const enabledByUser = new Map<string, boolean>();
   const channelsByUser = new Map<string, unknown>();
   const reportByUser = new Map<string, ReportNotificationSettings>();
   for (const row of settingsRows ?? []) {
     const settings = row as {
       user_id: string;
-      enabled: boolean;
       channels?: unknown;
-      report_enabled?: boolean;
       report_interval?: ReportNotificationSettings['report_interval'];
       report_day_of_week?: number;
       show_portfolio_irt?: boolean;
@@ -514,10 +487,10 @@ export async function processScheduledNotifications(): Promise<{
       show_cashflow_irt?: boolean;
       show_cashflow_usd?: boolean;
     };
-    enabledByUser.set(settings.user_id, settings.enabled);
     channelsByUser.set(settings.user_id, settings.channels);
     reportByUser.set(settings.user_id, {
-      report_enabled: settings.report_enabled ?? DEFAULT_REPORT_SETTINGS.report_enabled,
+      // The report is on when its Telegram switch is on (notification center).
+      report_enabled: isOn(settings.channels, 'report', 'telegram'),
       report_interval: settings.report_interval ?? DEFAULT_REPORT_SETTINGS.report_interval,
       report_day_of_week:
         settings.report_day_of_week ?? DEFAULT_REPORT_SETTINGS.report_day_of_week,
@@ -537,8 +510,7 @@ export async function processScheduledNotifications(): Promise<{
   let categoryCapAlertsSent = 0;
 
   for (const conn of activeConnections) {
-    const enabled = enabledByUser.get(conn.user_id) ?? BOT_DEFAULT_NOTIFICATION_SETTINGS.enabled;
-    if (enabled) {
+    {
       try {
         const sent = await sendDebtsListForUser(conn.user_id, conn, { todayOnly: true, channels: channelsByUser.get(conn.user_id) });
         if (sent) debtsDigestsSent += 1;
@@ -560,8 +532,8 @@ export async function processScheduledNotifications(): Promise<{
       }
     }
 
-    try {
-      const sent = await processCategoryCapAlertsForUser(conn.user_id, conn);
+    if (isOn(channelsByUser.get(conn.user_id), 'cap_alert', 'telegram')) try {
+      const sent = await processCategoryCapAlertsForUser(conn.user_id, conn, isOn(channelsByUser.get(conn.user_id), 'cap_alert', 'push'));
       categoryCapAlertsSent += sent;
     } catch (err) {
       errors.push(

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Banner, Button, Section, Switch, toast } from '@/design-system';
+import { toast } from '@/design-system';
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -37,16 +37,16 @@ function sameKey(sub: PushSubscription, key: Uint8Array): boolean {
   return a.length === key.length && a.every((v, i) => v === key[i]);
 }
 
-type TestResult = { ok: boolean; status: number | null; message: string | null; at: string; service: string };
+export type TestResult = { ok: boolean; status: number | null; message: string | null; at: string; service: string };
 
 const supported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 /**
- * Push reminders on this device (UX plan S30). Shown only when the server
- * has VAPID keys. Telegram reminders keep working as before.
+ * App notifications on THIS device: subscribe / unsubscribe and a test push
+ * that shows the push service answer (which step fails, if any).
  */
-export function PushSettingsSection() {
+export function useDevicePush() {
   const [state, setState] = useState<'loading' | 'unsupported' | 'off' | 'on'>('loading');
   const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | null>(null);
@@ -88,8 +88,6 @@ export function PushSettingsSection() {
       alive = false;
     };
   }, []);
-
-  if (!VAPID) return null;
 
   const toggle = async (on: boolean) => {
     setBusy(true);
@@ -183,37 +181,5 @@ export function PushSettingsSection() {
     return `سرویس اعلان جواب داد: ${t.status ?? '—'} ${t.message ?? ''}`;
   };
 
-  return (
-    <Section title="اعلان روی این دستگاه" description="یادآوری چک، قسط و اشتراک در روز سررسید و روز قبل، با دکمه «پرداخت شد».">
-      <div className="space-y-3 rounded-card bg-panel p-4">
-        {state === 'unsupported' ? (
-          <p className="text-caption text-fg-muted">این مرورگر اعلان را پشتیبانی نمی‌کند. در iPhone اول برنامه را به صفحه اصلی اضافه کن (iOS 16.4 به بعد).</p>
-        ) : (
-          <Switch label="یادآوری سررسیدها" checked={state === 'on'} disabled={state === 'loading' || busy} onCheckedChange={(on) => void toggle(on)} />
-        )}
-        {state !== 'unsupported' && state !== 'loading' && (
-          <ul className="space-y-1 text-caption text-fg-muted" aria-label="وضعیت اعلان">
-            <li>اجازه اعلان: {perm === 'granted' ? 'داده شده ✓' : perm === 'denied' ? 'بسته ✗ (از تنظیمات مرورگر باز کن)' : 'هنوز پرسیده نشده'}</li>
-            <li>اشتراک این دستگاه: {state === 'on' ? `فعال ✓ · سرویس ${service ?? ''}` : 'خاموش'}</li>
-          </ul>
-        )}
-        {state === 'on' && (
-          <Button size="sm" variant="soft" loading={busy} onClick={() => void sendTest()}>
-            ارسال اعلان آزمایشی
-          </Button>
-        )}
-        {test &&
-          (test.ok ? (
-            <Banner tone="info" title={`سرور اعلان را به ${test.service} داد ✓ · ${test.at}`}>
-              اگر تا یک دقیقه نرسید، مشکل در رسیدن از {test.service} به گوشی است، نه در برنامه.
-              {test.service.startsWith('گوگل') ? ' در ایران گوشی اندروید بدون VPN به سرور اعلان گوگل وصل نمی‌شود؛ با VPN امتحان کن.' : ''} اعلان‌های Chrome و صرفه‌جویی باتری را هم چک کن.
-            </Banner>
-          ) : (
-            <Banner tone="warning" title="اعلان آزمایشی ارسال نشد">
-              {failHint(test)}
-            </Banner>
-          ))}
-      </div>
-    </Section>
-  );
+  return { available: Boolean(VAPID), state, busy, perm, service, test, toggle, sendTest, failHint };
 }

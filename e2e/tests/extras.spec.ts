@@ -62,16 +62,21 @@ test('offline: a new expense waits in the queue and is sent once online', async 
   expect((await dbRows<Tx>('transactions')).filter((t) => !before.has(t.id))).toHaveLength(1);
 });
 
-test('notification center: per notification, Telegram and app switches are saved', async ({ page }) => {
+test('notifications page: tap a row, flip a channel, it is saved', async ({ page }) => {
   await open(page, '/settings');
-  const center = page.getByRole('region', { name: 'مرکز اعلان‌ها' });
-  await expect(center.getByRole('checkbox', { name: 'ثبت هزینه‌های امروز در اپ' })).not.toBeChecked();
-  await expect(center.getByRole('checkbox', { name: 'چک‌ها در اپ' })).toBeChecked();
-  await center.getByRole('checkbox', { name: 'اشتراک‌ها در اپ' }).click();
-  await center.getByRole('checkbox', { name: 'به‌روزرسانی قیمت‌ها در اپ' }).click();
+  await page.getByRole('link', { name: /اعلان‌ها و یادآوری‌ها/ }).click();
+  await expect(page).toHaveURL(/\/settings\/notifications/);
+  // Defaults: due-today on for both, expense reminder off.
+  await expect(page.getByRole('button', { name: /چک امروز.*تلگرام و اپ/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /یادآور ثبت هزینه‌ها.*خاموش/ })).toBeVisible();
+  await page.getByRole('button', { name: /اشتراک امروز/ }).click();
+  await page.getByRole('dialog').getByRole('switch', { name: 'اپ' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: /اشتراک امروز.*تلگرام/ })).toBeVisible();
+  await page.getByRole('button', { name: /گزارش دوره‌ای/ }).click();
+  await page.getByRole('dialog').getByRole('switch', { name: 'تلگرام' }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'هفتگی' }).click();
   await expect
-    .poll(async () => (await dbRows<{ channels: Record<string, Record<string, boolean>> }>('notification_settings'))[0]?.channels)
-    .toMatchObject({ 'due_today.subscription': { push: false }, price_update: { push: true } });
-  await page.reload();
-  await expect(page.getByRole('region', { name: 'مرکز اعلان‌ها' }).getByRole('checkbox', { name: 'اشتراک‌ها در اپ' })).not.toBeChecked();
+    .poll(async () => (await dbRows<{ channels: Record<string, Record<string, boolean>>; report_interval: string }>('notification_settings'))[0])
+    .toMatchObject({ channels: { 'due_today.subscription': { push: false }, report: { telegram: true } }, report_interval: 'weekly' });
 });
