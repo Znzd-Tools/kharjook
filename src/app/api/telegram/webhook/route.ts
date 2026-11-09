@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
   const token = text.split(/\s+/)[1]?.trim();
   if (!token) {
-    await sendTelegramMessage(chatId, (await getConnectionByChatId(chatId)) ? BOT_ONLY_NOTIFY : BOT_UNLINKED);
+    await sendTelegramMessage(chatId, (await getConnectionByChatId(chatId)) ? BOT_ONLY_NOTIFY : BOT_UNLINKED, { remove_keyboard: true });
     return NextResponse.json({ ok: true });
   }
 

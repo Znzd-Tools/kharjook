@@ -53,7 +53,8 @@ const clearBotFlow = (chatId: number) => setBotFlow(chatId, null);
 /** Any text that is not /start: the bot has no menus. */
 export async function handleBotText(chatId: number): Promise<void> {
   const connection = await getConnectionByChatId(chatId);
-  await sendTelegramMessage(chatId, connection ? BOT_ONLY_NOTIFY : BOT_UNLINKED);
+  // remove_keyboard: clears the old menu buttons from chats linked before 1405/08.
+  await sendTelegramMessage(chatId, connection ? BOT_ONLY_NOTIFY : BOT_UNLINKED, { remove_keyboard: true });
 }
 
 type PayInstallmentFlow = {
