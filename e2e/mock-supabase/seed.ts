@@ -69,6 +69,7 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
     subscription_payments: [],
     budget_envelopes: [],
     budget_allocations: [],
+    portfolio_snapshots: [],
     wallet_savings_pots: [],
     price_sources: [],
     price_source_settings: [],

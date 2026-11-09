@@ -10,6 +10,7 @@ import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { ytdCumulativeProfitMonthlySeries } from '@/features/dashboard/utils/portfolio-history';
 import { assetValueFor, buildPnlSummary, VIEW_LABEL, type PnlView } from '../utils/pnl-summary';
 import { PnlCard } from './PnlCard';
+import { NetWorthTrend, useSnapshots } from '@/features/portfolio-history/components/NetWorthTrend';
 
 /** PnL screen (P2): views, per-asset contribution, monthly chart. */
 export function PnlScreen() {
@@ -18,6 +19,7 @@ export function PnlScreen() {
   const [listView, setListView] = useState<PnlView>(initial);
   const { assets, transactions, dailyPrices } = useData();
   const { usdRate } = useUI();
+  const snapshots = useSnapshots();
   const today = useMemo(() => todayJalaali(), []);
   const todayStr = formatJalaali(today);
 
@@ -43,6 +45,8 @@ export function PnlScreen() {
   return (
     <div className="space-y-6 px-(--ds-gutter) pt-1 pb-8">
       <PnlCard summary={summary} initialView={initial} />
+
+      <NetWorthTrend rows={snapshots} />
 
       {monthly.length > 1 && (
         <Section title="سود و زیان ماه‌به‌ماه امسال">

@@ -46,6 +46,7 @@ import { processAutoPriceRefresh } from '@/features/notifications/services/serve
 import { fetchAllUserTransactions } from '@/shared/lib/supabase/fetch-all-transactions';
 import { isOn } from '@/features/notifications/utils/notification-prefs';
 import { notifyPriceUpdates } from '@/features/notifications/services/notification-center';
+import { processPortfolioSnapshots } from '@/features/portfolio-history/services/snapshot-job';
 
 
 
@@ -442,6 +443,13 @@ export async function processScheduledNotifications(): Promise<{
 
   const priceRefreshResult = await processAutoPriceRefresh();
   errors.push(...priceRefreshResult.errors);
+  // Net-worth history: after prices are fresh, before messages.
+  try {
+    const snap = await processPortfolioSnapshots();
+    errors.push(...snap.errors);
+  } catch (err) {
+    errors.push(`snapshots:${err instanceof Error ? err.message : String(err)}`);
+  }
   try {
     await notifyPriceUpdates(priceRefreshResult.perUser);
   } catch (err) {
