@@ -79,6 +79,22 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://YOUR_DOMAIN/api/cron/no
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://YOUR_DOMAIN/api/cron/evening         # 23:00 job
 ```
 
+## Net-worth history
+
+`portfolio_snapshots` keeps one row per user per Tehran day (written by the 10:00 job after the price refresh) and 12 past month-ends (backfill on first open of «سود و زیان»). The trend card shows USD (default) or Toman.
+
+## Personal MCP (Claude connector)
+
+`/api/mcp` is a stateless Streamable HTTP MCP server for one user.
+
+1. In the app: **Settings → اتصال به Claude → ساخت آدرس**. Copy the URL (shown once; it holds the secret key).
+2. In claude.ai: **Settings → Connectors → Add custom connector**, paste the URL.
+
+- Auth: `?key=` or `Authorization: Bearer`. Only the SHA-256 hash is stored (`mcp_tokens`). A new key revokes the old one.
+- Read tools: overview, assets, goals, transactions, cash flow, upcoming dues, budget, reference ids.
+- Write tools: add/edit/delete transaction, set/delete goal, settle cheque/installment/subscription, set asset price. Same validation as the app form. Deletes need `confirm: true`.
+- Every write (also failed ones) goes to `mcp_audit` and shows on the settings page.
+
 ## Deploy on Vercel
 
 Crons are defined in [`vercel.json`](vercel.json): `30 6 * * *` UTC = 10:00 Tehran (`/api/cron/notifications`) and `30 19 * * *` UTC = 23:00 Tehran (`/api/cron/evening`). On the Hobby plan Vercel may run a cron any time within that hour.

@@ -19,9 +19,10 @@ const PUBLIC_ROUTES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+  // /api/mcp checks its own secret key; /api/mcp/token still needs a login.
+  const isPublic =
+    pathname === '/api/mcp' ||
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   if (isPublic) {
     return NextResponse.next({ request });
   }

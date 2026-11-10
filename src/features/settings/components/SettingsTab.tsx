@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, Button, List, ListRow, Section, SegmentedControl, TopBar, useConfirm } from '@/design-system';
-import { Bell, LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
+import { Bell, Lightbulb, LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
 import { useAuth, useUI } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
@@ -78,13 +78,20 @@ export function SettingsTab() {
           </List>
         </Section>
 
-        <Section title="اعلان‌ها">
+        <Section title="اعلان‌ها و اتصال‌ها">
           <List>
             <ListRow
               render={<Link href="/settings/notifications" />}
               leading={<Avatar size="sm" tone="mint" fallback={<Bell />} />}
               title="اعلان‌ها و یادآوری‌ها"
               subtitle="تلگرام، اپ، و اینکه چه چیزی خبرت کنیم"
+              size="sm"
+            />
+            <ListRow
+              render={<Link href="/settings/mcp" />}
+              leading={<Avatar size="sm" tone="lilac" fallback={<Lightbulb />} />}
+              title="اتصال به Claude"
+              subtitle="Claude دفترت را بخواند و تراکنش ثبت کند"
               size="sm"
             />
           </List>

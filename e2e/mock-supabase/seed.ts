@@ -70,6 +70,8 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
     budget_envelopes: [],
     budget_allocations: [],
     portfolio_snapshots: [],
+    mcp_tokens: [],
+    mcp_audit: [],
     wallet_savings_pots: [],
     price_sources: [],
     price_source_settings: [],
