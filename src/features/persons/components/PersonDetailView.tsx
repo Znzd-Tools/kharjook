@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Amount, Avatar, Button, EmptyState, IconButton, List, ListRow, Section, Text, TopBar } from '@/design-system';
+import { Avatar, Button, EmptyState, IconButton, List, ListRow, Section, Text, TopBar } from '@/design-system';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Pencil, Trash2 } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -11,6 +11,9 @@ import { useToast } from '@/shared/components/Toast';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
+import { personCurrency } from '@/shared/utils/person-currency';
+import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
+import { PersonAmount } from './PersonAmount';
 import {
   buildPersonSettleTransactionUrl,
   pickDefaultSettleWallet,
@@ -36,7 +39,8 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
   const { persons, wallets, assets, categories, transactions, setTransactions } = useData();
 
   const person = persons.find((p) => p.id === personId);
-  const defaultWallet = useMemo(() => pickDefaultSettleWallet(wallets), [wallets]);
+  const currency = personCurrency(person);
+  const defaultWallet = useMemo(() => pickDefaultSettleWallet(wallets, currency), [wallets, currency]);
 
   const balance = useMemo(
     () => (person ? calculatePersonBalance(person, transactions) : 0),
@@ -61,7 +65,9 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
     );
   }
 
-  const status = balance > 0.5 ? 'به تو بدهکار است' : balance < -0.5 ? 'تو به او بدهکاری' : 'تسویه است';
+  // Below one cent / half a toman counts as settled.
+  const eps = currency === 'IRT' ? 0.5 : 0.005;
+  const status = balance > eps ? 'به تو بدهکار است' : balance < -eps ? 'تو به او بدهکاری' : 'تسویه است';
 
   const openSettle = () => {
     if (!defaultWallet) {
@@ -102,11 +108,16 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
           <Text variant="caption" tone="subtle">
             مانده حساب
           </Text>
-          <Amount value={Math.abs(balance)} size="lg" tone={balance > 0.5 ? 'positive' : balance < -0.5 ? 'negative' : 'default'} />
+          <PersonAmount currency={currency} value={Math.abs(balance)} size="lg" tone={balance > eps ? 'positive' : balance < -eps ? 'negative' : 'default'} />
+          {currency !== 'IRT' && (
+            <Text variant="caption" tone="subtle">
+              حساب به {CURRENCY_META[currency].label}
+            </Text>
+          )}
           <Text variant="callout" tone="muted">
             {status}
           </Text>
-          {Math.abs(balance) > 0.5 && (
+          {Math.abs(balance) > eps && (
             <Button onClick={openSettle} className="mt-1">
               {balance > 0 ? 'دریافت تسویه' : 'پرداخت تسویه'}
             </Button>
@@ -132,7 +143,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
                     subtitle={[tx.date_string, tx.note].filter(Boolean).join(' · ')}
                     trailing={
                       <span className="flex flex-col items-end gap-1">
-                        <Amount value={isOut ? -Math.abs(amount) : Math.abs(amount)} size="sm" tone="auto" signed={!isOut} compact />
+                        <PersonAmount currency={currency} value={isOut ? -Math.abs(amount) : Math.abs(amount)} size="sm" tone="auto" signed={!isOut} compact />
                         <span className="flex">
                           <IconButton size="sm" aria-label="ویرایش" icon={<Pencil />} onClick={() => router.push(`/transactions/${tx.id}/edit`)} />
                           <IconButton size="sm" aria-label="حذف" icon={<Trash2 />} onClick={() => void deleteTx(tx.id)} />

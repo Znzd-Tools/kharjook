@@ -14,7 +14,7 @@ import { undoTransactionDelete, undoTransactionInsert } from '@/features/transac
  */
 export function useTransactionActions() {
   const { user } = useAuth();
-  const { setTransactions, wallets, currencyRates } = useData();
+  const { setTransactions, wallets, currencyRates, persons } = useData();
   const { usdRate } = useUI();
 
   const remove = useCallback(
@@ -60,7 +60,8 @@ export function useTransactionActions() {
         user.id,
         wallets,
         currencyRates,
-        usdRate
+        usdRate,
+        persons
       );
       const { data, error } = await supabase.from('transactions').insert([payload]).select();
       if (error || !data) {
@@ -80,7 +81,7 @@ export function useTransactionActions() {
         },
       });
     },
-    [user, usdRate, wallets, currencyRates, setTransactions]
+    [user, usdRate, wallets, currencyRates, persons, setTransactions]
   );
 
   /** Set one category on many income/expense rows. */

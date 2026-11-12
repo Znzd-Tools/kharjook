@@ -1,0 +1,45 @@
+import { dbRows, expect, open, test } from './fixtures';
+
+type Tx = Record<string, unknown> & { id: string };
+type P = { id: string; name: string; currency?: string };
+
+const newRows = async (before: Tx[]) => {
+  const ids = new Set(before.map((t) => t.id));
+  return (await dbRows<Tx>('transactions')).filter((t) => !ids.has(t.id));
+};
+
+test('USD person: lend 50 USD, balance shows in USD, return mirrors the amount', async ({ page }) => {
+  const before = await dbRows<Tx>('transactions');
+  // Lend: USD wallet → USD person. Same currency, so no second amount field.
+  await open(page, '/transactions/new?type=TRANSFER');
+  await page.getByRole('group', { name: 'از' }).getByRole('button', { name: 'دلاری', exact: true }).click();
+  await page.getByRole('group', { name: 'به' }).getByRole('button', { name: 'بیشتر…' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /سارا/ }).click();
+  await page.getByLabel('مبلغ انتقال', { exact: true }).fill('50');
+  await expect(page.getByText('مبلغ دریافتی مقصد')).toHaveCount(0);
+  await expect(page.getByText('موجودی: $۰')).toBeVisible();
+  await page.getByRole('button', { name: 'ثبت انتقال' }).click();
+  await expect.poll(async () => (await newRows(before)).length).toBe(1);
+  expect((await newRows(before))[0]).toMatchObject({ source_wallet_id: 'w-usd', target_person_id: 'p-usd', source_amount: 50, target_amount: 50 });
+
+  // Person page: balance in USD, and settle opens with the USD wallet.
+  await open(page, '/deadlines/persons/p-usd');
+  await expect(page.getByLabel('مانده حساب').getByText('به تو بدهکار است')).toBeVisible();
+  await expect(page.getByLabel('مانده حساب').getByText('حساب به دلار آمریکا')).toBeVisible();
+  await expect(page.getByLabel('مانده حساب').locator('[aria-label*="$"], [aria-label*="دلار"]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'دریافت تسویه' }).click();
+  await expect(page).toHaveURL(/walletId=w-usd.*amount=50/);
+});
+
+test('persons form: pick a currency for a new person; locked once it has transactions', async ({ page }) => {
+  await open(page, '/deadlines/persons');
+  await page.getByLabel('نام شخص').fill('رضا');
+  await page.getByRole('radio', { name: 'دلار آمریکا' }).click();
+  await page.getByRole('button', { name: 'ذخیره شخص' }).click();
+  await expect.poll(async () => (await dbRows<P>('persons')).find((p) => p.name === 'رضا')?.currency).toBe('USD');
+
+  // علی has transactions in Toman → currency cannot change.
+  await page.getByRole('button', { name: 'ویرایش علی' }).click();
+  await expect(page.getByText('ارز حسابش قابل تغییر نیست')).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'دلار آمریکا' })).toBeDisabled();
+});

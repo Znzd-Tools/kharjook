@@ -1,12 +1,13 @@
-import type { Wallet } from '@/shared/types/domain';
+import type { Currency, Wallet } from '@/shared/types/domain';
 
 export type PersonSettleSide = 'source' | 'target';
 
-export function pickDefaultSettleWallet(wallets: Wallet[]): Wallet | null {
+/** First active wallet in the person's currency; else the first IRT one; else any. */
+export function pickDefaultSettleWallet(wallets: Wallet[], currency: Currency = 'IRT'): Wallet | null {
   const active = wallets
     .filter((w) => !w.archived_at)
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  return active.find((w) => w.currency === 'IRT') ?? active[0] ?? null;
+  return active.find((w) => w.currency === currency) ?? active.find((w) => w.currency === 'IRT') ?? active[0] ?? null;
 }
 
 /** Positive balance => person pays (source). Negative => person receives (target). */

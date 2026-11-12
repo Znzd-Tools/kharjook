@@ -17,7 +17,10 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
     assets: clone(assets).map((a, i) => ({ ...a, order_index: i, created_at: now })),
     // Realistic balance for the main wallet (the golden fixture overspends it on purpose).
     wallets: clone(wallets).map((w, i) => ({ ...w, ...(w.id === 'w-irt' ? { initial_balance: 2_000_000_000 } : {}), order_index: i, card_number: null, account_number: null, iban: null, account_owner_name: null })),
-    persons: clone(persons),
+    persons: [
+      ...clone(persons),
+      { id: 'p-usd', user_id: 'u1', name: 'سارا', currency: 'USD', order_index: 1, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' },
+    ],
     categories: clone(categories).map((c, i) => ({ ...c, order_index: i, created_at: now })),
     currency_rates: clone(currencyRates),
     currency_rate_history: [],

@@ -1,4 +1,5 @@
-import type { CurrencyRate, Wallet } from '@/shared/types/domain';
+import type { CurrencyRate, Person, Wallet } from '@/shared/types/domain';
+import { currencyTomanRate, personCurrency } from '@/shared/utils/person-currency';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import type { EndpointKind } from '@/features/transactions/components/EndpointSheetPicker';
 
@@ -30,7 +31,8 @@ export function computeExpenseAmountSnapshots(
   form: ExpenseFormFields,
   wallets: Wallet[],
   currencyRates: CurrencyRate[],
-  fallbackUsdRate: number
+  fallbackUsdRate: number,
+  persons: Pick<Person, 'id' | 'currency'>[] = []
 ): { toman: number | null; usd: number | null } {
   const usdRate = Number(form.usdRate);
   const validUsdRate = Number.isFinite(usdRate) && usdRate > 0 ? usdRate : null;
@@ -66,7 +68,10 @@ export function computeExpenseAmountSnapshots(
   }
 
   if (form.sourceKind === 'person') {
-    return computeFromAmountPrice(amount, 1);
+    const cur = personCurrency(persons.find((p) => p.id === form.sourceId));
+    const rate = currencyTomanRate(cur, currencyRates, fallbackUsdRate, form.usdRate);
+    if (!(rate > 0)) return { toman: null, usd: null };
+    return computeFromAmountPrice(amount, rate);
   }
 
   return { toman: null, usd: null };

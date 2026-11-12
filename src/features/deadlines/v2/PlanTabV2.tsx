@@ -36,10 +36,12 @@ import { supabase } from '@/shared/lib/supabase/client';
 import type { Loan, LoanInstallment } from '@/shared/types/domain';
 import { todayJalaali, formatJalaaliHuman, parseJalaali } from '@/shared/utils/jalali';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
-import { useData } from '@/features/portfolio/PortfolioProvider';
+import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { rankEndpoints } from '@/features/transactions/utils/usage-stats';
 import { buildPersonSettleTransactionUrl, pickDefaultSettleWallet } from '@/features/persons/utils/person-settle-prefill';
 import { DeadlineAmount, deadlineToman } from './DeadlineAmount';
+import { currencyTomanRate, personCurrency } from '@/shared/utils/person-currency';
+import { PersonAmount } from '@/features/persons/components/PersonAmount';
 import { useSettleDeadline } from '@/features/deadlines/hooks/use-settle-deadline';
 import { BUCKET_LABEL, buildTimeline, daysLeftLabel, type TimelineBucket, type TimelineItem } from '@/features/deadlines/utils/timeline';
 
@@ -61,6 +63,7 @@ const HUBS = [
 export function PlanTabV2() {
   const router = useRouter();
   const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, currencyRates } = useData();
+  const { usdRate } = useUI();
   const today = useMemo(() => todayJalaali(), []);
 
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -147,15 +150,19 @@ export function PlanTabV2() {
 
   const buckets: TimelineBucket[] = ['overdue', 'week', 'month', 'later'];
   const debts = persons
-    .map((p) => ({ person: p, balance: calculatePersonBalance(p, transactions) }))
-    .filter((x) => Math.abs(x.balance) > 0.5);
-  const settleWallet = pickDefaultSettleWallet(wallets)?.id ?? defaultWallet;
+    .map((p) => {
+      const currency = personCurrency(p);
+      const balance = calculatePersonBalance(p, transactions);
+      // Totals are in Toman; a USD person converts at today's rate.
+      return { person: p, currency, balance, toman: balance * currencyTomanRate(currency, currencyRates, usdRate) };
+    })
+    .filter((x) => Math.abs(x.balance) > (x.currency === 'IRT' ? 0.5 : 0.005));
 
   const shown = items.filter(
     (i) => kindFilter === 'all' || i.kind === kindFilter
   );
-  const owedToMe = debts.filter((d) => d.balance > 0).reduce((s2, d) => s2 + d.balance, 0);
-  const iOwe = debts.filter((d) => d.balance < 0).reduce((s2, d) => s2 - d.balance, 0);
+  const owedToMe = debts.filter((d) => d.balance > 0).reduce((s2, d) => s2 + d.toman, 0);
+  const iOwe = debts.filter((d) => d.balance < 0).reduce((s2, d) => s2 - d.toman, 0);
 
   return (
     <div className="space-y-5 px-(--ds-gutter) pt-1 pb-6">
@@ -338,7 +345,8 @@ export function PlanTabV2() {
       {view === 'people' && debts.length > 0 && (
         <Section title="طلب و بدهی" action={<Button variant="link" size="sm" render={<Link href="/deadlines/persons" />} nativeButton={false}>همه اشخاص</Button>}>
           <List>
-            {debts.map(({ person, balance }) => {
+            {debts.map(({ person, balance, currency }) => {
+              const settleWallet = pickDefaultSettleWallet(wallets, currency)?.id ?? defaultWallet;
               const url = settleWallet ? buildPersonSettleTransactionUrl({ personId: person.id, walletId: settleWallet, balance }) : null;
               return (
                 <ListRow
@@ -353,7 +361,7 @@ export function PlanTabV2() {
                   subtitle={balance > 0 ? 'به تو بدهکار است' : 'تو بدهکاری'}
                   trailing={
                     <span className="flex flex-col items-end gap-1.5">
-                      <Amount value={Math.abs(balance)} size="sm" compact tone={balance > 0 ? 'positive' : 'negative'} />
+                      <PersonAmount currency={currency} value={Math.abs(balance)} size="sm" compact tone={balance > 0 ? 'positive' : 'negative'} />
                       {url && (
                         <Button size="sm" variant="soft" onClick={() => router.push(url)}>
                           تسویه

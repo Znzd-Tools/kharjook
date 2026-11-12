@@ -153,6 +153,8 @@ export interface Person {
   id: string;
   user_id: string;
   name: string;
+  /** Balance with this person is kept in this currency. Missing = IRT. */
+  currency?: Currency;
   order_index?: number;
   created_at: string;
   updated_at: string;

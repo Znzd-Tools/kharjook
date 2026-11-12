@@ -114,7 +114,7 @@ export function useTransactionRow({
       const existing = Number(prev.priceToman);
       if (Number.isFinite(existing) && existing > 0) return prev;
       const next = { ...prev, priceToman: canonicalNumber(market) };
-      return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+      return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate, persons);
     });
   }, [
     assets,
@@ -124,6 +124,7 @@ export function useTransactionRow({
     form.targetKind,
     form.type,
     onChange,
+    persons,
     sourceAsset,
     targetAsset,
     usdRate,
@@ -155,7 +156,7 @@ export function useTransactionRow({
             return recomputeMoneySide(next, wallets, currencyRates, usdRate);
           }
           if (next.type === 'TRANSFER') {
-            return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+            return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate, persons);
           }
         }
         return next;
@@ -183,7 +184,7 @@ export function useTransactionRow({
           key === 'priceToman' ||
           key === 'usdRate')
       ) {
-        return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+        return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate, persons);
       }
       return next;
     });
@@ -199,7 +200,7 @@ export function useTransactionRow({
           return recomputeMoneySide(next, wallets, currencyRates, usdRate);
         }
         if (next.type === 'TRANSFER') {
-          return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+          return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate, persons);
         }
         return next;
       });
@@ -217,7 +218,7 @@ export function useTransactionRow({
         return recomputeMoneySide(next, wallets, currencyRates, usdRate);
       }
       if (next.type === 'TRANSFER') {
-        return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate);
+        return recomputeTransferTarget(next, wallets, assets, currencyRates, usdRate, persons);
       }
       return next;
     });

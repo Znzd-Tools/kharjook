@@ -98,7 +98,7 @@ export async function addTransaction(book: Book, input: TxInput): Promise<WriteR
   if (typeof f === 'string') return { ok: false, error: f };
   const err = validateForm(f, book.wallets) ?? validateSourceFunds(f, book.wallets, book.transactions, book.persons);
   if (err) return { ok: false, error: err };
-  const payload = { ...buildPayload(f, book.userId, book.wallets, book.currencyRates, book.usdRate), id: crypto.randomUUID() };
+  const payload = { ...buildPayload(f, book.userId, book.wallets, book.currencyRates, book.usdRate, book.persons), id: crypto.randomUUID() };
   const { data, error } = await createSupabaseAdminClient().from('transactions').insert(payload).select().single();
   if (error) return { ok: false, error: error.message };
   const tx = data as Transaction;
@@ -115,7 +115,7 @@ export async function updateTransaction(book: Book, id: string, patch: Omit<TxIn
   const others = book.transactions.filter((t) => t.id !== id);
   const err = validateForm(f, book.wallets) ?? validateSourceFunds(f, book.wallets, others, book.persons);
   if (err) return { ok: false, error: err };
-  const payload = buildPayload(f, book.userId, book.wallets, book.currencyRates, book.usdRate);
+  const payload = buildPayload(f, book.userId, book.wallets, book.currencyRates, book.usdRate, book.persons);
   const { error } = await createSupabaseAdminClient().from('transactions').update(payload).eq('id', id).eq('user_id', book.userId);
   if (error) return { ok: false, error: error.message };
   return { ok: true, summary: `updated ${id}` };

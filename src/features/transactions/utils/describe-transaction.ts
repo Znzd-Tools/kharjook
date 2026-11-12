@@ -39,7 +39,7 @@ function endpoint(tx: Transaction, side: 'source' | 'target', l: Lookup) {
   }
   if (personId) {
     const p = l.persons.find((x) => x.id === personId);
-    return { name: p?.name ?? 'شخص', unit: 'TOMAN' as TransactionRowView['unit'], kind: 'person' as const };
+    return { name: p?.name ?? 'شخص', unit: (p?.currency === 'USD' ? 'USD' : 'TOMAN') as TransactionRowView['unit'], kind: 'person' as const };
   }
   return null;
 }

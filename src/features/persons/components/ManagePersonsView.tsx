@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Amount, Avatar, Button, EmptyState, IconButton, Input, Section, TopBar } from '@/design-system';
+import { Avatar, Button, EmptyState, IconButton, Input, Section, SegmentedControl, Text, TopBar } from '@/design-system';
 import { Pencil, Plus, Trash2, Users } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import {
@@ -25,7 +25,10 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import { useToast } from '@/shared/components/Toast';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
-import type { Person } from '@/shared/types/domain';
+import type { Currency, Person } from '@/shared/types/domain';
+import { personCurrency } from '@/shared/utils/person-currency';
+import { CURRENCY_META, CURRENCY_ORDER } from '@/features/wallets/constants/currency-meta';
+import { PersonAmount } from './PersonAmount';
 import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
 
 export function ManagePersonsView() {
@@ -38,6 +41,7 @@ export function ManagePersonsView() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [currency, setCurrency] = useState<Currency>('IRT');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const balances = useMemo(() => {
@@ -58,7 +62,13 @@ export function ManagePersonsView() {
   const reset = () => {
     setEditingId(null);
     setName('');
+    setCurrency('IRT');
   };
+
+  const hasTransactions = (id: string) =>
+    transactions.some((tx) => tx.source_person_id === id || tx.target_person_id === id);
+  // Amounts already recorded are in the old currency; changing it would change their meaning.
+  const currencyLocked = editingId != null && hasTransactions(editingId);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +82,7 @@ export function ManagePersonsView() {
       if (editingId) {
         const { data, error } = await supabase
           .from('persons')
-          .update({ name: trimmed })
+          .update(currencyLocked ? { name: trimmed } : { name: trimmed, currency })
           .eq('id', editingId)
           .select()
           .single();
@@ -89,7 +99,7 @@ export function ManagePersonsView() {
           ) + 1;
         const { data, error } = await supabase
           .from('persons')
-          .insert({ user_id: user.id, name: trimmed, order_index: nextOrder })
+          .insert({ user_id: user.id, name: trimmed, currency, order_index: nextOrder })
           .select()
           .single();
         if (error) throw error;
@@ -141,6 +151,7 @@ export function ManagePersonsView() {
   const handleEdit = (person: Person) => {
     setEditingId(person.id);
     setName(person.name);
+    setCurrency(personCurrency(person));
   };
 
   const handleDelete = async (person: Person) => {
@@ -171,6 +182,21 @@ export function ManagePersonsView() {
         <form onSubmit={onSubmit} className="space-y-3 rounded-card bg-panel p-4">
           <p className="text-callout font-semibold text-fg">{editingId ? 'ویرایش شخص' : 'شخص جدید'}</p>
           <Input aria-label="نام شخص" placeholder="نام شخص" value={name} onChange={(e) => setName(e.target.value)} required />
+          <div className="space-y-1.5">
+            <SegmentedControl
+              aria-label="ارز حساب"
+              size="sm"
+              value={currency}
+              onValueChange={(v) => setCurrency(v as Currency)}
+              disabled={currencyLocked}
+              options={CURRENCY_ORDER.map((c) => ({ value: c, label: CURRENCY_META[c].label }))}
+            />
+            <Text variant="caption" tone="subtle">
+              {currencyLocked
+                ? 'این شخص تراکنش دارد؛ ارز حسابش قابل تغییر نیست.'
+                : 'طلب و بدهی با این شخص با همین ارز حساب می‌شود.'}
+            </Text>
+          </div>
           <div className="flex gap-2">
             <Button type="submit" loading={isSubmitting} startIcon={editingId ? undefined : <Plus />} className="flex-1">
               {editingId ? 'ثبت تغییرات' : 'ذخیره شخص'}
@@ -228,7 +254,9 @@ function SortablePersonRow({
   onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: person.id });
-  const status = balance > 0.5 ? 'به تو بدهکار است' : balance < -0.5 ? 'تو بدهکاری' : 'تسویه';
+  const currency = personCurrency(person);
+  const eps = currency === 'IRT' ? 0.5 : 0.005;
+  const status = balance > eps ? 'به تو بدهکار است' : balance < -eps ? 'تو بدهکاری' : 'تسویه';
   return (
     <li
       ref={setNodeRef}
@@ -251,7 +279,9 @@ function SortablePersonRow({
           <span className="block truncate text-callout font-semibold text-fg">{person.name}</span>
           <span className="flex items-center gap-1 text-caption text-fg-subtle">
             {status}
-            {Math.abs(balance) > 0.5 && <Amount value={Math.abs(balance)} size="xs" compact tone={balance > 0 ? 'positive' : 'negative'} />}
+            {Math.abs(balance) > eps && (
+              <PersonAmount currency={currency} value={Math.abs(balance)} size="xs" compact tone={balance > 0 ? 'positive' : 'negative'} />
+            )}
           </span>
         </span>
       </button>

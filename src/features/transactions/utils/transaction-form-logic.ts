@@ -2,6 +2,7 @@ import type {
   Asset,
   CurrencyRate,
   DailyPrice,
+  Person,
   Transaction,
   TransactionType,
   Wallet,
@@ -11,6 +12,7 @@ import {
   computeExpenseAmountSnapshots,
 } from '@/features/transactions/utils/expense-transaction';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
+import { currencyTomanRate, endpointCurrency, personCurrency } from '@/shared/utils/person-currency';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { assetHolding } from '@/features/transactions/utils/convert-transaction';
 import { parseJalaali, todayJalaali, formatJalaali } from '@/shared/utils/jalali';
@@ -229,7 +231,8 @@ export function recomputeTransferTarget(
   wallets: Wallet[],
   assets: Asset[],
   currencyRates: CurrencyRate[],
-  usdRate: number
+  usdRate: number,
+  persons: Pick<Person, 'id' | 'currency'>[] = []
 ): FormState {
   if (next.type !== 'TRANSFER') return next;
   const srcAmount = Number(next.sourceAmount);
@@ -249,11 +252,12 @@ export function recomputeTransferTarget(
     ? assets.find((a) => a.id === next.targetId)
     : null;
 
-  if (sourceWallet && targetWallet) {
-    if (sourceWallet.currency === targetWallet.currency) {
-      return { ...next, targetAmount: next.sourceAmount };
-    }
-    return next; // cross-currency wallet transfer stays user-editable
+  // Wallet/person on both sides: same currency mirrors the amount; a
+  // different currency stays user-editable (what actually arrived).
+  const srcCur = endpointCurrency(next.sourceKind, next.sourceId, wallets, persons);
+  const tgtCur = endpointCurrency(next.targetKind, next.targetId, wallets, persons);
+  if (srcCur && tgtCur) {
+    return srcCur === tgtCur ? { ...next, targetAmount: next.sourceAmount } : next;
   }
 
   if (sourceAsset && targetWallet) {
@@ -437,7 +441,8 @@ export function computeAmountSnapshots(
   form: FormState,
   wallets: Wallet[],
   currencyRates: CurrencyRate[],
-  fallbackUsdRate: number
+  fallbackUsdRate: number,
+  persons: Pick<Person, 'id' | 'currency'>[] = []
 ): { toman: number | null; usd: number | null } {
   const usdRate = Number(form.usdRate);
   const validUsdRate = Number.isFinite(usdRate) && usdRate > 0 ? usdRate : null;
@@ -484,13 +489,16 @@ export function computeAmountSnapshots(
         return computeFromAmountPrice(amount, price);
       }
       if (form.targetKind === 'person') {
-        return computeFromAmountPrice(amount, 1);
+        const cur = personCurrency(persons.find((p) => p.id === form.targetId));
+        const rate = currencyTomanRate(cur, currencyRates, fallbackUsdRate, form.usdRate);
+        if (!(rate > 0)) return { toman: null, usd: null };
+        return computeFromAmountPrice(amount, rate);
       }
       return { toman: null, usd: null };
     }
 
     case 'EXPENSE':
-      return computeExpenseAmountSnapshots(form, wallets, currencyRates, fallbackUsdRate);
+      return computeExpenseAmountSnapshots(form, wallets, currencyRates, fallbackUsdRate, persons);
 
     case 'TRANSFER':
       return { toman: null, usd: null };
@@ -502,7 +510,8 @@ export function buildPayload(
   userId: string,
   wallets: Wallet[],
   currencyRates: CurrencyRate[],
-  fallbackUsdRate: number
+  fallbackUsdRate: number,
+  persons: Pick<Person, 'id' | 'currency'>[] = []
 ): Record<string, unknown> {
   // Polymorphic columns default to NULL — the per-type switch below fills
   // only the fields that apply. Legacy `asset_id` / `amount` / `price_toman`
@@ -641,7 +650,7 @@ export function buildPayload(
       break;
   }
 
-  const snap = computeAmountSnapshots(form, wallets, currencyRates, fallbackUsdRate);
+  const snap = computeAmountSnapshots(form, wallets, currencyRates, fallbackUsdRate, persons);
   base.amount_toman_at_time = snap.toman;
   base.amount_usd_at_time = snap.usd;
 

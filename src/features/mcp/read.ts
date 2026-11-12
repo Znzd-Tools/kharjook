@@ -3,6 +3,8 @@
  * app screens, so Claude sees exactly the numbers the app shows.
  */
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
+import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
+import { personCurrency } from '@/shared/utils/person-currency';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { formatJalaali, jalaaliOfDate, todayJalaali } from '@/shared/utils/jalali';
@@ -251,6 +253,12 @@ export function getReference(book: Book) {
     wallets: book.wallets.map((w) => ({ id: w.id, name: w.name, currency: w.currency, balance: r2(calculateWalletStats(w, book.transactions).balance) })),
     assets: book.assets.map((a) => ({ id: a.id, name: a.name, unit: a.unit, group_id: a.category_id })),
     categories: book.categories.map((c) => ({ id: c.id, name: c.name, kind: c.kind, parent_id: c.parent_id })),
-    persons: book.persons.map((p) => ({ id: p.id, name: p.name })),
+    persons: book.persons.map((p) => ({
+      id: p.id,
+      name: p.name,
+      currency: personCurrency(p),
+      /** > 0: owes the user; < 0: the user owes. In the person's currency. */
+      balance: calculatePersonBalance(p, book.transactions),
+    })),
   };
 }

@@ -40,6 +40,8 @@ import { supabase } from '@/shared/lib/supabase/client';
 import type { Transaction, TransactionType } from '@/shared/types/domain';
 import { addDays, formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@/shared/utils/jalali';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
+import { endpointCurrency } from '@/shared/utils/person-currency';
+import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { useAuth, useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-alert';
 import { EndpointSheetPicker, type EndpointKind } from '@/features/transactions/components/EndpointSheetPicker';
@@ -364,7 +366,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
     // Client-made id: a retry from the offline queue can never duplicate the row.
     let queued: Record<string, unknown> | null = null;
     try {
-      const payload = buildPayload(form, user.id, wallets, currencyRates, usdRate);
+      const payload = buildPayload(form, user.id, wallets, currencyRates, usdRate, persons);
       if (isEdit && txToEdit) {
         const { data, error } = await supabase.from('transactions').update(payload).eq('id', txToEdit.id).select().single();
         if (error) throw error;
@@ -413,8 +415,16 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
   const isConvert = uiMode === CONVERT_UI_MODE;
   const primaryValue = row.primarySide === 'source' ? form.sourceAmount : form.targetAmount;
   const primaryAsset = row.primarySide === 'source' ? row.sourceAsset : row.targetAsset;
-  const primaryWallet = row.primarySide === 'source' ? row.sourceWallet : row.targetWallet;
-  const moneyCurrency = primaryWallet?.currency === 'USD' ? 'USD' : 'TOMAN';
+  // Wallet or person currency on the side the user types (persons can be USD).
+  const srcCurrency = endpointCurrency(form.sourceKind, form.sourceId, wallets, persons);
+  const tgtCurrency = endpointCurrency(form.targetKind, form.targetId, wallets, persons);
+  const primaryCurrency = row.primarySide === 'source' ? srcCurrency : tgtCurrency;
+  const moneyCurrency = primaryCurrency === 'USD' ? 'USD' : 'TOMAN';
+  const primaryUnitLabel = primaryAsset
+    ? primaryAsset.unit
+    : primaryCurrency === 'TRY' || primaryCurrency === 'EUR'
+      ? CURRENCY_META[primaryCurrency].label
+      : undefined;
   const buyTotalMode = type === 'BUY' && buyBy === 'total' && (!row.sourceWallet || row.sourceWallet.currency === 'IRT');
   const unitPrice = Number(form.priceToman);
 
@@ -451,10 +461,12 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
   const summary = [dateObj ? formatJalaaliHuman(dateObj) : form.date, form.note ? form.note.slice(0, 24) : 'بدون یادداشت'].join(' · ');
 
   const priceRequiredVisible = row.pricing.needsPrice && (type === 'BUY' || type === 'SELL' || !(unitPrice > 0));
+  // Wallet/person on both sides with the same currency: the target mirrors
+  // the source, so no second field. Persons have their own currency now.
   const crossCurrencyTarget =
     type === 'TRANSFER' &&
     !(
-      (row.sourceWallet && row.targetWallet && row.sourceWallet.currency === row.targetWallet.currency) ||
+      (srcCurrency && tgtCurrency && srcCurrency === tgtCurrency) ||
       (row.sourceWallet && row.targetAsset) ||
       (row.sourceAsset && row.targetWallet)
     );
@@ -482,7 +494,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
         labelEnd={
           balance != null && current.id ? (
             <span className={cn('tabular', side === 'source' && row.isInsufficient && 'text-negative-ink')}>
-              موجودی: {formatMoney(balance, { currency: (side === 'source' ? row.sourceWallet : row.targetWallet)?.currency === 'USD' ? 'USD' : 'TOMAN', compact: true }).text}
+              موجودی: {formatMoney(balance, { currency: (side === 'source' ? srcCurrency : tgtCurrency) === 'USD' ? 'USD' : 'TOMAN', compact: true }).text}
             </span>
           ) : optional ? (
             'اختیاری'
@@ -622,7 +634,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
                   value={primaryValue}
                   onValueChange={row.setPrimaryAmount}
                   currency={moneyCurrency}
-                  unitLabel={primaryAsset ? primaryAsset.unit : undefined}
+                  unitLabel={primaryUnitLabel}
                   autoFocus={!isEdit && !text}
                 />
               )}
@@ -705,7 +717,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
                   dir="ltr"
                   value={form.targetAmount}
                   onChange={(e) => row.setTargetAmountRaw(e.target.value)}
-                  endAdornment={row.targetWallet?.currency ?? row.targetAsset?.unit ?? ''}
+                  endAdornment={tgtCurrency ? CURRENCY_META[tgtCurrency].symbol : (row.targetAsset?.unit ?? '')}
                 />
               </Field>
             )}
