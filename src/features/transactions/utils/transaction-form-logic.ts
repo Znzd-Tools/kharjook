@@ -14,6 +14,7 @@ import {
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { currencyTomanRate, endpointCurrency, personCurrency } from '@/shared/utils/person-currency';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
+import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
 import { assetHolding } from '@/features/transactions/utils/convert-transaction';
 import { parseJalaali, todayJalaali, formatJalaali } from '@/shared/utils/jalali';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
@@ -299,7 +300,7 @@ export function sourceBalance(
   form: FormState,
   wallets: Wallet[],
   transactions: Transaction[],
-  persons: { id: string }[]
+  persons: Pick<Person, 'id' | 'initial_balance'>[]
 ): number | null {
   if (form.sourceKind === 'wallet' && form.sourceId) {
     const w = wallets.find((x) => x.id === form.sourceId);
@@ -310,18 +311,9 @@ export function sourceBalance(
     return assetHolding(form.sourceId, transactions);
   }
   if (form.sourceKind === 'person' && form.sourceId) {
-    const personExists = persons.some((p) => p.id === form.sourceId);
-    if (!personExists) return null;
-    let balance = 0;
-    for (const tx of transactions) {
-      if (tx.target_person_id === form.sourceId) {
-        balance += Number(tx.target_amount) || 0;
-      }
-      if (tx.source_person_id === form.sourceId) {
-        balance -= Number(tx.source_amount) || 0;
-      }
-    }
-    return balance;
+    const person = persons.find((p) => p.id === form.sourceId);
+    if (!person) return null;
+    return calculatePersonBalance(person, transactions);
   }
   return null;
 }

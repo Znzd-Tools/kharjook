@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar, Button, EmptyState, IconButton, Input, Section, SegmentedControl, Text, TopBar } from '@/design-system';
+import { AmountField, Avatar, Button, EmptyState, Field, IconButton, Input, Section, SegmentedControl, Text, TopBar } from '@/design-system';
 import { Pencil, Plus, Trash2, Users } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import {
@@ -42,6 +42,9 @@ export function ManagePersonsView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState<Currency>('IRT');
+  // Opening balance: amount (canonical string) + who owes whom.
+  const [openingAmount, setOpeningAmount] = useState('');
+  const [openingSide, setOpeningSide] = useState<'owesMe' | 'iOwe'>('owesMe');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const balances = useMemo(() => {
@@ -63,6 +66,8 @@ export function ManagePersonsView() {
     setEditingId(null);
     setName('');
     setCurrency('IRT');
+    setOpeningAmount('');
+    setOpeningSide('owesMe');
   };
 
   const hasTransactions = (id: string) =>
@@ -77,12 +82,18 @@ export function ManagePersonsView() {
       toast.error('نام شخص الزامی است.');
       return;
     }
+    const opening = Number(openingAmount) || 0;
+    if (opening < 0) {
+      toast.error('مبلغ اولیه نامعتبر است.');
+      return;
+    }
+    const initial_balance = openingSide === 'iOwe' ? -opening : opening;
     setIsSubmitting(true);
     try {
       if (editingId) {
         const { data, error } = await supabase
           .from('persons')
-          .update(currencyLocked ? { name: trimmed } : { name: trimmed, currency })
+          .update(currencyLocked ? { name: trimmed, initial_balance } : { name: trimmed, currency, initial_balance })
           .eq('id', editingId)
           .select()
           .single();
@@ -99,7 +110,7 @@ export function ManagePersonsView() {
           ) + 1;
         const { data, error } = await supabase
           .from('persons')
-          .insert({ user_id: user.id, name: trimmed, currency, order_index: nextOrder })
+          .insert({ user_id: user.id, name: trimmed, currency, initial_balance, order_index: nextOrder })
           .select()
           .single();
         if (error) throw error;
@@ -152,6 +163,9 @@ export function ManagePersonsView() {
     setEditingId(person.id);
     setName(person.name);
     setCurrency(personCurrency(person));
+    const initial = Number(person.initial_balance) || 0;
+    setOpeningAmount(initial ? String(Math.abs(initial)) : '');
+    setOpeningSide(initial < 0 ? 'iOwe' : 'owesMe');
   };
 
   const handleDelete = async (person: Person) => {
@@ -197,6 +211,27 @@ export function ManagePersonsView() {
                 : 'طلب و بدهی با این شخص با همین ارز حساب می‌شود.'}
             </Text>
           </div>
+          <Field label="مانده اولیه" hint="بدهی قدیمی، بدون جابه‌جایی پول. خالی یعنی صفر.">
+            <AmountField
+              aria-label="مانده اولیه"
+              value={openingAmount}
+              onValueChange={setOpeningAmount}
+              currency={currency === 'USD' ? 'USD' : 'TOMAN'}
+              unitLabel={currency === 'TRY' || currency === 'EUR' ? CURRENCY_META[currency].label : undefined}
+            />
+          </Field>
+          {Number(openingAmount) > 0 && (
+            <SegmentedControl
+              aria-label="جهت مانده اولیه"
+              size="sm"
+              value={openingSide}
+              onValueChange={(v) => setOpeningSide(v as 'owesMe' | 'iOwe')}
+              options={[
+                { value: 'owesMe', label: 'او به من بدهکار است' },
+                { value: 'iOwe', label: 'من به او بدهکارم' },
+              ]}
+            />
+          )}
           <div className="flex gap-2">
             <Button type="submit" loading={isSubmitting} startIcon={editingId ? undefined : <Plus />} className="flex-1">
               {editingId ? 'ثبت تغییرات' : 'ذخیره شخص'}

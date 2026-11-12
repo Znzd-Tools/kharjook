@@ -155,6 +155,8 @@ export interface Person {
   name: string;
   /** Balance with this person is kept in this currency. Missing = IRT. */
   currency?: Currency;
+  /** Opening balance in `currency`. > 0: person owes the user; < 0: the user owes. */
+  initial_balance?: number;
   order_index?: number;
   created_at: string;
   updated_at: string;

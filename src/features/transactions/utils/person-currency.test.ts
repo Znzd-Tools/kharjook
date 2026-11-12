@@ -65,3 +65,20 @@ describe('person currency', () => {
     expect(p.amount_toman_at_time).toBe(500_000);
   });
 });
+
+describe('person opening balance', () => {
+  const tx = (o: Record<string, unknown>) => ({ id: Math.random().toString(), ...o }) as never;
+
+  it('starts from initial_balance; old persons without it start at 0', async () => {
+    const { calculatePersonBalance } = await import('@/shared/utils/calculate-person-balance');
+    const txs = [tx({ target_person_id: 'p', target_amount: 50 }), tx({ source_person_id: 'p', source_amount: 20 })];
+    expect(calculatePersonBalance({ id: 'p', initial_balance: -300 }, txs)).toBe(-270);
+    expect(calculatePersonBalance({ id: 'p' }, txs)).toBe(30);
+  });
+
+  it('a payment that clears an opening debt brings the balance to 0', async () => {
+    const { calculatePersonBalance } = await import('@/shared/utils/calculate-person-balance');
+    // I owe 300 USD; I transfer 300 USD from my wallet to the person.
+    expect(calculatePersonBalance({ id: 'p', initial_balance: -300 }, [tx({ target_person_id: 'p', target_amount: 300 })])).toBe(0);
+  });
+});

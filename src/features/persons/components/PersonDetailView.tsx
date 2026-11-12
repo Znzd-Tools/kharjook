@@ -65,6 +65,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
     );
   }
 
+  const initial = Number(person.initial_balance) || 0;
   // Below one cent / half a toman counts as settled.
   const eps = currency === 'IRT' ? 0.5 : 0.005;
   const status = balance > eps ? 'به تو بدهکار است' : balance < -eps ? 'تو به او بدهکاری' : 'تسویه است';
@@ -125,7 +126,7 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
         </section>
 
         <Section title="تراکنش‌ها">
-          {personTxs.length === 0 ? (
+          {personTxs.length === 0 && !initial ? (
             <div className="rounded-card bg-panel">
               <EmptyState icon={<ArrowLeftRight />} title="تراکنشی با این شخص نیست" description="در ثبت تراکنش، این شخص را در مبدأ یا مقصد انتخاب کن." />
             </div>
@@ -153,6 +154,15 @@ export function PersonDetailView({ personId }: PersonDetailViewProps) {
                   />
                 );
               })}
+              {initial !== 0 && (
+                <ListRow
+                  chevron={false}
+                  leading={<Avatar tone="lilac" fallback={<ArrowLeftRight />} />}
+                  title="مانده اولیه"
+                  subtitle={initial > 0 ? 'او به تو بدهکار بود' : 'تو به او بدهکار بودی'}
+                  trailing={<PersonAmount currency={currency} value={initial} size="sm" tone="auto" signed compact />}
+                />
+              )}
             </List>
           )}
         </Section>
