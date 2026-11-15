@@ -342,6 +342,7 @@ export function useHomeStats() {
       outsidePortfolioToman: wealth.outsideToman,
       totalWealthToman: totalPortfolioToman + wealth.outsideToman,
       outsideGroups: wealth.outsideGroups,
+      ignoredAssetsCount: wealth.ignoredCount,
       cashToman,
       walletsMissingRate,
       walletsOnHistoryRate,

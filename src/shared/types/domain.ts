@@ -44,6 +44,12 @@ export interface Category {
    * of the assets in the category. Omitted = in the portfolio.
    */
   in_portfolio?: boolean;
+  /**
+   * Asset categories only, and only when `in_portfolio` is false. True =
+   * "ignored": the assets kept out of the portfolio count in no total, not
+   * even total wealth (e.g. a stake with no market price).
+   */
+  ignore_in_wealth?: boolean;
   order_index?: number;
   created_at?: string;
 }

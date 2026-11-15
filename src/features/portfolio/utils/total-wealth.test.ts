@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, Category } from '@/shared/types/domain';
-import { categoryPortfolioDefault, splitWealth } from './total-wealth';
+import { categoryPortfolioDefault, categoryScope, splitWealth } from './total-wealth';
 
 const asset = (id: string, category_id: string | null, include_in_balance?: boolean) =>
   ({ id, category_id, name: id, include_in_balance }) as Asset;
-const cat = (id: string, name: string, in_portfolio?: boolean) => ({ id, name, kind: 'asset', in_portfolio }) as Category;
+const cat = (id: string, name: string, in_portfolio?: boolean, ignore_in_wealth?: boolean) =>
+  ({ id, name, kind: 'asset', in_portfolio, ignore_in_wealth }) as Category;
 
 describe('splitWealth', () => {
   const categories = [cat('metals', 'فلزات'), cat('physical', 'فیزیکی', false), cat('pledge', 'ضمانت‌ها', false)];
@@ -44,6 +45,43 @@ describe('splitWealth', () => {
     );
     expect(s.totalWealthToman).toBe(0);
     expect(s.outsideGroups).toEqual([]);
+  });
+});
+
+describe('ignored categories', () => {
+  const categories = [cat('metals', 'فلزات'), cat('pledge', 'ضمانت‌ها', false), cat('equity', 'سرمایه‌گذاری', false, true)];
+
+  it('counts an ignored asset in no total', () => {
+    const s = splitWealth(
+      [
+        { asset: asset('gold', 'metals'), valueToman: 1000 },
+        { asset: asset('rahn', 'pledge', false), valueToman: 1500 },
+        { asset: asset('stake', 'equity', false), valueToman: 440 },
+      ],
+      categories,
+      0
+    );
+    expect(s.portfolioToman).toBe(1000);
+    expect(s.outsideToman).toBe(1500);
+    expect(s.totalWealthToman).toBe(2500);
+    expect(s.outsideGroups.map((g) => g.name)).toEqual(['ضمانت‌ها']);
+    expect(s.ignoredCount).toBe(1);
+    expect(s.ignoredToman).toBe(440);
+  });
+
+  it('still counts an asset the user put in the portfolio by hand', () => {
+    const s = splitWealth([{ asset: asset('stake', 'equity', true), valueToman: 440 }], categories, 0);
+    expect(s.portfolioToman).toBe(440);
+    expect(s.ignoredCount).toBe(0);
+  });
+
+  it('reads the scope of a category', () => {
+    expect(categoryScope(null)).toBe('portfolio');
+    expect(categoryScope(cat('a', 'a'))).toBe('portfolio');
+    // The ignore flag has no effect while the category is in the portfolio.
+    expect(categoryScope(cat('a', 'a', true, true))).toBe('portfolio');
+    expect(categoryScope(cat('a', 'a', false))).toBe('wealth_only');
+    expect(categoryScope(cat('a', 'a', false, true))).toBe('ignored');
   });
 });
 
