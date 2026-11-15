@@ -461,7 +461,7 @@ export function HomeV2() {
             onClick={() => setWealthOpen(true)}
             className="ds-focus flex w-full items-center justify-between gap-3 rounded-control bg-white/20 px-3 py-2 text-caption text-fg-on-hero"
           >
-            <span>دارایی کل (با ماشین، رهن و …)</span>
+            <span>دارایی کل (با دارایی‌های خارج از سبد)</span>
             <Amount
               value={toDisplay(stats.totalWealthToman)}
               currency={cur}
@@ -990,9 +990,15 @@ export function HomeV2() {
             }
           />
         </List>
+        {stats.ignoredAssetsCount > 0 && (
+          <p className="mt-3 text-caption text-fg-muted">
+            {stats.ignoredAssetsCount.toLocaleString("fa-IR")} دارایی «نادیده» است و در هیچ جمعی
+            نیامده.
+          </p>
+        )}
         <p className="mt-3 text-caption text-fg-muted">
-          برای تغییر، در «مدیریت دسته‌بندی‌ها» گزینه‌ی «جزو سبد سرمایه‌گذاری» را برای هر دسته‌ی
-          دارایی روشن یا خاموش کن.
+          برای تغییر، در «مدیریت دسته‌بندی‌ها» برای هر دسته‌ی دارایی یکی از سه حالت «سبد»، «فقط
+          دارایی کل» یا «نادیده» را انتخاب کن.
         </p>
       </Sheet>
 
