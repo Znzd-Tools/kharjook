@@ -46,6 +46,7 @@ import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import { findPriceSourceInCatalog } from '@/features/prices/constants/price-sources';
+import { categoryPortfolioDefault } from '@/features/portfolio/utils/total-wealth';
 
 export function ManageAssetsView() {
   const router = useRouter();
@@ -567,9 +568,10 @@ export function ManageAssetsView() {
 
           <label className="flex items-center justify-between bg-surface-hover border border-white/5 rounded-xl p-3 cursor-pointer">
             <div>
-              <p className="text-sm text-slate-200">شامل در ارزش کل سبد</p>
+              <p className="text-sm text-slate-200">جزو سبد سرمایه‌گذاری</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                خاموش: در جمع داشبورد لحاظ نمی‌شود
+                خاموش: فقط در «دارایی کل» می‌آید، نه در سبد و اهداف. پیش‌فرض از دسته‌بندی
+                می‌آید.
               </p>
             </div>
             <input
@@ -661,9 +663,13 @@ export function ManageAssetsView() {
         kind="asset"
         categories={categories}
         value={formData.categoryId || null}
-        onSelect={(id) =>
-          setFormData({ ...formData, categoryId: id ?? '' })
-        }
+        onSelect={(id) => {
+          // A category outside the portfolio keeps its assets out by default.
+          const picked = id ? categories.find((c) => c.id === id) : null;
+          const includeInBalance = categoryPortfolioDefault(picked);
+          setFormData({ ...formData, categoryId: id ?? '', includeInBalance });
+          if (!includeInBalance) setShowAdvanced(true);
+        }}
         allowNone
         noneLabel="بدون دسته"
       />
