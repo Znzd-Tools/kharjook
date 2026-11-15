@@ -4,7 +4,10 @@ const main = (page: import('@playwright/test').Page) => page.getByRole('main');
 
 test('home shows the main blocks', async ({ page }) => {
   await open(page, '/');
-  await expect(main(page)).toContainText('ارزش کل دارایی');
+  // The fixture has an asset kept out of the portfolio, so the hero shows
+  // the investment portfolio and a separate total-wealth row.
+  await expect(main(page)).toContainText('سبد سرمایه‌گذاری');
+  await expect(main(page)).toContainText('دارایی کل');
   for (const name of ['سود و زیان', 'این ماه', 'تغییر ارزش این ماه', '۷ روز آینده', 'ترکیب سبد', 'جریان نقدی امسال']) {
     await expect(page.getByRole('region', { name, exact: true })).toBeVisible();
   }
