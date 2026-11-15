@@ -15,6 +15,7 @@ import { validateGoalSet } from '@/features/goals/utils/goal-validation';
 import { buildTimeline } from '@/features/deadlines/utils/timeline';
 import { describeTransaction } from '@/features/transactions/utils/describe-transaction';
 import { buildBudgetMonth, monthKey } from '@/features/budget/utils/budget';
+import { splitWealth } from '@/features/portfolio/utils/total-wealth';
 import type { Book } from './book';
 
 const r0 = (n: number) => Math.round(n);
@@ -36,10 +37,13 @@ function cashToman(book: Book) {
 }
 
 export function getOverview(book: Book) {
-  const hs = holdings(book).filter(({ asset }) => asset.include_in_balance !== false);
+  const all = holdings(book);
+  const hs = all.filter(({ asset }) => asset.include_in_balance !== false);
   const assetsToman = hs.reduce((s, h) => s + h.st.currentValueToman, 0);
   const cash = cashToman(book);
   const total = assetsToman + cash;
+  const wealth = splitWealth(all.map((h) => ({ asset: h.asset, valueToman: h.st.currentValueToman })), book.categories, cash);
+  const totalWealth = total + wealth.outsideToman;
   const groupName = (id: string | null) => book.categories.find((c) => c.id === id)?.name ?? 'بدون گروه';
   const byGroup = new Map<string, number>();
   for (const h of hs) byGroup.set(groupName(h.asset.category_id), (byGroup.get(groupName(h.asset.category_id)) ?? 0) + h.st.currentValueToman);
@@ -55,6 +59,13 @@ export function getOverview(book: Book) {
     date: today(),
     usd_rate_toman: book.usdRate,
     net_worth: { toman: r0(total), usd: book.usdRate ? r2(total / book.usdRate) : null },
+    total_wealth: {
+      note: 'net_worth (the investment portfolio) plus the assets kept out of it (car, deposit, private equity ...). Debts are not subtracted. Goals and allocation use net_worth only.',
+      toman: r0(totalWealth),
+      usd: book.usdRate ? r2(totalWealth / book.usdRate) : null,
+      outside_portfolio_toman: r0(wealth.outsideToman),
+      outside_portfolio_by_group: wealth.outsideGroups.map((g) => ({ group: g.name, toman: r0(g.valueToman) })),
+    },
     cash_toman: r0(cash),
     assets_toman: r0(assetsToman),
     allocation_by_group: [...byGroup.entries()]

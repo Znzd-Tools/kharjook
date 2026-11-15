@@ -13,6 +13,7 @@ import { computeYtdUnrealizedSummary } from '@/features/reports/utils/ytd-unreal
 import { computeAssetPnl } from '@/features/reports/utils/asset-pnl';
 import { walletRateNow } from '@/features/rates/utils/wallet-rate';
 import { buildGoalBuySuggestion } from '@/features/goals/utils/goal-action-suggestion';
+import { splitWealth, type AssetValueRow } from '@/features/portfolio/utils/total-wealth';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
 import { clampPeriodToToday, currentPeriod } from '@/shared/utils/period';
@@ -52,6 +53,7 @@ export function useHomeStats() {
     const mainDistributionMap = new Map<string, number>();
     const subDistribution: { id: string; name: string; valueToman: number }[] = [];
     const assetValueById = new Map<string, number>();
+    const valueRows: AssetValueRow[] = [];
 
     // Legacy rows without a snapshot: convert at the rate of THEIR date.
     const txToToman = (
@@ -165,6 +167,7 @@ export function useHomeStats() {
           });
         }
       }
+      valueRows.push({ asset, valueToman: s.currentValueToman });
       if (asset.include_in_balance !== false) {
         assetsValueToman += s.currentValueToman;
       }
@@ -201,6 +204,8 @@ export function useHomeStats() {
     });
 
     const totalPortfolioToman = assetsValueToman + cashToman;
+    // Assets kept out of the portfolio (car, deposit ...) count only here.
+    const wealth = splitWealth(valueRows, categories, cashToman);
 
     const ytdSummary = computeYtdUnrealizedSummary(
       assets,
@@ -334,6 +339,9 @@ export function useHomeStats() {
 
     return {
       totalPortfolioToman,
+      outsidePortfolioToman: wealth.outsideToman,
+      totalWealthToman: totalPortfolioToman + wealth.outsideToman,
+      outsideGroups: wealth.outsideGroups,
       cashToman,
       walletsMissingRate,
       walletsOnHistoryRate,

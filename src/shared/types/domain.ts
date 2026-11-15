@@ -37,6 +37,13 @@ export interface Category {
   color: string;
   kind: CategoryKind;
   parent_id: string | null;
+  /**
+   * Asset categories only. False = "total wealth only": its assets are kept
+   * out of the investment portfolio (goals, allocation, net worth) and show
+   * only in total wealth. It is the default for `Asset.include_in_balance`
+   * of the assets in the category. Omitted = in the portfolio.
+   */
+  in_portfolio?: boolean;
   order_index?: number;
   created_at?: string;
 }
