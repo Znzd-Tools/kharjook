@@ -227,6 +227,32 @@ export function walletRateForTransfer(
   return tomanPerUnit(wallet.currency, currencyRates);
 }
 
+/**
+ * Toman per unit of a money endpoint: a wallet (its currency) or a person
+ * (the person's currency). 0 when unknown or not a money endpoint.
+ */
+export function moneyEndpointRate(
+  kind: string | null | undefined,
+  id: string | null | undefined,
+  wallets: Wallet[],
+  persons: Pick<Person, 'id' | 'currency'>[],
+  currencyRates: CurrencyRate[],
+  globalUsdRate: number,
+  formUsdRate?: string
+): number {
+  if (kind === 'wallet') {
+    const w = wallets.find((x) => x.id === id);
+    return w ? walletRateForTransfer(w, currencyRates, globalUsdRate, formUsdRate) : 0;
+  }
+  if (kind === 'person') {
+    const p = persons.find((x) => x.id === id);
+    return p ? currencyTomanRate(personCurrency(p), currencyRates, globalUsdRate, formUsdRate) : 0;
+  }
+  return 0;
+}
+
+const isMoneyKind = (k: string | null | undefined) => k === 'wallet' || k === 'person';
+
 export function recomputeTransferTarget(
   next: FormState,
   wallets: Wallet[],
@@ -240,12 +266,6 @@ export function recomputeTransferTarget(
   if (!Number.isFinite(srcAmount) || srcAmount <= 0) return next;
   if (!next.sourceKind || !next.sourceId || !next.targetKind || !next.targetId) return next;
 
-  const sourceWallet = next.sourceKind === 'wallet'
-    ? wallets.find((w) => w.id === next.sourceId)
-    : null;
-  const targetWallet = next.targetKind === 'wallet'
-    ? wallets.find((w) => w.id === next.targetId)
-    : null;
   const sourceAsset = next.sourceKind === 'asset'
     ? assets.find((a) => a.id === next.sourceId)
     : null;
@@ -261,13 +281,10 @@ export function recomputeTransferTarget(
     return srcCur === tgtCur ? { ...next, targetAmount: next.sourceAmount } : next;
   }
 
-  if (sourceAsset && targetWallet) {
-    const walletRate = walletRateForTransfer(
-      targetWallet,
-      currencyRates,
-      usdRate,
-      next.usdRate
-    );
+  // Asset → wallet/person: priced like a sell; wallet → asset and
+  // person → asset: priced like a buy. The money side uses its currency rate.
+  if (sourceAsset && isMoneyKind(next.targetKind)) {
+    const walletRate = moneyEndpointRate(next.targetKind, next.targetId, wallets, persons, currencyRates, usdRate, next.usdRate);
     const overridePrice = Number(next.priceToman);
     const assetPrice =
       Number.isFinite(overridePrice) && overridePrice > 0
@@ -277,13 +294,8 @@ export function recomputeTransferTarget(
     return { ...next, targetAmount: canonicalNumber((srcAmount * assetPrice) / walletRate) };
   }
 
-  if (sourceWallet && targetAsset) {
-    const walletRate = walletRateForTransfer(
-      sourceWallet,
-      currencyRates,
-      usdRate,
-      next.usdRate
-    );
+  if (isMoneyKind(next.sourceKind) && targetAsset) {
+    const walletRate = moneyEndpointRate(next.sourceKind, next.sourceId, wallets, persons, currencyRates, usdRate, next.usdRate);
     const overridePrice = Number(next.priceToman);
     const assetPrice =
       Number.isFinite(overridePrice) && overridePrice > 0
@@ -334,12 +346,6 @@ export function validateForm(form: FormState, wallets: Wallet[]): string | null 
     case 'TRANSFER':
       if (!form.sourceKind || !form.sourceId) return 'مبدأ را انتخاب کن.';
       if (!form.targetKind || !form.targetId) return 'مقصد را انتخاب کن.';
-      if (form.sourceKind === 'asset' && form.targetKind === 'person') {
-        return 'انتقال دارایی به شخص مجاز نیست.';
-      }
-      if (form.sourceKind === 'person' && form.targetKind === 'asset') {
-        return 'انتقال از شخص به دارایی مجاز نیست.';
-      }
       if (form.sourceKind === 'asset' && form.targetKind === 'asset') {
         // Asset→asset needs prices on both legs; a plain transfer has none, so
         // holdings/P&L cannot be replayed. «تبدیل» records it correctly.
@@ -569,18 +575,11 @@ export function buildPayload(
       setTarget();
       // Asset<->wallet transfer should update asset holdings/cost replay exactly
       // like a sell/buy at the implied unit price.
-      if (form.sourceKind === 'asset' && form.targetKind === 'wallet') {
+      // A person can stand where the wallet is (cash in kind with a friend).
+      if (form.sourceKind === 'asset' && isMoneyKind(form.targetKind)) {
         const qty = Number(form.sourceAmount);
         const money = Number(form.targetAmount);
-        const targetWallet = wallets.find((w) => w.id === form.targetId);
-        const walletRate = targetWallet
-          ? walletRateForTransfer(
-              targetWallet,
-              currencyRates,
-              fallbackUsdRate,
-              form.usdRate
-            )
-          : 0;
+        const walletRate = moneyEndpointRate(form.targetKind, form.targetId, wallets, persons, currencyRates, fallbackUsdRate, form.usdRate);
         const explicitPrice = Number(form.priceToman);
         const tomanFromPrice =
           Number.isFinite(explicitPrice) && explicitPrice > 0 && qty > 0
@@ -595,18 +594,10 @@ export function buildPayload(
           const u = Number(form.usdRate);
           if (u > 0) base.usd_rate = u;
         }
-      } else if (form.sourceKind === 'wallet' && form.targetKind === 'asset') {
+      } else if (isMoneyKind(form.sourceKind) && form.targetKind === 'asset') {
         const qty = Number(form.targetAmount);
         const money = Number(form.sourceAmount);
-        const sourceWallet = wallets.find((w) => w.id === form.sourceId);
-        const walletRate = sourceWallet
-          ? walletRateForTransfer(
-              sourceWallet,
-              currencyRates,
-              fallbackUsdRate,
-              form.usdRate
-            )
-          : 0;
+        const walletRate = moneyEndpointRate(form.sourceKind, form.sourceId, wallets, persons, currencyRates, fallbackUsdRate, form.usdRate);
         const explicitPrice = Number(form.priceToman);
         const tomanFromPrice =
           Number.isFinite(explicitPrice) && explicitPrice > 0 && qty > 0

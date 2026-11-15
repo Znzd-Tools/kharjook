@@ -93,14 +93,15 @@ function walletFromForm(
 
 export function pricingContextOf(form: FormState, wallets: Wallet[]): PricingContext {
   if (form.type === 'TRANSFER') {
+    // Wallet or person on the money side.
     const walletToAsset =
-      form.sourceKind === 'wallet' &&
+      (form.sourceKind === 'wallet' || form.sourceKind === 'person') &&
       form.targetKind === 'asset' &&
       !!form.sourceId &&
       !!form.targetId;
     const assetToWallet =
       form.sourceKind === 'asset' &&
-      form.targetKind === 'wallet' &&
+      (form.targetKind === 'wallet' || form.targetKind === 'person') &&
       !!form.sourceId &&
       !!form.targetId;
     if (walletToAsset) {

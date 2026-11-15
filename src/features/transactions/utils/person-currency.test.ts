@@ -82,3 +82,29 @@ describe('person opening balance', () => {
     expect(calculatePersonBalance({ id: 'p', initial_balance: -300 }, [tx({ target_person_id: 'p', target_amount: 300 })])).toBe(0);
   });
 });
+
+describe('person ↔ asset transfer', () => {
+  const assets = [{ id: 'a-usd', name: 'دلار', unit: 'عدد', price_toman: 100_000 }] as never[];
+
+  it('USD person → «دلار» asset: 100 USD gives 100 units, priced like a buy at the person rate', () => {
+    const next = f({ sourceKind: 'person', sourceId: 'p-usd', targetKind: 'asset', targetId: 'a-usd', sourceAmount: '100' });
+    const r = recomputeTransferTarget(next, wallets, assets, [], 100_000, persons);
+    expect(r.targetAmount).toBe('100');
+    const p = buildPayload({ ...r, priceToman: '' }, 'u1', wallets, [], 100_000, persons);
+    expect(p).toMatchObject({ source_person_id: 'p-usd', target_asset_id: 'a-usd', asset_id: 'a-usd', amount: 100, price_toman: 100_000 });
+  });
+
+  it('asset → USD person: priced like a sell; the person side is in USD', () => {
+    const next = f({ sourceKind: 'asset', sourceId: 'a-usd', targetKind: 'person', targetId: 'p-usd', sourceAmount: '50', priceToman: '110000' });
+    const r = recomputeTransferTarget(next, wallets, assets, [], 100_000, persons);
+    expect(r.targetAmount).toBe('55');
+    const p = buildPayload(r, 'u1', wallets, [], 100_000, persons);
+    expect(p).toMatchObject({ source_asset_id: 'a-usd', target_person_id: 'p-usd', amount: 50, price_toman: 110_000 });
+  });
+
+  it('is no longer blocked by the form check', async () => {
+    const { validateForm } = await import('@/features/transactions/utils/transaction-form-logic');
+    expect(validateForm(f({ sourceKind: 'person', sourceId: 'p-usd', targetKind: 'asset', targetId: 'a-usd', priceToman: '100000', targetAmount: '100' }), wallets)).toBeNull();
+    expect(validateForm(f({ sourceKind: 'asset', sourceId: 'a-usd', targetKind: 'person', targetId: 'p-usd', priceToman: '100000', targetAmount: '100' }), wallets)).toBeNull();
+  });
+});

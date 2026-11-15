@@ -100,9 +100,9 @@ export function useTransactionRow({
   useEffect(() => {
     if (form.type !== 'TRANSFER') return;
     const asset =
-      form.sourceKind === 'wallet' && form.targetKind === 'asset'
+      (form.sourceKind === 'wallet' || form.sourceKind === 'person') && form.targetKind === 'asset'
         ? targetAsset
-        : form.sourceKind === 'asset' && form.targetKind === 'wallet'
+        : form.sourceKind === 'asset' && (form.targetKind === 'wallet' || form.targetKind === 'person')
           ? sourceAsset
           : undefined;
     if (!asset) return;

@@ -61,3 +61,22 @@ test('opening balance: "I owe him 300 USD" is saved as -300 and shown on his pag
   await expect(page.getByText('مانده اولیه')).toBeVisible();
   await expect(page.getByRole('button', { name: 'پرداخت تسویه' })).toBeVisible();
 });
+
+test('person → asset: USD person gives 100 cash dollars into the «دلار» asset', async ({ page }) => {
+  const before = await dbRows<Tx>('transactions');
+  await open(page, '/transactions/new?type=TRANSFER');
+  await page.getByRole('group', { name: 'از' }).getByRole('button', { name: 'بیشتر…' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /سارا/ }).click();
+  await page.getByRole('group', { name: 'به' }).getByRole('button', { name: 'بیشتر…' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^دلار دلار/ }).click();
+  await page.getByLabel('مبلغ انتقال', { exact: true }).fill('100');
+  await expect(page.getByText('انتقال از شخص به دارایی مجاز نیست')).toHaveCount(0);
+  // Mock: USD rate 60,000, «دلار» asset price 100,000 → 100 USD = 6M Toman = 60 units.
+  // The line under the amount shows this before saving.
+  await expect(page.getByText('به دلار اضافه می‌شود: ۶۰ دلار')).toBeVisible();
+  await page.getByRole('button', { name: 'ثبت انتقال' }).click();
+  await expect.poll(async () => (await newRows(before)).length).toBe(1);
+  expect((await newRows(before))[0]).toMatchObject({
+    source_person_id: 'p-usd', source_amount: 100, target_asset_id: 'usd', target_amount: 60, asset_id: 'usd', amount: 60, price_toman: 100000,
+  });
+});

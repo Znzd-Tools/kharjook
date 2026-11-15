@@ -467,8 +467,8 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
     type === 'TRANSFER' &&
     !(
       (srcCurrency && tgtCurrency && srcCurrency === tgtCurrency) ||
-      (row.sourceWallet && row.targetAsset) ||
-      (row.sourceAsset && row.targetWallet)
+      (srcCurrency && row.targetAsset) ||
+      (row.sourceAsset && tgtCurrency)
     );
 
   const endpointRow = (side: 'source' | 'target', label: string, allow: EndpointKind[], optional: boolean) => {
@@ -728,6 +728,16 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
                 {formatMoney(Number(type === 'BUY' ? form.sourceAmount : form.targetAmount) || 0, {
                   currency: (type === 'BUY' ? row.sourceWallet : row.targetWallet)?.currency === 'USD' ? 'USD' : 'TOMAN',
                 }).text}
+              </Text>
+            ) : null}
+
+            {/* Transfer between money (wallet/person) and an asset: show what the
+                other side gets, so a rate/price mismatch is visible before saving. */}
+            {type === 'TRANSFER' && ((srcCurrency && row.targetAsset) || (row.sourceAsset && tgtCurrency)) && Number(form.targetAmount) > 0 ? (
+              <Text variant="caption" tone="subtle">
+                {row.targetAsset
+                  ? `به ${row.targetAsset.name} اضافه می‌شود: ${Number(form.targetAmount).toLocaleString('fa-IR', { maximumFractionDigits: 6 })} ${row.targetAsset.unit}`
+                  : `به ${(form.targetKind && form.targetId && nameOf({ kind: form.targetKind, id: form.targetId })) || 'مقصد'} می‌رسد: ${formatMoney(Number(form.targetAmount), { currency: tgtCurrency === 'USD' ? 'USD' : 'TOMAN' }).text}`}
               </Text>
             ) : null}
 
