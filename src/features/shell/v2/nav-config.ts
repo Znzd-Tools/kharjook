@@ -49,13 +49,14 @@ export const TABS: TabConfig[] = [
     key: 'portfolio',
     label: 'سبد',
     href: '/assets',
-    prefixes: ['/assets', '/wallets', '/prices', '/pnl'],
+    prefixes: ['/assets', '/wallets', '/prices', '/pnl', '/portfolio-plan'],
     title: 'سبد',
     subNav: [
       { href: '/assets', label: 'دارایی‌ها' },
       { href: '/wallets', label: 'کیف پول‌ها' },
       { href: '/pnl', label: 'سود و زیان' },
       { href: '/prices', label: 'قیمت‌ها' },
+      { href: '/portfolio-plan', label: 'برنامه سبد' },
     ],
     menu: [
       { href: '/manage/goals', label: 'اهداف تخصیص', icon: 'target' },
@@ -70,10 +71,12 @@ export const TABS: TabConfig[] = [
     key: 'plan',
     label: 'برنامه',
     href: '/deadlines',
-    prefixes: ['/deadlines', '/budget'],
+    prefixes: ['/deadlines', '/forecast', '/debts', '/budget'],
     title: 'برنامه',
     subNav: [
       { href: '/deadlines', label: 'سررسیدها', match: ['/deadlines'] },
+      { href: '/forecast', label: 'پیش‌بینی' },
+      { href: '/debts', label: 'بدهی‌ها' },
       { href: '/budget', label: 'بودجه' },
     ],
     menu: [
@@ -94,8 +97,8 @@ export function tabForPath(pathname: string): TabConfig | null {
 /** Pages that show the tab bar and the tab header (list/root screens). */
 const ROOTS = new Set([
   '/', '/transactions', '/reports', '/reports/cashflow', '/reports/assets',
-  '/assets', '/wallets', '/prices', '/pnl',
-  '/deadlines', '/budget',
+  '/assets', '/wallets', '/prices', '/pnl', '/portfolio-plan',
+  '/deadlines', '/forecast', '/debts', '/budget',
 ]);
 
 export function isTabRoot(pathname: string): boolean {
