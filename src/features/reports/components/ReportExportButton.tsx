@@ -1,24 +1,8 @@
 'use client';
 
-import { Download } from 'lucide-react';
+import { IconButton } from '@/design-system';
+import { Download } from '@/design-system/icons';
 
-export function ReportExportButton({
-  onClick,
-  disabled,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label="خروجی CSV"
-      title="خروجی CSV"
-      className="w-9 h-9 rounded-xl bg-panel border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5 hover:text-white transition disabled:opacity-40 disabled:pointer-events-none"
-    >
-      <Download size={16} />
-    </button>
-  );
+export function ReportExportButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return <IconButton size="sm" variant="ghost" aria-label="خروجی CSV" title="خروجی CSV" icon={<Download />} onClick={onClick} disabled={disabled} />;
 }

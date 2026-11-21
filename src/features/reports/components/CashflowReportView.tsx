@@ -3,18 +3,10 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  AlertCircle,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  ChevronDown,
-  ChevronRight,
-  FolderOpen,
-  WalletIcon,
-} from 'lucide-react';
+import { Amount, Banner, Chip, ChipGroup, EmptyState, List, ListRow, Text, cn } from '@/design-system';
+import { ChevronDown, LayoutGrid as FolderOpen } from '@/design-system/icons';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import type { CurrencyMode } from '@/shared/types/domain';
-import { formatCurrency } from '@/shared/utils/format-currency';
 import {
   clampPeriodToToday,
   decodePeriodParams,
@@ -115,235 +107,84 @@ export function CashflowReportView() {
     });
   };
 
+  const net = incomeRollup.total - expenseRollup.total;
+
   return (
-    <div className="bg-canvas min-h-full">
-      <header className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="space-y-4 px-(--ds-gutter) pt-1 pb-6">
+      <div className="flex items-center justify-between gap-2">
+        <Text variant="title" weight="semibold">
+          درآمد و هزینه
+        </Text>
+        <ReportExportButton onClick={exportCsv} />
+      </div>
+
+      <PeriodNavHeader period={period} onChange={setPeriod} />
+
+      {wallets.length > 0 && (
+        <ChipGroup aria-label="کیف پول" value={[walletId ?? '__all']} onValueChange={(v) => v[0] && setWallet(v[0] === '__all' ? null : v[0])}>
+          <Chip value="__all">همه کیف‌ها</Chip>
+          {wallets.map((w) => (
+            <Chip key={w.id} value={w.id}>
+              {w.name}
+            </Chip>
+          ))}
+        </ChipGroup>
+      )}
+
+      <section aria-label="مانده دوره" className="rounded-card bg-panel p-4">
+        <Text variant="caption" tone="subtle">
+          مانده دوره
+        </Text>
+        <Amount value={net} currency={currencyMode} size="hero" signed tone="auto" />
+      </section>
+
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="w-9 h-9 rounded-xl bg-panel border border-white/5 flex items-center justify-center text-slate-300 hover:bg-white/5"
+          onClick={() => setTab('income')}
+          aria-pressed={tab === 'income'}
+          className={cn('ds-focus flex flex-col items-start gap-1 rounded-card p-3 text-start', tab === 'income' ? 'bg-positive-soft' : 'bg-panel')}
         >
-          <ChevronRight size={18} />
+          <Text variant="caption" tone="subtle">
+            درآمد
+          </Text>
+          <Amount value={incomeRollup.total} currency={currencyMode} size="md" compact tone="positive" />
         </button>
-        <h1 className="flex-1 text-base font-bold text-white">گزارش درآمد و هزینه</h1>
-        <ReportExportButton onClick={exportCsv} />
-      </header>
-
-      <main className="p-4 space-y-4 pb-24">
-        <PeriodNavHeader period={period} onChange={setPeriod} />
-
-        <WalletFilterChips
-          wallets={wallets}
-          value={walletId}
-          onChange={setWallet}
-        />
-
-        <TabSwitcher
-          tab={tab}
-          onChange={setTab}
-          incomeTotal={incomeRollup.total}
-          expenseTotal={expenseRollup.total}
-          currencyMode={currencyMode}
-        />
-
-        <CashflowNetBanner
-          income={incomeRollup.total}
-          expense={expenseRollup.total}
-          currencyMode={currencyMode}
-        />
-
-        <CategoryList
-          result={active}
-          tab={tab}
-          expanded={expanded}
-          onToggle={toggle}
-          currencyMode={currencyMode}
-          drillHref={(categoryId) =>
-            `/transactions?${new URLSearchParams({
-              category: categoryId,
-              type: tab === 'income' ? 'INCOME' : 'EXPENSE',
-              from: formatJalaali(period.start),
-              to: formatJalaali(period.end),
-            }).toString()}`
-          }
-        />
-
-        {active.unpricedCount > 0 && (
-          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
-            <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-amber-200 leading-relaxed">
-              {active.unpricedCount.toLocaleString('fa-IR')} تراکنش بدون
-              قیمت لحظه‌ای ثبت شده و در جمع لحاظ نشده. ویرایش و ثبت
-              قیمت تا سود/زیان دقیق محاسبه شود.
-            </p>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-function WalletFilterChips({
-  wallets,
-  value,
-  onChange,
-}: {
-  wallets: ReturnType<typeof useData>['wallets'];
-  value: string | null;
-  onChange: (v: string | null) => void;
-}) {
-  if (wallets.length === 0) return null;
-  return (
-    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
-      <FilterChip
-        label="همه کیف‌ها"
-        active={value === null}
-        onClick={() => onChange(null)}
-      />
-      {wallets.map((w) => (
-        <FilterChip
-          key={w.id}
-          label={w.name}
-          active={value === w.id}
-          onClick={() => onChange(w.id)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition border ${
-        active
-          ? 'bg-purple-500/20 border-purple-500/40 text-white'
-          : 'bg-panel border-white/5 text-slate-400 hover:text-white'
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function CashflowNetBanner({
-  income,
-  expense,
-  currencyMode,
-}: {
-  income: number;
-  expense: number;
-  currencyMode: CurrencyMode;
-}) {
-  const net = income - expense;
-  return (
-    <div className="rounded-2xl border border-white/5 bg-panel p-4">
-      <p className="text-xs text-slate-400 mb-1">مانده دوره</p>
-      <p
-        className={`text-2xl font-black ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
-        dir="ltr"
-      >
-        {net >= 0 ? '+' : ''}
-        {formatCurrency(net, currencyMode)}
-      </p>
-      <p className="text-[11px] text-slate-500 mt-2" dir="ltr">
-        درآمد {formatCurrency(income, currencyMode)} · هزینه{' '}
-        {formatCurrency(expense, currencyMode)}
-      </p>
-    </div>
-  );
-}
-
-function TabSwitcher({
-  tab,
-  onChange,
-  incomeTotal,
-  expenseTotal,
-  currencyMode,
-}: {
-  tab: Tab;
-  onChange: (t: Tab) => void;
-  incomeTotal: number;
-  expenseTotal: number;
-  currencyMode: CurrencyMode;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <TabCard
-        active={tab === 'income'}
-        onClick={() => onChange('income')}
-        icon={<ArrowDownCircle size={16} className="text-emerald-400" />}
-        label="درآمد"
-        value={incomeTotal}
-        tone="income"
-        currencyMode={currencyMode}
-      />
-      <TabCard
-        active={tab === 'expense'}
-        onClick={() => onChange('expense')}
-        icon={<ArrowUpCircle size={16} className="text-rose-400" />}
-        label="هزینه"
-        value={expenseTotal}
-        tone="expense"
-        currencyMode={currencyMode}
-      />
-    </div>
-  );
-}
-
-function TabCard({
-  active,
-  onClick,
-  icon,
-  label,
-  value,
-  tone,
-  currencyMode,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: 'income' | 'expense';
-  currencyMode: CurrencyMode;
-}) {
-  const activeRing = tone === 'income'
-    ? 'border-emerald-500/40 bg-emerald-500/5'
-    : 'border-rose-500/40 bg-rose-500/5';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-col items-start gap-1 border rounded-2xl p-3 text-right transition ${
-        active ? activeRing : 'bg-panel border-white/5 hover:bg-white/5'
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-400'}`}>
-          {label}
-        </span>
+        <button
+          type="button"
+          onClick={() => setTab('expense')}
+          aria-pressed={tab === 'expense'}
+          className={cn('ds-focus flex flex-col items-start gap-1 rounded-card p-3 text-start', tab === 'expense' ? 'bg-negative-soft' : 'bg-panel')}
+        >
+          <Text variant="caption" tone="subtle">
+            هزینه
+          </Text>
+          <Amount value={expenseRollup.total} currency={currencyMode} size="md" compact tone="negative" />
+        </button>
       </div>
-      <span className={`text-lg  font-bold ${
-        active
-          ? tone === 'income' ? 'text-emerald-400' : 'text-rose-400'
-          : 'text-slate-300'
-      }`}>
-        {formatCurrency(value, currencyMode)}
-      </span>
-    </button>
+
+      <CategoryList
+        result={active}
+        tab={tab}
+        expanded={expanded}
+        onToggle={toggle}
+        currencyMode={currencyMode}
+        drillHref={(categoryId) =>
+          `/transactions?${new URLSearchParams({
+            category: categoryId,
+            type: tab === 'income' ? 'INCOME' : 'EXPENSE',
+            from: formatJalaali(period.start),
+            to: formatJalaali(period.end),
+          }).toString()}`
+        }
+      />
+
+      {active.unpricedCount > 0 && (
+        <Banner tone="warning">
+          {active.unpricedCount.toLocaleString('fa-IR')} تراکنش بدون قیمت لحظه‌ای ثبت شده و در جمع نیامده. با ویرایش و ثبت قیمت، عدد دقیق می‌شود.
+        </Banner>
+      )}
+    </div>
   );
 }
 
@@ -364,45 +205,54 @@ function CategoryList({
   drillHref: (categoryId: string) => string;
 }) {
   const { nodes, uncategorized } = result;
-
-  // Hide rows whose ancestor is collapsed.
   const visibleNodes = useMemoVisible(nodes, expanded);
-
-  const accent = tab === 'income' ? 'emerald' : 'rose';
+  const tone = tab === 'income' ? 'positive' : 'negative';
 
   if (nodes.length === 0 && uncategorized.total === 0) {
     return (
-      <div className="bg-panel border border-white/5 rounded-2xl p-8 text-center">
-        <FolderOpen size={28} className="text-slate-600 mx-auto mb-2" />
-        <p className="text-sm text-slate-400">
-          در این بازه، {tab === 'income' ? 'درآمدی' : 'هزینه‌ای'} ثبت نشده.
-        </p>
+      <div className="rounded-card bg-panel">
+        <EmptyState icon={<FolderOpen />} title={`در این بازه ${tab === 'income' ? 'درآمدی' : 'هزینه‌ای'} ثبت نشده`} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-1.5">
-      {visibleNodes.map((n) => (
-        <CategoryRow
-          key={n.id}
-          node={n}
-          accent={accent}
-          isExpanded={expanded.has(n.id)}
-          onToggle={() => onToggle(n.id)}
-          currencyMode={currencyMode}
-          href={drillHref(n.id)}
-        />
-      ))}
+    <List>
+      {visibleNodes.map((n) => {
+        const value = n.depth === 0 ? n.rolled : n.own;
+        const empty = value === 0;
+        const common = {
+          chevron: false,
+          className: cn(empty && 'opacity-50'),
+          style: { paddingInlineStart: `${16 + n.depth * 16}px` },
+          leading: (
+            <span className="flex items-center gap-1.5">
+              {n.hasChildren ? (
+                <ChevronDown className={cn('size-3.5 text-fg-subtle transition-transform', !expanded.has(n.id) && 'rotate-90')} />
+              ) : (
+                <span className="w-3.5" />
+              )}
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: n.color }} />
+            </span>
+          ),
+          title: n.name,
+          trailing: <Amount value={value} currency={currencyMode} size="sm" compact tone={empty ? 'muted' : tone} />,
+        };
+        return n.hasChildren ? (
+          <ListRow key={n.id} {...common} onClick={() => onToggle(n.id)} aria-expanded={expanded.has(n.id)} />
+        ) : (
+          <ListRow key={n.id} {...common} render={<Link href={drillHref(n.id)} aria-label={`تراکنش‌های ${n.name}`} />} />
+        );
+      })}
       {uncategorized.total > 0 && (
-        <UncategorizedRow
-          total={uncategorized.total}
-          count={uncategorized.count}
-          accent={accent}
-          currencyMode={currencyMode}
+        <ListRow
+          chevron={false}
+          leading={<span className="size-2.5 rounded-full bg-line-strong" />}
+          title={`بدون دسته‌بندی (${uncategorized.count.toLocaleString('fa-IR')})`}
+          trailing={<Amount value={uncategorized.total} currency={currencyMode} size="sm" compact tone={tone} />}
         />
       )}
-    </div>
+    </List>
   );
 }
 
@@ -423,107 +273,3 @@ function useMemoVisible(nodes: RollupNode[], expanded: Set<string>) {
   }, [nodes, expanded]);
 }
 
-function CategoryRow({
-  node,
-  accent,
-  isExpanded,
-  onToggle,
-  currencyMode,
-  href,
-}: {
-  node: RollupNode;
-  accent: 'emerald' | 'rose';
-  isExpanded: boolean;
-  onToggle: () => void;
-  currencyMode: CurrencyMode;
-  href: string;
-}) {
-  const displayValue = node.depth === 0 ? node.rolled : node.own;
-  const empty = displayValue === 0;
-  const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
-
-  const handleClick = () => {
-    if (node.hasChildren) onToggle();
-  };
-  if (!node.hasChildren) {
-    return (
-      <Link
-        href={href}
-        aria-label={`تراکنش‌های ${node.name}`}
-        className={`w-full flex items-center gap-2 bg-panel border border-white/5 rounded-xl px-3 py-2.5 text-right transition hover:bg-white/5 ${empty ? 'opacity-50' : ''}`}
-        style={{ paddingInlineStart: `${12 + node.depth * 16}px` }}
-      >
-        <span className="w-3.5 shrink-0" />
-        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: node.color }} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] text-white truncate">{node.name}</span>
-            <span className={`text-xs font-bold shrink-0 ${empty ? 'text-slate-500' : textColor}`}>
-              {formatCurrency(displayValue, currencyMode)}
-            </span>
-          </div>
-        </div>
-      </Link>
-    );
-  }
-  const Component = 'button' as const;
-
-  return (
-    <Component
-      {...{ type: 'button' as const, onClick: handleClick }}
-      className={`w-full flex items-center gap-2 bg-panel border border-white/5 rounded-xl px-3 py-2.5 text-right transition ${
-        node.hasChildren ? 'hover:bg-white/5 cursor-pointer' : ''
-      } ${empty ? 'opacity-50' : ''}`}
-      style={{ paddingInlineStart: `${12 + node.depth * 16}px` }}
-    >
-      {node.hasChildren ? (
-        <ChevronDown
-          size={14}
-          className={`shrink-0 text-slate-500 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
-        />
-      ) : (
-        <span className="w-3.5 shrink-0" />
-      )}
-      <span
-        className="w-2.5 h-2.5 rounded-full shrink-0"
-        style={{ backgroundColor: node.color }}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-white truncate">{node.name}</span>
-          <span className={`text-xs font-bold shrink-0 ${empty ? 'text-slate-500' : textColor}`}>
-            {formatCurrency(displayValue, currencyMode)}
-          </span>
-        </div>
-      </div>
-    </Component>
-  );
-}
-
-function UncategorizedRow({
-  total,
-  count,
-  accent,
-  currencyMode,
-}: {
-  total: number;
-  count: number;
-  accent: 'emerald' | 'rose';
-  currencyMode: CurrencyMode;
-}) {
-  const textColor = accent === 'emerald' ? 'text-emerald-400' : 'text-rose-400';
-  return (
-    <div className="flex items-center gap-2 bg-panel border border-dashed border-white/10 rounded-xl px-3 py-2.5">
-      <WalletIcon size={14} className="text-slate-500 shrink-0" />
-      <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-        <span className="text-[13px] text-slate-300 truncate">
-          بدون دسته‌بندی
-          <span className="text-[10px] text-slate-500 mr-1">({count})</span>
-        </span>
-        <span className={`text-xs font-bold shrink-0 ${textColor}`}>
-          {formatCurrency(total, currencyMode)}
-        </span>
-      </div>
-    </div>
-  );
-}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { useToast } from '@/shared/components/Toast';
+import { Button, Field, IconButton, Input, List, ListRow, SegmentedControl, Text, toast } from '@/design-system';
+import { Pencil, Plus, Trash2 } from '@/design-system/icons';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { PriceSourceRecord } from '@/shared/types/domain';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
@@ -22,7 +22,6 @@ type EditForm = {
 };
 
 export function PriceSourceCatalogSection() {
-  const toast = useToast();
   const { user } = useAuth();
   const { assets, priceSources, setPriceSources, setPriceSourceSettings } = useData();
   const [adding, setAdding] = useState(false);
@@ -251,150 +250,79 @@ export function PriceSourceCatalogSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-400">منابع قیمت</p>
+        <Text variant="caption" tone="muted" weight="medium">
+          منابع قیمت
+        </Text>
         {!showForm && (
-          <button
-            type="button"
-            onClick={startAdd}
-            className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
-          >
-            <Plus size={14} />
+          <Button variant="link" size="sm" startIcon={<Plus />} onClick={startAdd}>
             افزودن
-          </button>
+          </Button>
         )}
       </div>
+      <Text variant="caption" tone="subtle">
+        ارائه‌دهنده (آبان‌تتر / زرپی) ثابت است؛ نام، کلید دریافت و شناسه را می‌توانی سفارشی کنی.
+      </Text>
 
-      <p className="text-xs text-slate-500 leading-5">
-        ارائه‌دهنده (آبان‌تتر / زرپی) ثابت است؛ نام، کلید دریافت و شناسه را می‌توانی
-        سفارشی کنی.
-      </p>
-
-      <div className="space-y-2">
+      <List className="bg-sunken">
         {visibleSources.map((source) => (
-          <div
+          <ListRow
             key={source.slug}
-            className="flex items-start gap-2 bg-elevated border border-white/5 rounded-xl p-3"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-white truncate">{source.label}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5" dir="ltr">
+            size="sm"
+            chevron={false}
+            title={source.label}
+            subtitle={
+              <span dir="ltr">
                 {source.slug} · {source.provider} · {source.fetch_key}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => startEdit(source)}
-                className="text-[11px] text-slate-400 hover:text-white px-2 py-1"
-              >
-                ویرایش
-              </button>
-              {!source.is_builtin && (
-                <button
-                  type="button"
-                  onClick={() => void removeSource(source)}
-                  disabled={isSaving}
-                  className="text-rose-400/80 hover:text-rose-300 p-1 disabled:opacity-50"
-                  aria-label="حذف"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-          </div>
+              </span>
+            }
+            trailing={
+              <span className="flex">
+                <IconButton size="sm" aria-label={`ویرایش ${source.label}`} icon={<Pencil />} onClick={() => startEdit(source)} />
+                {!source.is_builtin && (
+                  <IconButton size="sm" aria-label={`حذف ${source.label}`} icon={<Trash2 />} disabled={isSaving} onClick={() => void removeSource(source)} />
+                )}
+              </span>
+            }
+          />
         ))}
-      </div>
+      </List>
 
       {showForm && (
-        <div className="bg-elevated border border-white/10 rounded-2xl p-4 space-y-3">
-          <p className="text-sm text-slate-200">
+        <div className="space-y-4 rounded-card bg-sunken p-4">
+          <Text variant="callout" weight="semibold">
             {adding ? 'منبع جدید' : 'ویرایش منبع'}
-          </p>
-
+          </Text>
           {adding && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">ارائه‌دهنده</p>
-              <div className="grid grid-cols-2 gap-2">
-                {PROVIDER_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        provider: option.value,
-                        slug: suggestSlug(option.value, prev.fetchKey),
-                      }))
-                    }
-                    className={`rounded-xl py-2 text-xs font-medium ${
-                      form.provider === option.value
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-panel text-slate-400 border border-white/5'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <p className="text-[11px] text-slate-500">نام نمایشی</p>
-            <input
-              value={form.label}
-              onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <p className="text-[11px] text-slate-500">کلید دریافت (fetch key)</p>
-            <input
-              value={form.fetchKey}
-              onChange={(e) =>
-                handleFetchKeyChange(e.target.value, form.provider)
-              }
-              disabled={fetchKeyLocked}
-              className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 disabled:opacity-60"
-              dir="ltr"
-            />
-          </div>
-
-          {adding && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">شناسه (slug)</p>
-              <input
-                value={form.slug}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    slug: e.target.value.trim().toLowerCase(),
-                  }))
+            <Field label="ارائه‌دهنده">
+              <SegmentedControl
+                aria-label="ارائه‌دهنده"
+                size="sm"
+                value={form.provider}
+                onValueChange={(v) =>
+                  setForm((prev) => ({ ...prev, provider: v as typeof prev.provider, slug: suggestSlug(v as typeof prev.provider, prev.fetchKey) }))
                 }
-                className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500"
-                dir="ltr"
+                options={PROVIDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
               />
-            </div>
+            </Field>
           )}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => void (adding ? saveNew() : saveEdit())}
-              disabled={isSaving}
-              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
-            >
-              {isSaving ? 'در حال ذخیره...' : 'ذخیره'}
-            </button>
-            <button
-              type="button"
-              onClick={cancelForm}
-              disabled={isSaving}
-              className="px-4 bg-panel border border-white/10 text-slate-300 rounded-xl py-2.5 text-sm disabled:opacity-50"
-            >
+          <Field label="نام نمایشی">
+            <Input value={form.label} onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))} />
+          </Field>
+          <Field label="کلید دریافت (fetch key)">
+            <Input value={form.fetchKey} onChange={(e) => handleFetchKeyChange(e.target.value, form.provider)} disabled={fetchKeyLocked} dir="ltr" />
+          </Field>
+          {adding && (
+            <Field label="شناسه (slug)">
+              <Input value={form.slug} onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value.trim().toLowerCase() }))} dir="ltr" />
+            </Field>
+          )}
+          <div className="flex gap-2">
+            <Button className="flex-1" loading={isSaving} onClick={() => void (adding ? saveNew() : saveEdit())}>
+              ذخیره
+            </Button>
+            <Button variant="secondary" disabled={isSaving} onClick={cancelForm}>
               انصراف
-            </button>
+            </Button>
           </div>
         </div>
       )}

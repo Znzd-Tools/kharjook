@@ -1,23 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  Coins,
-  Search,
-  UserRound,
-  Wallet as WalletIcon,
-} from 'lucide-react';
-import { BottomSheet } from '@/shared/components/BottomSheet';
-import { EntityIcon } from '@/shared/components/EntityIcon';
+import { Avatar, EmptyState, List, ListRow, SearchField, Section, Sheet } from '@/design-system';
+import { Coins, Wallet as WalletIcon } from '@/design-system/icons';
+import { NativeAmount } from '@/features/wallets/components/NativeAmount';
+import { calculatePersonBalance } from '@/shared/utils/calculate-person-balance';
+import { personCurrency } from '@/shared/utils/person-currency';
 import type {
   Asset,
   Person,
   Transaction,
   Wallet,
 } from '@/shared/types/domain';
-import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
-import { formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { assetHolding } from '@/features/transactions/utils/convert-transaction';
 
@@ -88,25 +83,11 @@ export function EndpointSheetPicker({
       );
   }, [assets, allow, exclude, query]);
 
+  // Same math as everywhere else (opening balance included).
   const personBalances = useMemo(() => {
     if (!allow.includes('person')) return new Map<string, number>();
-    const map = new Map<string, number>();
-    for (const tx of transactions) {
-      if (tx.target_person_id) {
-        map.set(
-          tx.target_person_id,
-          (map.get(tx.target_person_id) ?? 0) + (Number(tx.target_amount) || 0)
-        );
-      }
-      if (tx.source_person_id) {
-        map.set(
-          tx.source_person_id,
-          (map.get(tx.source_person_id) ?? 0) - (Number(tx.source_amount) || 0)
-        );
-      }
-    }
-    return map;
-  }, [transactions, allow]);
+    return new Map(persons.map((p) => [p.id, calculatePersonBalance(p, transactions)]));
+  }, [persons, transactions, allow]);
 
   const filteredPersons = useMemo(() => {
     if (!allow.includes('person')) return [];
@@ -124,198 +105,93 @@ export function EndpointSheetPicker({
     setQuery('');
   };
 
+  const close = () => {
+    onClose();
+    setQuery('');
+  };
+
   return (
-    <BottomSheet
+    <Sheet
       open={open}
-      onClose={() => {
-        onClose();
-        setQuery('');
-      }}
+      onOpenChange={(o) => !o && close()}
       title={title}
-      header={
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-          />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="جستجو..."
-            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
-            autoFocus
-          />
-        </div>
-      }
+      size="full"
+      header={<SearchField value={query} onValueChange={setQuery} placeholder="جستجو" aria-label="جستجو" autoFocus />}
     >
       <div className="space-y-5">
         {allow.includes('wallet') && (
-          <Section
-            label="کیف پول‌ها"
-            empty={filteredWallets.length === 0 ? 'کیف پولی یافت نشد.' : null}
-          >
-            {filteredWallets.map((w) => {
-              const stats = calculateWalletStats(w, transactions);
-              const meta = CURRENCY_META[w.currency];
-              return (
-                <PickerRow
-                  key={w.id}
-                  onClick={() => handleSelect('wallet', w.id)}
-                  iconUrl={w.icon_url}
-                  fallback={<WalletIcon size={18} />}
-                  iconBg="rgba(168, 85, 247, 0.12)"
-                  iconColor="#c084fc"
-                  title={w.name}
-                  subtitle={`${meta.symbol} ${w.currency}`}
-                  right={
-                    <span
-                      className="text-xs  text-slate-300"
-                      dir="ltr"
-                    >
-                      {formatCurrencyAmount(stats.balance, w.currency)}
-                    </span>
-                  }
-                />
-              );
-            })}
-          </Section>
+          <PickerSection label="کیف پول‌ها" empty={filteredWallets.length === 0 ? 'کیف پولی پیدا نشد' : null}>
+            {filteredWallets.map((w) => (
+              <ListRow
+                key={w.id}
+                onClick={() => handleSelect('wallet', w.id)}
+                chevron={false}
+                leading={<Avatar src={w.icon_url} name={w.name} fallback={<WalletIcon />} tone="lilac" />}
+                title={w.name}
+                trailing={<NativeAmount value={calculateWalletStats(w, transactions).balance} currency={w.currency} size="sm" compact />}
+              />
+            ))}
+          </PickerSection>
         )}
 
         {allow.includes('asset') && (
-          <Section
-            label="دارایی‌ها"
-            empty={filteredAssets.length === 0 ? 'دارایی‌ای یافت نشد.' : null}
-          >
+          <PickerSection label="دارایی‌ها" empty={filteredAssets.length === 0 ? 'دارایی‌ای پیدا نشد' : null}>
             {filteredAssets.map((a) => {
               const holding = assetHoldings.get(a.id) ?? 0;
               return (
-                <PickerRow
+                <ListRow
                   key={a.id}
                   onClick={() => handleSelect('asset', a.id)}
-                  iconUrl={a.icon_url}
-                  fallback={<Coins size={18} />}
-                  iconBg="rgba(251, 191, 36, 0.12)"
-                  iconColor="#fbbf24"
+                  chevron={false}
+                  leading={<Avatar src={a.icon_url} name={a.name} fallback={<Coins />} tone="lemon" />}
                   title={a.name}
                   subtitle={a.unit}
-                  right={
-                    <span
-                      className="text-xs  text-slate-300"
-                      dir="ltr"
-                    >
-                      {holding > 0
-                        ? formatAssetAmount(holding, assetDecimals(a))
-                        : '—'}
-                    </span>
-                  }
+                  trailing={<span className="tabular">{holding > 0 ? formatAssetAmount(holding, assetDecimals(a)) : '—'}</span>}
                 />
               );
             })}
-          </Section>
+          </PickerSection>
         )}
 
         {allow.includes('person') && (
-          <Section
-            label="اشخاص"
-            empty={filteredPersons.length === 0 ? 'شخصی یافت نشد.' : null}
-          >
+          <PickerSection label="اشخاص" empty={filteredPersons.length === 0 ? 'شخصی پیدا نشد' : null}>
             {filteredPersons.map((person) => {
               const balance = personBalances.get(person.id) ?? 0;
-              const status =
-                balance > 0 ? 'بدهکار' : balance < 0 ? 'بستانکار' : 'تسویه';
-              const tone =
-                balance > 0
-                  ? 'text-amber-300'
-                  : balance < 0
-                    ? 'text-cyan-300'
-                    : 'text-slate-500';
+              const cur = personCurrency(person);
+              const eps = cur === 'IRT' ? 0.5 : 0.005;
               return (
-                <PickerRow
+                <ListRow
                   key={person.id}
                   onClick={() => handleSelect('person', person.id)}
-                  iconUrl={null}
-                  fallback={<UserRound size={18} />}
-                  iconBg="rgba(56, 189, 248, 0.12)"
-                  iconColor="#7dd3fc"
+                  chevron={false}
+                  leading={<Avatar name={person.name} tone="rose" />}
                   title={person.name}
-                  subtitle={`وضعیت: ${status}`}
-                  right={
-                    <span className={`text-xs ${tone}`} dir="ltr">
-                      {Math.abs(balance).toLocaleString('en-US', {
-                        maximumFractionDigits: 6,
-                      })}
-                    </span>
+                  subtitle={balance > eps ? 'به تو بدهکار است' : balance < -eps ? 'تو بدهکاری' : 'تسویه'}
+                  trailing={
+                    Math.abs(balance) > eps ? (
+                      <NativeAmount value={Math.abs(balance)} currency={cur} size="sm" compact tone={balance > 0 ? 'positive' : 'negative'} />
+                    ) : undefined
                   }
                 />
               );
             })}
-          </Section>
+          </PickerSection>
         )}
       </div>
-    </BottomSheet>
+    </Sheet>
   );
 }
 
-function Section({
-  label,
-  empty,
-  children,
-}: {
-  label: string;
-  empty: string | null;
-  children: React.ReactNode;
-}) {
+function PickerSection({ label, empty, children }: { label: string; empty: string | null; children: React.ReactNode }) {
   return (
-    <div>
-      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-        {label}
-      </p>
+    <Section title={label}>
       {empty ? (
-        <p className="text-xs text-slate-500 py-4 text-center">{empty}</p>
+        <div className="rounded-card bg-panel">
+          <EmptyState compact title={empty} />
+        </div>
       ) : (
-        <div className="space-y-1.5">{children}</div>
+        <List>{children}</List>
       )}
-    </div>
-  );
-}
-
-function PickerRow({
-  onClick,
-  iconUrl,
-  fallback,
-  iconBg,
-  iconColor,
-  title,
-  subtitle,
-  right,
-}: {
-  onClick: () => void;
-  iconUrl: string | null | undefined;
-  fallback: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-  title: string;
-  subtitle: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 bg-surface-raised border border-white/5 hover:bg-surface-hover active:scale-[0.99] transition rounded-xl p-3 text-right"
-    >
-      <EntityIcon
-        iconUrl={iconUrl}
-        fallback={fallback}
-        bgColor={iconBg}
-        color={iconColor}
-        className="w-10 h-10 shrink-0"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-100 truncate">{title}</p>
-        <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>
-      </div>
-      {right && <div className="shrink-0 pl-1">{right}</div>}
-    </button>
+    </Section>
   );
 }

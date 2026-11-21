@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
-import { Ban, Check, Search } from 'lucide-react';
+import { SearchField } from '@/design-system';
+import { Check, X as Ban } from '@/design-system/icons';
 import { BottomSheet } from '@/shared/components/BottomSheet';
 import { haptic } from '@/shared/utils/haptics';
 
@@ -78,21 +79,7 @@ export function ListSheetPicker({
       }}
       title={title}
       header={
-        searchable ? (
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="جستجو..."
-              className="w-full bg-panel border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
-              autoFocus
-            />
-          </div>
-        ) : undefined
+        searchable ? <SearchField value={query} onValueChange={setQuery} placeholder="جستجو" aria-label="جستجو" autoFocus /> : undefined
       }
     >
       <div className="space-y-1.5">
@@ -100,30 +87,30 @@ export function ListSheetPicker({
           <button
             type="button"
             onClick={() => commit(null)}
-            className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+            className={`ds-focus w-full flex items-center gap-3 rounded-control p-3 text-start transition-colors ${
               value === null
-                ? 'bg-purple-500/10 border-purple-500/40'
-                : 'bg-panel border-white/5 hover:bg-elevated'
+                ? 'bg-accent-soft'
+                : 'bg-panel hover:bg-hover'
             }`}
           >
-            <span className={value === null ? 'text-purple-300' : 'text-slate-500'}>
+            <span className={value === null ? 'text-accent-ink' : 'text-fg-subtle'}>
               {noneLeading ?? <Ban size={14} />}
             </span>
             <span
-              className={`flex-1 min-w-0 text-sm truncate ${
-                value === null ? 'text-white font-semibold' : 'text-slate-200'
+              className={`flex-1 min-w-0 text-callout truncate ${
+                value === null ? 'text-fg font-semibold' : 'text-fg'
               }`}
             >
               {noneLabel}
             </span>
             {value === null && (
-              <Check size={14} className="text-purple-300 shrink-0" />
+              <Check size={14} className="text-accent-ink shrink-0" />
             )}
           </button>
         )}
 
         {filtered.length === 0 ? (
-          <p className="text-xs text-slate-500 py-8 text-center">{emptyLabel}</p>
+          <p className="text-caption text-fg-subtle py-8 text-center">{emptyLabel}</p>
         ) : (
           filtered.map((it) => {
             const selected = value === it.id;
@@ -133,16 +120,16 @@ export function ListSheetPicker({
                 type="button"
                 disabled={it.disabled}
                 onClick={() => commit(it.id)}
-                className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+                className={`ds-focus w-full flex items-center gap-3 rounded-control p-3 text-start transition-colors ${
                   selected
-                    ? 'bg-purple-500/10 border-purple-500/40'
-                    : 'bg-panel border-white/5 hover:bg-elevated'
+                    ? 'bg-accent-soft'
+                    : 'bg-panel hover:bg-hover'
                 } ${it.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {it.leading && (
                   <span
                     className={`shrink-0 ${
-                      selected ? 'text-purple-300' : 'text-slate-500'
+                      selected ? 'text-accent-ink' : 'text-fg-subtle'
                     }`}
                   >
                     {it.leading}
@@ -150,21 +137,21 @@ export function ListSheetPicker({
                 )}
                 <div className="flex-1 min-w-0 text-right">
                   <div
-                    className={`text-sm truncate ${
-                      selected ? 'text-white font-semibold' : 'text-slate-200'
+                    className={`text-callout truncate ${
+                      selected ? 'text-fg font-semibold' : 'text-fg'
                     }`}
                   >
                     {it.label}
                   </div>
                   {it.sublabel && (
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    <div className="text-caption text-fg-subtle truncate mt-0.5">
                       {it.sublabel}
                     </div>
                   )}
                 </div>
                 {it.trailing}
                 {selected && (
-                  <Check size={14} className="text-purple-300 shrink-0" />
+                  <Check size={14} className="text-accent-ink shrink-0" />
                 )}
               </button>
             );

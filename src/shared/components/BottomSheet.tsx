@@ -1,241 +1,28 @@
 'use client';
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
-import { createPortal } from 'react-dom';
-import { haptic } from '@/shared/utils/haptics';
-
-const subscribeNoop = () => () => {};
-const getClientSnapshot = () => true;
-const getServerSnapshot = () => false;
-
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-function getFocusable(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    (el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true'
-  );
-}
+/**
+ * Old bottom-sheet API, kept for the pickers built on it. It now renders the
+ * design-system `Sheet`, so they look and swipe like every other sheet.
+ * New code: `Sheet` from '@/design-system'.
+ */
+import type { ReactNode } from 'react';
+import { Sheet } from '@/design-system';
 
 export interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   title?: ReactNode;
-  /** Optional header slot rendered under the title (e.g. a search input). */
+  /** Content under the title that does not scroll (e.g. a search field). */
   header?: ReactNode;
   children: ReactNode;
-  /** If true, dragging down past threshold closes the sheet. Default `true`. */
+  /** Kept for API compatibility; the design-system sheet always swipes down to close. */
   dismissOnDrag?: boolean;
 }
 
-export function BottomSheet({
-  open,
-  onClose,
-  title,
-  header,
-  children,
-  dismissOnDrag = true,
-}: BottomSheetProps) {
-  // We render via portal into <body>. The app's column-scoped Shell creates a
-  // stacking context that would otherwise clip the sheet.
-  const mounted = useSyncExternalStore(subscribeNoop, getClientSnapshot, getServerSnapshot);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-
-  // Lock page scroll while open so iOS Safari doesn't rubber-band the parent.
-  useEffect(() => {
-    if (!open) return;
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = overflow;
-    };
-  }, [open]);
-
-  // ESC to close — mirrors the app's Modal behavior for keyboard users.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  // Focus trap + restore. Save trigger on open; cycle Tab inside dialog.
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.activeElement;
-    restoreFocusRef.current =
-      prev instanceof HTMLElement ? prev : null;
-
-    const panel = panelRef.current;
-    if (!panel) return;
-
-    // Defer so search autoFocus / children mount first.
-    const focusTimer = window.setTimeout(() => {
-      const focusable = getFocusable(panel);
-      const preferred =
-        panel.querySelector<HTMLElement>('[data-autofocus]') ?? focusable[0];
-      preferred?.focus();
-    }, 0);
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const focusable = getFocusable(panel);
-      if (focusable.length === 0) {
-        e.preventDefault();
-        return;
-      }
-      const first = focusable[0]!;
-      const last = focusable[focusable.length - 1]!;
-      const active = document.activeElement;
-      if (e.shiftKey) {
-        if (active === first || !panel.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last || !panel.contains(active)) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', onKeyDown);
-      const restore = restoreFocusRef.current;
-      restoreFocusRef.current = null;
-      // ponytail: restore only if node still in DOM (route change may unmount trigger)
-      if (restore?.isConnected) restore.focus();
-    };
-  }, [open]);
-
-  // Drag-to-close. We only track the handle, not the whole sheet, because
-  // we don't want to hijack scroll inside the body.
-  const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const startYRef = useRef<number | null>(null);
-  const crossedThresholdRef = useRef(false);
-  const prevOpenRef = useRef(open);
-  const closeThreshold = 120;
-  const maxDrag = 260;
-
-  useEffect(() => {
-    if (open && !prevOpenRef.current) haptic('light');
-    prevOpenRef.current = open;
-  }, [open]);
-
-  const applyDrag = useMemo(
-    () => (rawDy: number) => {
-      const dy = Math.max(0, Math.min(maxDrag, rawDy));
-      const crossed = dy > closeThreshold;
-      if (crossed !== crossedThresholdRef.current) {
-        crossedThresholdRef.current = crossed;
-        haptic(crossed ? 'selection' : 'light');
-      }
-      setDragY(dy);
-    },
-    []
-  );
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (!dismissOnDrag) return;
-    setIsDragging(true);
-    startYRef.current = e.touches[0]!.clientY;
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (startYRef.current == null) return;
-    const dy = e.touches[0]!.clientY - startYRef.current;
-    applyDrag(dy);
-  };
-  const onTouchEnd = () => {
-    if (startYRef.current == null) return;
-    startYRef.current = null;
-    setIsDragging(false);
-    crossedThresholdRef.current = false;
-    if (dragY > closeThreshold) {
-      haptic('medium');
-      onClose();
-    }
-    setDragY(0);
-  };
-
-  const closeWithHaptic = () => {
-    haptic('light');
-    onClose();
-  };
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-90 ${open ? '' : 'pointer-events-none'}`}
-      aria-hidden={!open}
-      dir="rtl"
-    >
-      {/* Backdrop */}
-      <button
-        type="button"
-        aria-label="بستن"
-        tabIndex={open ? 0 : -1}
-        onClick={closeWithHaptic}
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
-          open ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-
-      {/* Sheet */}
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={typeof title === 'string' ? title : 'پنجره'}
-        className={`absolute inset-x-0 bottom-0 mx-auto w-full sm:max-w-md bg-surface-shell rounded-t-3xl border-t border-white/10 shadow-2xl transition-transform ease-out ${
-          isDragging ? 'duration-75' : 'duration-300'
-        } ${
-          open ? 'translate-y-0' : 'translate-y-full'
-        }`}
-        style={{
-          transform: open
-            ? `translateY(${dragY}px)`
-            : 'translateY(100%)',
-          maxHeight: '85dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}
-      >
-        <div
-          className="pt-3 pb-2 shrink-0 touch-none select-none"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-          onTouchCancel={onTouchEnd}
-        >
-          <div className="mx-auto w-10 h-1 rounded-full bg-white/20" />
-        </div>
-
-        {title && (
-          <div className="px-5 pb-3 shrink-0">
-            <h3 className="text-base font-bold text-white">{title}</h3>
-          </div>
-        )}
-        {header && <div className="px-5 pb-3 shrink-0">{header}</div>}
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-5 pb-6">
-          {children}
-        </div>
-      </div>
-    </div>,
-    document.body
+export function BottomSheet({ open, onClose, title, header, children }: BottomSheetProps) {
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={title} header={header}>
+      {children}
+    </Sheet>
   );
 }

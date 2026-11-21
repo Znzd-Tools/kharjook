@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Ban, ChevronDown, ChevronLeft, Folder, Search } from 'lucide-react';
+import { SearchField } from '@/design-system';
+import { ChevronDown, ChevronLeft, LayoutGrid as Folder, X as Ban } from '@/design-system/icons';
 import { BottomSheet } from '@/shared/components/BottomSheet';
 import { haptic } from '@/shared/utils/haptics';
 import type { Category, CategoryKind } from '@/shared/types/domain';
@@ -189,41 +190,26 @@ export function CategorySheetPicker({
         setExpandedIds(new Set());
       }}
       title={title}
-      header={
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-          />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="جستجو..."
-            className="w-full bg-surface-raised border border-white/10 rounded-xl py-2.5 pr-9 pl-3 text-sm text-white placeholder:text-slate-500 focus:border-purple-500 outline-none"
-            autoFocus
-            data-autofocus
-          />
-        </div>
-      }
+      header={<SearchField value={query} onValueChange={setQuery} placeholder="جستجو..." aria-label="جستجو" autoFocus />}
     >
       <div className="space-y-1.5">
         {allowNone && (
           <button
             type="button"
             onClick={() => commit(null)}
-            className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+            className={`ds-focus w-full flex items-center gap-3 rounded-control p-3 text-start transition-colors ${
               value === null
-                ? 'bg-purple-500/10 border-purple-500/40'
-                : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                ? 'bg-accent-soft'
+                : 'bg-panel hover:bg-hover'
             }`}
           >
             <Ban
               size={14}
-              className={value === null ? 'text-purple-300' : 'text-slate-500'}
+              className={value === null ? 'text-accent-ink' : 'text-fg-subtle'}
             />
             <span
-              className={`flex-1 min-w-0 text-sm truncate ${
-                value === null ? 'text-white font-semibold' : 'text-slate-200'
+              className={`flex-1 min-w-0 text-callout truncate ${
+                value === null ? 'text-fg font-semibold' : 'text-fg'
               }`}
             >
               {noneLabel}
@@ -233,7 +219,7 @@ export function CategorySheetPicker({
 
         {isSearching && items.length === 0 ? (
           !allowNone && (
-            <p className="text-xs text-slate-500 py-8 text-center">
+            <p className="text-caption text-fg-subtle py-8 text-center">
               دسته‌ای یافت نشد.
             </p>
           )
@@ -247,24 +233,24 @@ export function CategorySheetPicker({
                     key={it.id}
                     type="button"
                     onClick={() => commit(it.id)}
-                    className={`w-full flex items-center gap-3 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+                    className={`ds-focus w-full flex items-center gap-3 rounded-control p-3 text-start transition-colors ${
                       selected
-                        ? 'bg-purple-500/10 border-purple-500/40'
-                        : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                        ? 'bg-accent-soft'
+                        : 'bg-panel hover:bg-hover'
                     }`}
                     style={{ paddingInlineStart: `${12 + it.depth * 18}px` }}
                   >
                     <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      className="size-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: it.color }}
                     />
                     <Folder
                       size={14}
-                      className={selected ? 'text-purple-300' : 'text-slate-500'}
+                      className={selected ? 'text-accent-ink' : 'text-fg-subtle'}
                     />
                     <span
-                      className={`flex-1 min-w-0 text-sm truncate ${
-                        selected ? 'text-white font-semibold' : 'text-slate-200'
+                      className={`flex-1 min-w-0 text-callout truncate ${
+                        selected ? 'text-fg font-semibold' : 'text-fg'
                       }`}
                     >
                       {it.name}
@@ -329,7 +315,7 @@ function CategoryTree({
                   aria-expanded={expanded}
                   aria-label={expanded ? `بستن زیرشاخه‌های ${node.name}` : `باز کردن زیرشاخه‌های ${node.name}`}
                   onClick={() => onToggleExpanded(node.id)}
-                  className="shrink-0 self-center p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-200 transition"
+                  className="ds-focus shrink-0 self-center p-2 rounded-control text-fg-muted hover:bg-hover hover:text-fg"
                 >
                   {expanded ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
                 </button>
@@ -340,23 +326,23 @@ function CategoryTree({
                 type="button"
                 onClick={() => onSelect(node.id)}
                 aria-pressed={selected}
-                className={`min-w-0 flex-1 flex items-center gap-2 border rounded-xl p-3 text-right transition active:scale-[0.98] ${
+                className={`ds-focus min-w-0 flex-1 flex items-center gap-2 rounded-control p-3 text-start transition-colors ${
                   selected
-                    ? 'bg-purple-500/10 border-purple-500/40'
-                    : 'bg-surface-raised border-white/5 hover:bg-surface-hover'
+                    ? 'bg-accent-soft'
+                    : 'bg-panel hover:bg-hover'
                 }`}
               >
               <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
+                className="size-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: node.color }}
               />
               <Folder
                 size={14}
-                className={selected ? 'text-purple-300' : 'text-slate-500'}
+                className={selected ? 'text-accent-ink' : 'text-fg-subtle'}
               />
               <span
-                className={`flex-1 min-w-0 text-sm truncate ${
-                  selected ? 'text-white font-semibold' : 'text-slate-200'
+                className={`flex-1 min-w-0 text-callout truncate ${
+                  selected ? 'text-fg font-semibold' : 'text-fg'
                 }`}
               >
                 {node.name}

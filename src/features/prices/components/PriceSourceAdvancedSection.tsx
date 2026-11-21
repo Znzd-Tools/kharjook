@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
-import { useToast } from '@/shared/components/Toast';
+import { Button, Field, Input, SegmentedControl, Text, toast } from '@/design-system';
+import { formatCanonicalNumberDisplay, parseFormattedNumberToCanonical } from '@/shared/utils/format-number-input';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { PriceSourceSetting, PriceSourceUsdFactor } from '@/shared/types/domain';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
@@ -50,7 +50,6 @@ export interface PriceSourceAdvancedSectionProps {
 }
 
 export function usePriceSourceAdvancedSave(slugs: string[]) {
-  const toast = useToast();
   const { user } = useAuth();
   const { priceSourceSettings, setPriceSourceSettings, priceSourceCatalog } = useData();
   const [local, setLocal] = useState<Record<string, LocalRow>>(() =>
@@ -149,7 +148,6 @@ function PriceSourceAdvancedSectionInner({
   embeddedSave?: boolean;
   onSaved?: () => void;
 }) {
-  const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const { priceSourceCatalog } = useData();
   const { local, setConversionRate, setUsdFactor, save } = control;
@@ -185,72 +183,43 @@ function PriceSourceAdvancedSectionInner({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500 leading-5">
-        فقط برای منابعی که به دارایی‌هایت متصل‌اند. معمولاً نیازی به تغییر
-        نیست.
-      </p>
+      <Text variant="caption" tone="subtle">
+        فقط برای منابعی که به دارایی‌هایت وصل‌اند. معمولاً لازم نیست تغییرش بدهی.
+      </Text>
 
       {sources.map((source) => {
-        const row = local[source.slug] ?? {
-          conversion_rate: '1',
-          usd_factor: 'none' as const,
-        };
-
+        const row = local[source.slug] ?? { conversion_rate: '1', usd_factor: 'none' as const };
         return (
-          <div
-            key={source.slug}
-            className="bg-panel p-4 rounded-2xl border border-white/5 space-y-3"
-          >
-            <p className="text-slate-200 text-sm font-medium">{source.label}</p>
-
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">ضریب تبدیل</p>
-              <FormattedNumberInput
-                value={row.conversion_rate}
-                onValueChange={(canonical) =>
-                  setConversionRate(source.slug, canonical)
-                }
-                className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-cyan-500 text-left"
+          <div key={source.slug} className="space-y-3 rounded-card bg-sunken p-4">
+            <Text variant="callout" weight="medium">
+              {source.label}
+            </Text>
+            <Field label="ضریب تبدیل">
+              <Input
+                inputMode="decimal"
                 dir="ltr"
                 placeholder="1"
+                value={formatCanonicalNumberDisplay(row.conversion_rate)}
+                onChange={(e) => setConversionRate(source.slug, parseFormattedNumberToCanonical(e.target.value))}
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">نرخ دلار</p>
-              <div className="grid grid-cols-3 gap-2">
-                {USD_FACTOR_OPTIONS.map((option) => {
-                  const active = row.usd_factor === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setUsdFactor(source.slug, option.value)}
-                      className={`rounded-xl py-2 text-xs font-medium transition-colors ${
-                        active
-                          ? 'bg-cyan-600 text-white'
-                          : 'bg-elevated text-slate-400 border border-white/5 hover:text-slate-200'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            </Field>
+            <Field label="نرخ دلار">
+              <SegmentedControl
+                aria-label={`نرخ دلار ${source.label}`}
+                size="sm"
+                value={row.usd_factor}
+                onValueChange={(v) => setUsdFactor(source.slug, v as typeof row.usd_factor)}
+                options={USD_FACTOR_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            </Field>
           </div>
         );
       })}
 
       {embeddedSave && (
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={isSaving}
-          className="w-full bg-elevated hover:bg-elevated border border-white/10 text-slate-200 p-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          {isSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات پیشرفته'}
-        </button>
+        <Button variant="secondary" fullWidth loading={isSaving} onClick={() => void handleSave()}>
+          ذخیره تنظیمات پیشرفته
+        </Button>
       )}
     </div>
   );

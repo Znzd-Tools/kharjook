@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Archive, ArrowRight, Edit3, GripVertical, Wallet as WalletIcon, X } from 'lucide-react';
+import { AmountField, Avatar, Button, EmptyState, Field, IconButton, Input, ListRow, Section, SegmentedControl, Text, TopBar, toast, useConfirm } from '@/design-system';
+import { Pencil, Trash2 as Archive, Wallet as WalletIcon } from '@/design-system/icons';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { NativeAmount } from './NativeAmount';
 import {
   DndContext,
   PointerSensor,
@@ -19,12 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { EntityIcon } from '@/shared/components/EntityIcon';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { IconPicker } from '@/shared/components/IconPicker';
-import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
-import { formatCurrencyAmount } from '@/shared/utils/format-currency';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -53,9 +50,8 @@ const emptyForm: FormState = {
 };
 
 export function ManageWalletsView() {
-  const router = useRouter();
-  const toast = useToast();
-  const { confirm } = useConfirm();
+  const confirm = useConfirm();
+  const goBack = useSafeBack('/wallets');
   const { user } = useAuth();
   const { wallets, setWallets } = useData();
 
@@ -259,9 +255,10 @@ export function ManageWalletsView() {
   const handleArchive = async (w: Wallet) => {
     if (
       !(await confirm({
-        message: `«${w.name}» بایگانی می‌شود و دیگر در فهرست‌ها نمایش داده نمی‌شود. تراکنش‌های قبلی دست‌نخورده باقی می‌ماند. ادامه می‌دهی؟`,
-        variant: 'danger',
-        confirmLabel: 'حذف',
+        title: `«${w.name}» بایگانی شود؟`,
+        description: 'دیگر در فهرست‌ها دیده نمی‌شود. تراکنش‌های قبلی دست‌نخورده می‌مانند.',
+        tone: 'danger',
+        confirmLabel: 'بایگانی',
       }))
     )
       return;
@@ -322,156 +319,91 @@ export function ManageWalletsView() {
   };
 
   return (
-    <div className="bg-sunken min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">مدیریت کیف پول‌ها</h2>
-      </div>
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={goBack} title="کیف پول‌ها" />
 
-      <form
-        onSubmit={handleSubmit}
-        className="p-6 mt-4 mx-6 rounded-2xl border border-white/5 bg-panel"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm text-slate-400">
-            {form.editingId ? 'ویرایش کیف پول' : 'کیف پول جدید'}
-          </h3>
-          {form.editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-slate-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
+      <div className="space-y-5 px-(--ds-gutter)">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-card bg-panel p-4">
+          <div className="flex items-center justify-between">
+            <Text variant="callout" weight="semibold">
+              {form.editingId ? 'ویرایش کیف پول' : 'کیف پول جدید'}
+            </Text>
+            {form.editingId && (
+              <Button type="button" variant="ghost" size="sm" onClick={resetForm}>
+                انصراف
+              </Button>
+            )}
+          </div>
 
-        <div className="space-y-4">
           <IconPicker
             value={form.iconUrl}
             onChange={(url) => setForm({ ...form, iconUrl: url })}
             userId={user.id}
             folder="wallets"
-            fallback={<WalletIcon size={22} className="text-purple-300" />}
-            bgColor="rgba(168, 85, 247, 0.12)"
+            fallback={<WalletIcon className="size-6 text-accent-ink" />}
             label="آیکون (اختیاری)"
           />
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">نام</label>
-            <input
-              type="text"
-              placeholder="مثلا: ملی، صرافی نوبیتکس، نقد دلاری"
+          <Field label="نام">
+            <Input
+              placeholder="مثلاً ملی، صرافی، نقد دلاری"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
               required
               maxLength={64}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">ارز</label>
-            <div className="grid grid-cols-5 gap-2">
-              {CURRENCY_ORDER.map((c) => {
-                const meta = CURRENCY_META[c];
-                const selected = form.currency === c;
-                const disabled = form.editingId !== null && !selected;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setForm({ ...form, currency: c })}
-                    className={`p-2 rounded-xl border text-xs font-bold transition-all ${
-                      selected
-                        ? 'bg-purple-600 border-purple-500 text-white'
-                        : 'bg-elevated border-white/10 text-slate-300 hover:bg-elevated'
-                    } ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="text-base leading-none" dir="ltr">
-                      {meta.symbol}
-                    </div>
-                    <div className="mt-1 text-[10px] opacity-80">{c}</div>
-                  </button>
-                );
-              })}
-            </div>
-            {form.editingId && (
-              <p className="text-[11px] text-slate-500 mt-1">
-                ارز پس از ساخت قابل تغییر نیست.
-              </p>
-            )}
-          </div>
+          <Field label="ارز" hint={form.editingId ? 'ارز بعد از ساخت قابل تغییر نیست.' : undefined}>
+            <SegmentedControl<Currency>
+              aria-label="ارز"
+              size="sm"
+              value={form.currency}
+              disabled={form.editingId !== null}
+              onValueChange={(c) => setForm({ ...form, currency: c })}
+              options={CURRENCY_ORDER.map((c) => ({ value: c, label: `${CURRENCY_META[c].symbol} ${c}` }))}
+            />
+          </Field>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              موجودی اولیه ({CURRENCY_META[form.currency].label})
-            </label>
-            <FormattedNumberInput
+          <Field label={`موجودی اولیه (${CURRENCY_META[form.currency].label})`}>
+            <AmountField
+              aria-label="موجودی اولیه"
               value={form.initialBalance}
-              onValueChange={(canonical) =>
-                setForm({ ...form, initialBalance: canonical })
-              }
-              className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm  outline-none focus:border-purple-500 text-left"
-              dir="ltr"
-              placeholder="0"
+              onValueChange={(canonical) => setForm({ ...form, initialBalance: canonical })}
+              currency={form.currency === 'USD' ? 'USD' : 'TOMAN'}
+              unitLabel={form.currency === 'TRY' || form.currency === 'EUR' ? CURRENCY_META[form.currency].label : undefined}
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full text-white p-3 rounded-xl text-sm font-medium transition-colors ${
-              form.editingId
-                ? 'bg-purple-600 hover:bg-purple-500'
-                : 'bg-white/10 hover:bg-white/20'
-            } disabled:opacity-50`}
-          >
-            {isSubmitting
-              ? 'در حال ثبت...'
-              : form.editingId
-                ? 'ثبت تغییرات'
-                : 'افزودن کیف پول'}
-          </button>
-        </div>
-      </form>
+          <Button type="submit" fullWidth loading={isSubmitting} variant={form.editingId ? 'primary' : 'secondary'}>
+            {form.editingId ? 'ثبت تغییرات' : 'افزودن کیف پول'}
+          </Button>
+        </form>
 
-      <div className="px-6 pt-6 space-y-3">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={wallets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
-            {wallets.map((w) => {
-          const meta = CURRENCY_META[w.currency];
-          return (
-            <SortableWalletRow
-              key={w.id}
-              wallet={w}
-              metaLabel={meta}
-              onEdit={() => handleEdit(w)}
-              onArchive={() => void handleArchive(w)}
-              archiving={archivingId === w.id}
-              pending={pendingWalletIds.has(w.id)}
-            />
-          );
-            })}
-          </SortableContext>
-        </DndContext>
-        {wallets.length === 0 && (
-          <p className="text-center text-slate-500 text-sm py-6">
-            هنوز کیف پولی نساخته‌ای.
-          </p>
-        )}
+        <Section title="کیف پول‌ها" description="برای جابه‌جایی، دستگیره کنار هر نام را بکش.">
+          {wallets.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState compact icon={<WalletIcon />} title="هنوز کیف پولی نساخته‌ای" />
+            </div>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+              <SortableContext items={wallets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {wallets.map((w) => (
+                    <SortableWalletRow
+                      key={w.id}
+                      wallet={w}
+                      onEdit={() => handleEdit(w)}
+                      onArchive={() => void handleArchive(w)}
+                      archiving={archivingId === w.id}
+                      pending={pendingWalletIds.has(w.id)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </Section>
       </div>
     </div>
   );
@@ -479,76 +411,55 @@ export function ManageWalletsView() {
 
 function SortableWalletRow({
   wallet,
-  metaLabel,
   onEdit,
   onArchive,
   archiving,
   pending,
 }: {
   wallet: Wallet;
-  metaLabel: { symbol: string; decimals: number };
   onEdit: () => void;
   onArchive: () => void;
   archiving: boolean;
   pending: boolean;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: wallet.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: wallet.id });
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bg-panel p-4 rounded-2xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 shadow-lg ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+      className={`rounded-card bg-panel ${isDragging ? 'opacity-70 ring-1 ring-accent' : ''} ${pending ? 'opacity-60' : ''}`}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          style={{ touchAction: 'none' }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing"
-          aria-label="جابجایی"
-        >
-          <GripVertical size={16} />
-        </button>
-        <EntityIcon
-          iconUrl={wallet.icon_url}
-          fallback={<WalletIcon size={18} />}
-          bgColor="rgba(168, 85, 247, 0.10)"
-          color="#c084fc"
-          className="w-10 h-10 shrink-0"
-        />
-        <div className="min-w-0">
-          <p className="text-slate-200 text-sm font-medium truncate">{wallet.name}</p>
-          <p className="text-slate-500 text-xs mt-0.5" dir="ltr">
-            {metaLabel.symbol} {formatCurrencyAmount(wallet.initial_balance, wallet.currency)} · {wallet.currency}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={onEdit}
-          disabled={pending}
-          className="text-blue-400/50 hover:text-blue-400 p-1.5 transition-colors"
-          aria-label="ویرایش"
-        >
-          <Edit3 size={16} />
-        </button>
-        <button
-          onClick={onArchive}
-          disabled={archiving || pending}
-          className="text-amber-400/50 hover:text-amber-400 p-1.5 transition-colors disabled:opacity-30"
-          aria-label="بایگانی"
-        >
-          <Archive size={16} />
-        </button>
-      </div>
+      <ListRow
+        asListItem={false}
+        chevron={false}
+        leading={
+          <span className="flex items-center gap-2">
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              style={{ touchAction: 'none' }}
+              className="ds-focus cursor-grab rounded px-1 text-fg-subtle active:cursor-grabbing"
+              aria-label={`جابجایی ${wallet.name}`}
+            >
+              ⋮⋮
+            </button>
+            <Avatar src={wallet.icon_url} name={wallet.name} fallback={<WalletIcon />} tone="lilac" />
+          </span>
+        }
+        title={wallet.name}
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            اولیه <NativeAmount value={wallet.initial_balance} currency={wallet.currency} size="xs" compact />
+          </span>
+        }
+        trailing={
+          <span className="flex">
+            <IconButton size="sm" aria-label={`ویرایش ${wallet.name}`} icon={<Pencil />} disabled={pending} onClick={onEdit} />
+            <IconButton size="sm" aria-label={`بایگانی ${wallet.name}`} icon={<Archive />} disabled={archiving || pending} onClick={onArchive} />
+          </span>
+        }
+      />
     </div>
   );
 }

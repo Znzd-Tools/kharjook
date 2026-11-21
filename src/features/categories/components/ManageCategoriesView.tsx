@@ -1,17 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  Edit3,
-  Folder,
-  GripVertical,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Check, LayoutGrid as Folder, Pencil, Trash2 } from '@/design-system/icons';
 import {
   DndContext,
   PointerSensor,
@@ -28,13 +18,27 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Badge, SegmentedControl } from '@/design-system';
+import {
+  Amount,
+  AmountField,
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  ListRow,
+  Section,
+  SegmentedControl,
+  Text,
+  TopBar,
+  toast,
+  useConfirm,
+} from '@/design-system';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { categoryScope, type CategoryScope } from '@/features/portfolio/utils/total-wealth';
 import { supabase } from '@/shared/lib/supabase/client';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
-import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import type { Category, CategoryKind, CategorySpendingCap } from '@/shared/types/domain';
@@ -79,9 +83,8 @@ const SCOPE_HELP: Record<CategoryScope, string> = {
 };
 
 export function ManageCategoriesView() {
-  const router = useRouter();
-  const toast = useToast();
-  const { confirm } = useConfirm();
+  const goBack = useSafeBack('/settings');
+  const confirm = useConfirm();
   const { user } = useAuth();
   const { categories, setCategories, assets, setAssets } = useData();
 
@@ -431,7 +434,7 @@ export function ManageCategoriesView() {
   };
 
   const handleDelete = async (cat: Category) => {
-    if (!(await confirm({ message: DELETE_PROMPTS[cat.kind], variant: 'danger', confirmLabel: 'حذف' }))) return;
+    if (!(await confirm({ title: `«${cat.name}» حذف شود؟`, description: DELETE_PROMPTS[cat.kind], confirmLabel: 'حذف', tone: 'danger' }))) return;
 
     const execute = async () => {
       const snapshot = categories;
@@ -539,140 +542,85 @@ export function ManageCategoriesView() {
         ? 'نام دسته (مثلا: حقوق)'
         : 'نام دسته (مثلا: خوراک)';
 
-  const submitLabel = isSubmitting
-    ? 'در حال ثبت...'
-    : form.editingId
-      ? 'ثبت تغییرات'
-      : 'افزودن دسته';
+  const submitLabel = form.editingId ? 'ثبت تغییرات' : 'افزودن دسته';
 
   return (
-    <div className="bg-background min-h-full pb-10 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-surface-shell/90 backdrop-blur-md px-4 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="min-h-11 min-w-11 -mr-2 inline-flex items-center justify-center bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">
-          مدیریت دسته‌بندی‌ها
-        </h2>
-      </div>
+    <div className="min-h-full bg-canvas pb-10">
+      <TopBar onBack={goBack} title="دسته‌بندی‌ها" />
 
-      <div className="px-4 pt-3">
-        <div className="grid grid-cols-3 gap-1.5 bg-surface-raised p-1.5 rounded-xl">
-          {KIND_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => switchTab(t.id)}
-              className={`min-h-11 py-2.5 text-xs font-bold rounded-lg transition-all ${
-                activeKind === t.id
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="space-y-5 px-(--ds-gutter)">
+        <SegmentedControl<CategoryKind>
+          aria-label="نوع دسته"
+          value={activeKind}
+          onValueChange={switchTab}
+          options={KIND_TABS.map((t) => ({ value: t.id, label: t.label }))}
+        />
 
-      <form
-        onSubmit={handleSubmit}
-        className="px-4 py-4 border-b border-white/5 bg-surface-raised mt-3 mx-4 rounded-2xl"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm text-slate-400">
-            {form.editingId ? 'ویرایش دسته' : 'دسته جدید'}
-          </h3>
-          {form.editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-slate-500 hover:text-white flex items-center gap-1 text-xs"
-            >
-              <X size={14} /> انصراف
-            </button>
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-card bg-panel p-4">
+          <div className="flex items-center justify-between">
+            <Text variant="callout" weight="semibold">
+              {form.editingId ? 'ویرایش دسته' : 'دسته جدید'}
+            </Text>
+            {form.editingId && (
+              <Button type="button" variant="ghost" size="sm" onClick={resetForm}>
+                انصراف
+              </Button>
+            )}
+          </div>
 
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="category-name" className="block text-xs text-slate-400 mb-1">
-              نام دسته
-            </label>
-            <input
+          <Field label="نام دسته">
+            <Input
               id="category-name"
-              type="text"
               placeholder={namePlaceholder}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500"
               required
               maxLength={64}
             />
-          </div>
+          </Field>
 
-          <div className="flex flex-wrap gap-2" role="group" aria-label="رنگ دسته">
-            {CATEGORY_COLORS.map((c) => (
-              <button
-                type="button"
-                key={c}
-                onClick={() => setForm({ ...form, color: c })}
-                aria-label={`رنگ ${c}`}
-                aria-pressed={form.color === c}
-                className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-                style={{ backgroundColor: c }}
-              >
-                {form.color === c && (
-                  <Check size={18} className="text-white/90" />
-                )}
-              </button>
-            ))}
-          </div>
+          <Field label="رنگ">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="رنگ دسته">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setForm({ ...form, color: c })}
+                  aria-label={`رنگ ${c}`}
+                  aria-pressed={form.color === c}
+                  className="ds-focus flex size-9 items-center justify-center rounded-full"
+                  style={{ backgroundColor: c }}
+                >
+                  {form.color === c && <Check className="size-4 text-fg-on-accent" />}
+                </button>
+              ))}
+            </div>
+          </Field>
 
           {activeKind !== 'asset' && (
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">
-                زیرمجموعه‌ی (اختیاری)
-              </label>
+            <Field label="زیرمجموعه‌ی (اختیاری)">
               <button
                 type="button"
                 onClick={() => setParentPickerOpen(true)}
-                className="w-full flex items-center gap-3 bg-surface-hover border border-white/10 rounded-xl p-3 text-right hover:bg-white/10 transition-colors"
+                className="ds-focus flex h-12 w-full items-center gap-3 rounded-control bg-sunken px-3 text-start text-callout"
               >
                 {selectedParent ? (
                   <>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: selectedParent.color }}
-                    />
-                    <span className="flex-1 min-w-0 text-sm text-white truncate">
-                      {selectedParent.name}
-                    </span>
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: selectedParent.color }} />
+                    <span className="min-w-0 flex-1 truncate text-fg">{selectedParent.name}</span>
                   </>
                 ) : (
                   <>
-                    <Folder size={14} className="text-slate-500 shrink-0" />
-                    <span className="flex-1 min-w-0 text-sm text-slate-500">
-                      بدون والد (دسته اصلی)
-                    </span>
+                    <Folder className="size-4 shrink-0 text-fg-subtle" />
+                    <span className="min-w-0 flex-1 text-fg-subtle">بدون والد (دسته اصلی)</span>
                   </>
                 )}
-                <ChevronLeft
-                  size={16}
-                  className="text-slate-500 shrink-0"
-                />
               </button>
-            </div>
+            </Field>
           )}
 
           {activeKind === 'asset' && (
-            <div className="flex flex-col gap-2 rounded-control bg-panel p-3">
-              <p className="text-callout font-medium text-fg">در کدام جمع حساب شود؟</p>
+            <Field label="در کدام جمع حساب شود؟" hint={SCOPE_HELP[form.scope]}>
               <SegmentedControl<CategoryScope>
                 aria-label="در کدام جمع حساب شود؟"
                 size="sm"
@@ -684,70 +632,50 @@ export function ManageCategoriesView() {
                   { value: 'ignored', label: 'نادیده' },
                 ]}
               />
-              <p className="text-caption text-fg-subtle">{SCOPE_HELP[form.scope]}</p>
-            </div>
+            </Field>
           )}
 
           {activeKind === 'expense' && (
-            <div>
-              <label htmlFor="category-monthly-cap" className="block text-xs text-slate-400 mb-1">
-                سقف هزینه ماهانه (تومان، اختیاری)
-              </label>
-              <FormattedNumberInput
-                id="category-monthly-cap"
+            <Field label="سقف هزینه ماهانه (اختیاری)" hint="هزینه زیرمجموعه‌ها هم حساب می‌شود.">
+              <AmountField
+                aria-label="سقف هزینه ماهانه"
                 value={form.monthlyCapToman}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, monthlyCapToman: value }))}
-                className="w-full bg-surface-hover border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
-                dir="ltr"
-                placeholder="مثلا ۵,۰۰۰,۰۰۰"
               />
-              <p className="text-[10px] text-slate-500 mt-1.5">
-                هزینه زیرمجموعه‌ها هم در محاسبه لحاظ می‌شود.
-              </p>
-            </div>
+            </Field>
           )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full text-white min-h-11 p-3 rounded-xl text-sm font-medium transition-colors ${
-              form.editingId
-                ? 'bg-purple-600 hover:bg-purple-500'
-                : 'bg-white/10 hover:bg-white/20'
-            } disabled:opacity-50`}
-          >
+          <Button type="submit" fullWidth loading={isSubmitting} variant={form.editingId ? 'primary' : 'secondary'}>
             {submitLabel}
-          </button>
-        </div>
-      </form>
+          </Button>
+        </form>
 
-      <div className="px-4 pt-4 space-y-2">
-        {roots.length === 0 && (
-          <p className="text-center text-slate-500 text-sm py-6">
-            هیچ دسته‌بندی ثبت نشده.
-          </p>
-        )}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={roots.map((r) => r.id)} strategy={verticalListSortingStrategy}>
-            {roots.map((root) => (
-              <CategoryNode
-                key={root.id}
-                category={root}
-                depth={0}
-                childrenByParent={childrenByParent}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                pendingIds={pendingCategoryIds}
-                capsByCategoryId={capsByCategoryId}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+        <Section title="دسته‌ها" description="برای جابه‌جایی، دستگیره کنار هر نام را بکش.">
+          {roots.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState compact title="هنوز دسته‌ای نیست" />
+            </div>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+              <SortableContext items={roots.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {roots.map((root) => (
+                    <CategoryNode
+                      key={root.id}
+                      category={root}
+                      depth={0}
+                      childrenByParent={childrenByParent}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      pendingIds={pendingCategoryIds}
+                      capsByCategoryId={capsByCategoryId}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </Section>
       </div>
 
       {activeKind !== 'asset' && (
@@ -797,60 +725,52 @@ function CategoryNode({
       <div
         ref={setNodeRef}
         style={{ transform: CSS.Transform.toString(transform), transition }}
-        className={`bg-surface-raised ${compact ? 'p-3' : 'p-4'} rounded-xl border border-white/5 flex items-center justify-between ${isDragging ? 'opacity-70 ring-1 ring-purple-400/30' : ''} ${pending ? 'opacity-60' : ''}`}
+        className={`rounded-card bg-panel ${isDragging ? 'opacity-70 ring-1 ring-accent' : ''} ${pending ? 'opacity-60' : ''}`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            style={{ touchAction: 'none' }}
-            className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing"
-            aria-label="جابجایی"
-          >
-            <GripVertical size={compact ? 13 : 15} />
-          </button>
-          <div
-            className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} rounded-full shrink-0`}
-            style={{ backgroundColor: category.color }}
-          />
-          <span
-            className={`text-slate-200 ${compact ? 'text-xs' : 'text-sm'} truncate`}
-          >
-            {category.name}
-          </span>
-          {category.kind === 'asset' && categoryScope(category) !== 'portfolio' && (
-            <Badge>{categoryScope(category) === 'ignored' ? 'نادیده' : 'فقط دارایی کل'}</Badge>
-          )}
-          {capLimitToman != null && capLimitToman > 0 && (
-            <span className="text-[10px] text-amber-400/80 shrink-0">
-              سقف {Number(capLimitToman).toLocaleString('en-US')}
+        <ListRow
+          asListItem={false}
+          size={compact ? 'sm' : 'md'}
+          chevron={false}
+          leading={
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                {...attributes}
+                {...listeners}
+                style={{ touchAction: 'none' }}
+                className="ds-focus cursor-grab rounded px-1 text-fg-subtle active:cursor-grabbing"
+                aria-label={`جابجایی ${category.name}`}
+              >
+                ⋮⋮
+              </button>
+              <span className={`${compact ? 'size-2.5' : 'size-3'} shrink-0 rounded-full`} style={{ backgroundColor: category.color }} />
             </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => onEdit(category)}
-            disabled={pending}
-            className="text-blue-400/50 hover:text-blue-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
-            aria-label="ویرایش"
-          >
-            <Edit3 size={compact ? 16 : 18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(category)}
-            disabled={pending}
-            className="text-rose-400/50 hover:text-rose-400 min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors"
-            aria-label="حذف"
-          >
-            <Trash2 size={compact ? 16 : 18} />
-          </button>
-        </div>
+          }
+          title={
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span className="truncate">{category.name}</span>
+              {category.kind === 'asset' && categoryScope(category) !== 'portfolio' && (
+                <Badge>{categoryScope(category) === 'ignored' ? 'نادیده' : 'فقط دارایی کل'}</Badge>
+              )}
+            </span>
+          }
+          subtitle={
+            capLimitToman != null && capLimitToman > 0 ? (
+              <span className="inline-flex items-center gap-1">
+                سقف ماهانه <Amount value={Number(capLimitToman)} size="xs" compact />
+              </span>
+            ) : undefined
+          }
+          trailing={
+            <span className="flex">
+              <IconButton size="sm" aria-label={`ویرایش ${category.name}`} icon={<Pencil />} disabled={pending} onClick={() => onEdit(category)} />
+              <IconButton size="sm" aria-label={`حذف ${category.name}`} icon={<Trash2 />} disabled={pending} onClick={() => void onDelete(category)} />
+            </span>
+          }
+        />
       </div>
       {kids.length > 0 && (
-        <div className="pr-6 space-y-2 border-r border-white/5 mr-3">
+        <div className="ms-4 space-y-2 border-s border-line ps-3">
           <SortableContext items={kids.map((k) => k.id)} strategy={verticalListSortingStrategy}>
             {kids.map((kid) => (
               <CategoryNode

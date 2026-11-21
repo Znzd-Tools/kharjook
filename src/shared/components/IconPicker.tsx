@@ -1,6 +1,7 @@
 'use client';
 
-import { Camera, Loader2, Trash2 } from 'lucide-react';
+import { Button, IconButton, Spinner } from '@/design-system';
+import { Trash2 } from '@/design-system/icons';
 import { useRef, useState } from 'react';
 import { supabase } from '@/shared/lib/supabase/client';
 import { compressImageToSquareWebp } from '@/shared/utils/compress-image';
@@ -86,54 +87,33 @@ export function IconPicker({
   return (
     <div className="flex items-center gap-4">
       <div
-        className="relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/10"
-        style={{ backgroundColor: bgColor ?? 'rgba(148, 163, 184, 0.12)' }}
+        className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-card bg-hover"
+        style={bgColor ? { backgroundColor: bgColor } : undefined}
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={value}
-            alt=""
-            className="w-full h-full object-cover"
-            draggable={false}
-          />
+          <img src={value} alt="" className="size-full object-cover" draggable={false} />
         ) : (
           fallback
         )}
         {isUploading && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <Loader2 className="animate-spin text-white" size={20} />
+          <div className="absolute inset-0 flex items-center justify-center bg-scrim">
+            <Spinner />
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-2 min-w-0 flex-1">
-        {label && <span className="text-xs text-slate-400">{label}</span>}
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        {label && <span className="text-caption text-fg-muted">{label}</span>}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isUploading}
-            className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-slate-200 text-xs px-3 py-2 rounded-lg transition-colors"
-          >
-            <Camera size={14} />
+          <Button type="button" size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={disabled || isUploading}>
             {value ? 'تغییر آیکون' : 'بارگذاری آیکون'}
-          </button>
+          </Button>
           {value && !isUploading && (
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              disabled={disabled}
-              className="inline-flex items-center gap-1 text-rose-300/70 hover:text-rose-300 text-xs px-2 py-2 rounded-lg transition-colors"
-              aria-label="حذف آیکون"
-            >
-              <Trash2 size={14} />
-            </button>
+            <IconButton size="sm" aria-label="حذف آیکون" icon={<Trash2 />} disabled={disabled} onClick={() => onChange(null)} />
           )}
         </div>
-        <span className="text-[11px] text-slate-500">
-          اختیاری · PNG/JPG/WebP · به‌صورت مربع ۲۵۶ پیکسل فشرده می‌شود
-        </span>
+        <span className="text-caption text-fg-subtle">PNG، JPG یا WebP؛ مربع ۲۵۶ پیکسلی فشرده می‌شود.</span>
       </div>
 
       <input

@@ -3,8 +3,9 @@
 import { recordRateHistory } from '@/shared/utils/rate-history-store';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, AlertCircle, ChevronDown, RefreshCw } from 'lucide-react';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
+import { AmountField, Banner, Button, Disclosure, EmptyState, Field, IconButton, Input, Section, Text } from '@/design-system';
+import { RefreshCw, TrendingUp } from '@/design-system/icons';
+import { formatCanonicalNumberDisplay, parseFormattedNumberToCanonical } from '@/shared/utils/format-number-input';
 import { useToast } from '@/shared/components/Toast';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { CurrencyRate, DailyPrice, RateCurrency } from '@/shared/types/domain';
@@ -444,194 +445,108 @@ export function DailyPricesView() {
   };
 
   return (
-    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out] relative">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">قیمت‌ها و نرخ‌ها</h2>
-        <button
-          onClick={() => void handleRefreshProviders()}
-          disabled={isRefreshingProviders}
-          className="p-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10 disabled:opacity-50"
-          aria-label="refresh-provider-prices"
-        >
-          <RefreshCw
-            size={18}
-            className={isRefreshingProviders ? 'animate-spin' : undefined}
+    <div className="space-y-5 px-(--ds-gutter) pt-1 pb-32">
+      {refreshableAssets.length > 0 && (
+        <Banner tone={autoPriceHealth.isHealthy ? 'positive' : 'warning'}>
+          {autoPriceHealth.isHealthy
+            ? `قیمت خودکار ${autoPriceHealth.syncedTodayCount.toLocaleString('fa-IR')} دارایی امروز رسید (هر روز حدود ۰۹:۰۰).`
+            : `قیمت خودکار ${autoPriceHealth.missingTodayCount.toLocaleString('fa-IR')} از ${autoPriceHealth.autoAssetCount.toLocaleString('fa-IR')} دارایی امروز نرسید. دکمه بروزرسانی را بزن یا منبع قیمت را بررسی کن.`}
+        </Banner>
+      )}
+
+      <Section
+        title="نرخ ارزها"
+        action={
+          <IconButton
+            size="sm"
+            variant="ghost"
+            aria-label="refresh-provider-prices"
+            title="بروزرسانی قیمت‌ها از منبع"
+            icon={<RefreshCw className={isRefreshingProviders ? 'animate-spin' : undefined} />}
+            disabled={isRefreshingProviders}
+            onClick={() => void handleRefreshProviders()}
           />
-        </button>
-      </div>
-
-      <div className="p-6 space-y-6">
-        {refreshableAssets.length > 0 && (
-          <div
-            className={`flex items-start gap-2 rounded-xl px-3 py-2.5 border ${
-              autoPriceHealth.isHealthy
-                ? 'bg-emerald-500/10 border-emerald-500/20'
-                : 'bg-amber-500/10 border-amber-500/20'
-            }`}
-          >
-            {autoPriceHealth.isHealthy ? (
-              <RefreshCw size={14} className="text-emerald-400 mt-0.5 shrink-0" />
-            ) : (
-              <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-            )}
-            <p
-              className={`text-[11px] leading-relaxed ${
-                autoPriceHealth.isHealthy ? 'text-emerald-200' : 'text-amber-200'
-              }`}
-            >
-              {autoPriceHealth.isHealthy
-                ? `قیمت خودکار ${autoPriceHealth.syncedTodayCount.toLocaleString('fa-IR')} دارایی امروز دریافت شده (بروزرسانی روزانه ~۰۹:۰۰).`
-                : `قیمت خودکار ${autoPriceHealth.missingTodayCount.toLocaleString('fa-IR')} از ${autoPriceHealth.autoAssetCount.toLocaleString('fa-IR')} دارایی امروز دریافت نشده — دکمه بروزرسانی را بزنید یا منبع قیمت را بررسی کنید.`}
-            </p>
-          </div>
-        )}
-
-        <div className="bg-purple-900/20 border border-purple-500/30 p-5 rounded-3xl">
-          <label className="block text-sm text-purple-300 mb-2 font-medium">
-            نرخ دلار (تومان)
-          </label>
-          <FormattedNumberInput
-            value={localUsd}
-            onValueChange={handleUsdRateChange}
-            className="w-full bg-panel border border-white/10 rounded-xl p-3 text-white text-left focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
-            dir="ltr"
-          />
-        </div>
-
-        {otherCurrencies.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-300">نرخ ارزهای کیف پول</p>
-            {otherCurrencies.map((c) => {
-              const meta = CURRENCY_META[c];
-              return (
-                <div
-                  key={c}
-                  className="bg-panel p-4 rounded-2xl border border-white/5 space-y-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300 text-sm font-bold"
-                      dir="ltr"
-                    >
-                      {meta.symbol}
-                    </div>
-                    <div>
-                      <p className="text-slate-200 text-sm font-medium">{meta.label}</p>
-                      <p className="text-slate-500 text-[11px]" dir="ltr">
-                        1 {c} = ? تومان
-                      </p>
-                    </div>
-                  </div>
-                  <FormattedNumberInput
-                    value={localOtherRates[c] ?? ''}
-                    onValueChange={(canonical) =>
-                      setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))
-                    }
-                    className="w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 text-left"
-                    dir="ltr"
-                    placeholder="0"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="bg-white/5 border border-white/8 p-4 rounded-2xl text-sm text-slate-300">
-          دریافت قیمت زنده با دکمهٔ رفرش یا رفرش داشبورد انجام می‌شود.
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-slate-300">قیمت دارایی‌ها</p>
-          {visibleAssets.map((asset) => (
-            <div
-              key={asset.id}
-              className="bg-panel p-4 rounded-2xl border border-white/5 space-y-4"
-            >
-              <h3 className="font-semibold text-white">{asset.name}</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">دلار</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
-                      $
-                    </span>
-                    <FormattedNumberInput
-                      value={localPrices[asset.id]?.usd || ''}
-                      onValueChange={(c) => handlePriceChange(asset.id, 'usd', c)}
-                      className="w-full bg-elevated border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">تومان</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
-                      ت
-                    </span>
-                    <FormattedNumberInput
-                      value={localPrices[asset.id]?.toman || ''}
-                      onValueChange={(c) => handlePriceChange(asset.id, 'toman', c)}
-                      className="w-full bg-elevated border border-white/5 rounded-xl py-2 px-3 pl-7 text-white text-left text-sm focus:border-purple-500 outline-none transition-all"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-          {visibleAssets.length === 0 && (
-            <div className="bg-panel p-6 rounded-2xl border border-white/5 text-center text-slate-500 text-sm">
-              دارایی با مقدار بیشتر از صفر برای بروزرسانی قیمت وجود ندارد.
-            </div>
-          )}
-        </div>
-
-        <div className="border border-white/5 rounded-2xl overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen((v) => !v)}
-            className="w-full flex items-center justify-between p-4 bg-panel text-right hover:bg-elevated transition-colors"
-          >
-            <span className="text-sm font-medium text-slate-300">تنظیمات پیشرفته</span>
-            <ChevronDown
-              size={18}
-              className={`text-slate-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {advancedOpen && (
-            <div className="p-4 pt-0 bg-panel border-t border-white/5 space-y-6">
-              <PriceSourceCatalogSection />
-              <div className="border-t border-white/5 pt-4">
-                <p className="text-xs font-medium text-slate-400 mb-3">ضرایب تبدیل</p>
-                <PriceSourceAdvancedSection
-                  slugs={boundSlugs}
-                  control={priceSourceControl}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <button
-        onClick={handleSavePrices}
-        disabled={isSaving}
-        className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2 z-30 disabled:opacity-50"
+        }
       >
-        {isSaving ? (
-          <RefreshCw className="animate-spin" size={20} />
+        <div className="space-y-4 rounded-card bg-panel p-4">
+          <Field label="نرخ دلار">
+            <AmountField aria-label="نرخ دلار" value={localUsd} onValueChange={handleUsdRateChange} />
+          </Field>
+          {otherCurrencies.map((c) => {
+            const meta = CURRENCY_META[c];
+            return (
+              <Field key={c} label={`${meta.label} (${meta.symbol})`}>
+                <AmountField
+                  aria-label={`نرخ ${meta.label}`}
+                  value={localOtherRates[c] ?? ''}
+                  onValueChange={(canonical) => setLocalOtherRates((prev) => ({ ...prev, [c]: canonical }))}
+                />
+              </Field>
+            );
+          })}
+          <Text variant="caption" tone="subtle">
+            قیمت زنده با دکمه‌ی بروزرسانی یا کشیدن صفحه‌ی خانه به پایین می‌رسد.
+          </Text>
+        </div>
+      </Section>
+
+      <Section title="قیمت دارایی‌ها">
+        {visibleAssets.length === 0 ? (
+          <div className="rounded-card bg-panel">
+            <EmptyState compact icon={<TrendingUp />} title="دارایی با موجودی بیشتر از صفر نیست" />
+          </div>
         ) : (
-          'ذخیره'
+          <div className="space-y-2">
+            {visibleAssets.map((asset) => (
+              <div key={asset.id} className="space-y-3 rounded-card bg-panel p-4">
+                <Text variant="callout" weight="semibold">
+                  {asset.name}
+                </Text>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="تومان">
+                    <AmountField
+                      aria-label={`قیمت ${asset.name} به تومان`}
+                      value={localPrices[asset.id]?.toman || ''}
+                      onValueChange={(v) => handlePriceChange(asset.id, 'toman', v)}
+                      showWords={false}
+                    />
+                  </Field>
+                  <Field label="دلار">
+                    <Input
+                      aria-label={`قیمت ${asset.name} به دلار`}
+                      inputMode="decimal"
+                      dir="ltr"
+                      startAdornment="$"
+                      value={formatCanonicalNumberDisplay(localPrices[asset.id]?.usd || '')}
+                      onChange={(e) => handlePriceChange(asset.id, 'usd', parseFormattedNumberToCanonical(e.target.value))}
+                    />
+                  </Field>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-      </button>
+      </Section>
+
+      <div className="rounded-card bg-panel px-4">
+        <Disclosure title="تنظیمات پیشرفته" open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <div className="space-y-6 pb-4">
+            <PriceSourceCatalogSection />
+            <div className="space-y-3 border-t border-line pt-4">
+              <Text variant="caption" tone="muted" weight="medium">
+                ضرایب تبدیل
+              </Text>
+              <PriceSourceAdvancedSection slugs={boundSlugs} control={priceSourceControl} />
+            </div>
+          </div>
+        </Disclosure>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(var(--ds-tabbar-height)+env(safe-area-inset-bottom,0px))] z-30 mx-auto max-w-(--ds-max-width) bg-canvas/90 px-(--ds-gutter) pt-3 pb-3 backdrop-blur-md">
+        <Button size="lg" fullWidth loading={isSaving} onClick={handleSavePrices}>
+          ذخیره
+        </Button>
+      </div>
     </div>
   );
 }
