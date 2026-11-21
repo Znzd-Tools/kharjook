@@ -1,8 +1,8 @@
 'use client';
 
-import { Copy, Check } from 'lucide-react';
 import { useState } from 'react';
-import { useToast } from '@/shared/components/Toast';
+import { ListRow, toast } from '@/design-system';
+import { Check, Copy } from '@/design-system/icons';
 
 export interface CopyableDetailRowProps {
   label: string;
@@ -13,42 +13,33 @@ export interface CopyableDetailRowProps {
   valueDir?: 'ltr' | 'rtl' | 'auto';
 }
 
-export function CopyableDetailRow({
-  label,
-  value,
-  copyValue,
-  valueDir = 'ltr',
-}: CopyableDetailRowProps) {
-  const toast = useToast();
+/** One tap copies the value. Use inside a design-system `List`. */
+export function CopyableDetailRow({ label, value, copyValue, valueDir = 'ltr' }: CopyableDetailRowProps) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    const text = copyValue ?? value;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(copyValue ?? value);
       setCopied(true);
-      toast.success('کپی شد.');
+      toast.success('کپی شد');
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error('کپی ناموفق بود.');
+      toast.error('کپی نشد');
     }
   };
 
   return (
-    <button
-      type="button"
+    <ListRow
       onClick={() => void copy()}
-      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-elevated/60 px-4 py-3 text-right hover:border-purple-500/30 hover:bg-elevated transition-colors"
-    >
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] text-slate-500 mb-1">{label}</p>
-        <p className="text-sm text-slate-100 font-medium truncate" dir={valueDir}>
+      chevron={false}
+      aria-label={`کپی ${label}`}
+      title={<span className="text-caption text-fg-subtle">{label}</span>}
+      subtitle={
+        <span className="block truncate text-callout font-medium text-fg tabular" dir={valueDir}>
           {value}
-        </p>
-      </div>
-      <span className="shrink-0 text-slate-400">
-        {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-      </span>
-    </button>
+        </span>
+      }
+      trailing={copied ? <Check className="size-4 text-positive-ink" /> : <Copy className="size-4 text-fg-subtle" />}
+    />
   );
 }

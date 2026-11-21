@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BottomSheet } from '@/shared/components/BottomSheet';
-import { useToast } from '@/shared/components/Toast';
+import { Button, Field, Input, Sheet, toast } from '@/design-system';
 import { supabase } from '@/shared/lib/supabase/client';
 import type { Wallet } from '@/shared/types/domain';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
@@ -12,12 +11,6 @@ import {
   normalizeWalletPaymentDetails,
   paymentDetailsFormFromWallet,
 } from '@/features/wallets/utils/wallet-payment-details';
-
-const inputClassName =
-  'w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500 font-mono';
-
-const textInputClassName =
-  'w-full bg-elevated border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-purple-500';
 
 export interface WalletPaymentDetailsSheetProps {
   open: boolean;
@@ -32,7 +25,6 @@ export function WalletPaymentDetailsSheet({
   wallet,
   onSaved,
 }: WalletPaymentDetailsSheetProps) {
-  const toast = useToast();
   const [cardNumber, setCardNumber] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [iban, setIban] = useState('');
@@ -92,79 +84,53 @@ export function WalletPaymentDetailsSheet({
   };
 
   return (
-    <BottomSheet
+    <Sheet
       open={open}
-      onClose={onClose}
+      onOpenChange={(o) => !o && onClose()}
       title="اطلاعات حساب"
+      description="همه اختیاری‌اند. برای کارت و حساب فقط رقم وارد کن."
+      footer={
+        <Button type="submit" form="wallet-payment-details" size="lg" fullWidth loading={isSubmitting}>
+          ذخیره
+        </Button>
+      }
     >
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 pb-2">
-        <p className="text-xs text-slate-500 leading-relaxed">
-          همه فیلدها اختیاری‌اند. برای کارت و حساب فقط رقم وارد کنید.
-        </p>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">نام صاحب حساب</label>
-          <input
-            type="text"
-            autoComplete="name"
-            placeholder="مثلاً علی رضایی"
-            value={accountOwnerName}
-            onChange={(e) => setAccountOwnerName(e.target.value)}
-            className={textInputClassName}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره کارت</label>
-          <input
-            type="text"
+      <form id="wallet-payment-details" onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        <Field label="نام صاحب حساب">
+          <Input autoComplete="name" placeholder="مثلاً علی رضایی" value={accountOwnerName} onChange={(e) => setAccountOwnerName(e.target.value)} />
+        </Field>
+        <Field label="شماره کارت">
+          <Input
             inputMode="numeric"
             autoComplete="off"
             dir="ltr"
-            placeholder="۶۰۳۷ ۹۹۱۲ ۳۴۵۶ ۷۸۹۰"
+            placeholder="6037 9912 3456 7890"
             value={cardNumber}
             onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
             maxLength={19}
-            className={inputClassName}
           />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">شماره حساب</label>
-          <input
-            type="text"
+        </Field>
+        <Field label="شماره حساب">
+          <Input
             inputMode="numeric"
             autoComplete="off"
             dir="ltr"
-            placeholder="۱۰ رقمی یا بیشتر"
+            placeholder="۱۰ رقم یا بیشتر"
             value={accountNumber}
             onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-            className={inputClassName}
           />
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">شبا (IBAN)</label>
-          <input
-            type="text"
+        </Field>
+        <Field label="شبا (IBAN)">
+          <Input
             autoComplete="off"
             dir="ltr"
             placeholder="IR12 3456 7890 1234 5678 9012 34"
             value={iban}
             onChange={(e) => setIban(formatIban(e.target.value))}
             maxLength={32}
-            className={inputClassName}
           />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm transition-colors"
-        >
-          {isSubmitting ? 'در حال ذخیره...' : 'ذخیره'}
-        </button>
+        </Field>
       </form>
-    </BottomSheet>
+    </Sheet>
   );
 }

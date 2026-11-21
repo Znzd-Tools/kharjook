@@ -1,17 +1,26 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { StatTile, Text } from '@/design-system';
+
 export interface DetailCardProps {
   label: string;
-  value: string;
+  value: ReactNode;
 }
 
 export function DetailCard({ label, value }: DetailCardProps) {
   return (
-    <div className="bg-panel p-4 rounded-2xl border border-white/5">
-      <p className="text-slate-500 text-xs mb-1">{label}</p>
-      <p className="text-slate-200 font-semibold text-sm" dir="ltr">
-        {value}
-      </p>
-    </div>
+    <StatTile
+      label={label}
+      value={
+        typeof value === 'string' ? (
+          <Text variant="callout" weight="semibold" className="truncate">
+            <span dir="ltr">{value}</span>
+          </Text>
+        ) : (
+          value
+        )
+      }
+    />
   );
 }

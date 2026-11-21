@@ -3,29 +3,30 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowDownRight,
-  ArrowLeftRight,
-  ArrowRight,
-  ArrowUpRight,
-  CreditCard,
-  Edit3,
-  Plus,
-  Trash2,
-  Wallet as WalletIcon,
-} from 'lucide-react';
-import { EntityIcon } from '@/shared/components/EntityIcon';
-import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
-import { EmptyState } from '@/shared/components/EmptyState';
+  Amount,
+  Avatar,
+  Button,
+  EmptyState,
+  IconButton,
+  List,
+  ListRow,
+  Section,
+  Text,
+  TopBar,
+  toast,
+  useConfirm,
+} from '@/design-system';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, CreditCard, Pencil, Plus, Trash2, Wallet as WalletIcon } from '@/design-system/icons';
+import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { toPersianDigits } from '@/shared/utils/format-display-number';
+import { NativeAmount } from './NativeAmount';
 import { undoTransactionDelete } from '@/features/transactions/utils/transaction-undo';
 import { supabase } from '@/shared/lib/supabase/client';
-import type { Asset, Transaction, TransactionType, Wallet } from '@/shared/types/domain';
+import type { Asset, Person, Transaction, TransactionType, Wallet } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateWalletStats } from '@/shared/utils/calculate-wallet-balance';
 import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
 import { walletRateNow } from '@/features/rates/utils/wallet-rate';
-import { formatCurrency, formatCurrencyAmount } from '@/shared/utils/format-currency';
-import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import { DetailCard } from '@/features/assets/components/DetailCard';
 import {
@@ -69,10 +70,11 @@ export interface WalletDetailsViewProps {
 
 export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   const router = useRouter();
-  const toast = useToast();
-  const { confirm } = useConfirm();
+  const goBack = useSafeBack('/wallets');
+  const confirm = useConfirm();
   const {
     wallets,
+    persons,
     assets,
     categories,
     transactions,
@@ -152,15 +154,15 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
 
   if (!wallet || !stats) {
     return (
-      <div className="bg-sunken min-h-full flex items-center justify-center p-6">
-        <div className="text-center text-slate-500 text-sm">
-          کیف پول پیدا نشد.
-        </div>
+      <div className="min-h-full bg-canvas">
+        <TopBar onBack={goBack} title="کیف پول" />
+        <EmptyState title="کیف پول پیدا نشد" />
       </div>
     );
   }
 
   const meta = CURRENCY_META[wallet.currency];
+  const cur = wallet.currency;
   const { rate } = walletRateNow(wallet.currency, currencyRates, rateHistories);
   const balanceToman = stats.balance * rate;
   const balanceDisplay =
@@ -175,7 +177,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   const deleteTx = async (id: string) => {
-    if (!(await confirm({ message: 'آیا از حذف این تراکنش مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
+    if (!(await confirm({ title: 'این تراکنش حذف شود؟', confirmLabel: 'حذف', tone: 'danger' }))) return;
     const snapshot = transactions.find((tx) => tx.id === id);
     if (!snapshot) return;
     try {
@@ -183,7 +185,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
       if (error) throw error;
       setTransactions((prev) => prev.filter((tx) => tx.id !== id));
       toast.success('تراکنش حذف شد.', {
-        duration: 8000,
+        timeout: 8000,
         action: {
           label: 'بازگردانی',
           onClick: () => {
@@ -191,7 +193,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
               setTransactions((prev) => [restored, ...prev]);
             }).then((result) => {
               if (!result.ok) toast.error(result.error);
-              else toast.info('تراکنش بازگردانده شد.');
+              else toast.show('تراکنش بازگردانده شد.');
             });
           },
         },
@@ -203,7 +205,7 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   const deleteConvert = async (group: ConvertTransactionGroup) => {
-    if (!(await confirm({ message: 'آیا از حذف این تبدیل (فروش + خرید) مطمئن هستید؟', variant: 'danger', confirmLabel: 'حذف' }))) return;
+    if (!(await confirm({ title: 'این تبدیل حذف شود؟', description: 'هر دو بخش (فروش و خرید) حذف می‌شوند.', confirmLabel: 'حذف', tone: 'danger' }))) return;
     try {
       const { error } = await supabase
         .from('transactions')
@@ -220,203 +222,119 @@ export function WalletDetailsView({ walletId }: WalletDetailsViewProps) {
   };
 
   return (
-    <div className="bg-sunken min-h-full pb-24 animate-[slide-fade-in-right_300ms_ease-out]">
-      <div className="sticky top-0 bg-canvas/90 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-white/5 z-20">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 -mr-2 bg-white/5 rounded-full text-slate-300 hover:bg-white/10"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h2 className="text-lg font-bold text-white flex-1">{wallet.name}</h2>
-      </div>
+    <div className="min-h-full bg-canvas pb-32">
+      <TopBar onBack={goBack} title={wallet.name} />
 
-      <div className="p-6 space-y-6">
-        <div className="text-center py-6 bg-linear-to-b from-purple-500/10 to-transparent rounded-3xl border border-purple-500/20 relative overflow-hidden">
-          <div className="absolute top-3 left-3 right-3 flex justify-between items-center text-[11px] text-slate-500" dir="ltr">
-            <span>{meta.symbol} {wallet.currency}</span>
-            <WalletIcon size={14} />
-          </div>
-          <div className="flex justify-center mt-2 mb-3">
-            <EntityIcon
-              iconUrl={wallet.icon_url}
-              fallback={<WalletIcon size={22} />}
-              bgColor="rgba(168, 85, 247, 0.12)"
-              color="#c084fc"
-              className="w-14 h-14"
-            />
-          </div>
-          <p className="text-slate-400 text-sm mb-2">موجودی فعلی</p>
-          <p className="text-3xl font-bold text-white" dir="ltr">
-            {meta.symbol}{' '}
-            {formatCurrencyAmount(stats.balance, wallet.currency)}
-          </p>
-          <p className="text-xs text-slate-500 mt-2" dir="ltr">
-            ≈ {formatCurrency(balanceDisplay, currencyMode)}
-          </p>
-        </div>
+      <div className="space-y-5 px-(--ds-gutter)">
+        <section aria-label="موجودی" className="flex flex-col items-center gap-2 rounded-card bg-panel p-5 text-center">
+          <Avatar size="lg" src={wallet.icon_url} name={wallet.name} fallback={<WalletIcon />} tone="lilac" />
+          <Text variant="caption" tone="subtle">
+            موجودی فعلی · {meta.label}
+          </Text>
+          <NativeAmount value={stats.balance} currency={cur} size="hero" />
+          {cur !== (currencyMode === 'USD' ? 'USD' : 'IRT') && (
+            <span className="text-caption text-fg-subtle">
+              ≈ <Amount value={balanceDisplay} currency={currencyMode} size="xs" compact />
+            </span>
+          )}
+        </section>
 
-        <div className="grid grid-cols-2 gap-4">
-          <DetailCard
-            label="موجودی اولیه"
-            value={`${meta.symbol} ${formatCurrencyAmount(wallet.initial_balance, wallet.currency)}`}
-          />
-          <DetailCard
-            label="جریان خالص"
-            value={`${stats.netFlow >= 0 ? '+' : ''}${meta.symbol} ${formatCurrencyAmount(stats.netFlow, wallet.currency)}`}
-          />
-          <DetailCard
-            label="جمع درآمد"
-            value={`${meta.symbol} ${formatCurrencyAmount(stats.incomeTotal, wallet.currency)}`}
-          />
-          <DetailCard
-            label="جمع هزینه"
-            value={`${meta.symbol} ${formatCurrencyAmount(stats.expenseTotal, wallet.currency)}`}
-          />
+        <div className="grid grid-cols-2 gap-2">
+          <DetailCard label="موجودی اولیه" value={<NativeAmount value={wallet.initial_balance} currency={cur} size="sm" compact />} />
+          <DetailCard label="جریان خالص" value={<NativeAmount value={stats.netFlow} currency={cur} size="sm" compact signed tone="auto" />} />
+          <DetailCard label="جمع درآمد" value={<NativeAmount value={stats.incomeTotal} currency={cur} size="sm" compact />} />
+          <DetailCard label="جمع هزینه" value={<NativeAmount value={stats.expenseTotal} currency={cur} size="sm" compact />} />
         </div>
 
         <WalletSavingsPotsSection wallet={wallet} walletBalance={stats.balance} />
 
-        <div className="bg-panel rounded-2xl border border-white/5 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <CreditCard size={16} className="text-purple-300 shrink-0" />
-              <h3 className="text-sm font-semibold text-white">اطلاعات حساب</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPaymentSheetOpen(true)}
-              className="shrink-0 text-xs font-medium text-purple-300 hover:text-purple-200 transition-colors"
-            >
+        <Section
+          title="اطلاعات حساب"
+          action={
+            <Button variant="link" size="sm" onClick={() => setPaymentSheetOpen(true)}>
               {hasPaymentDetails ? 'ویرایش' : 'افزودن'}
-            </button>
-          </div>
-
+            </Button>
+          }
+        >
           {hasPaymentDetails ? (
-            <div className="space-y-2">
-              {wallet.account_owner_name && (
-                <CopyableDetailRow
-                  label="نام صاحب حساب"
-                  value={wallet.account_owner_name}
-                  valueDir="auto"
-                />
-              )}
+            <List>
+              {wallet.account_owner_name && <CopyableDetailRow label="نام صاحب حساب" value={wallet.account_owner_name} valueDir="auto" />}
               {wallet.card_number && (
-                <CopyableDetailRow
-                  label="شماره کارت"
-                  value={formatCardNumber(wallet.card_number)}
-                  copyValue={wallet.card_number}
-                />
+                <CopyableDetailRow label="شماره کارت" value={formatCardNumber(wallet.card_number)} copyValue={wallet.card_number} />
               )}
               {wallet.account_number && (
-                <CopyableDetailRow
-                  label="شماره حساب"
-                  value={wallet.account_number}
-                  copyValue={wallet.account_number}
-                />
+                <CopyableDetailRow label="شماره حساب" value={wallet.account_number} copyValue={wallet.account_number} />
               )}
-              {wallet.iban && (
-                <CopyableDetailRow
-                  label="شبا"
-                  value={formatIban(wallet.iban)}
-                  copyValue={wallet.iban}
-                />
-              )}
+              {wallet.iban && <CopyableDetailRow label="شبا" value={formatIban(wallet.iban)} copyValue={wallet.iban} />}
+            </List>
+          ) : (
+            <div className="flex items-center gap-3 rounded-card bg-panel p-4">
+              <Avatar tone="neutral" fallback={<CreditCard />} />
+              <Text variant="caption" tone="muted">
+                نام صاحب حساب، شماره کارت، حساب یا شبا را اضافه کن تا با یک لمس کپی شود.
+              </Text>
+            </div>
+          )}
+        </Section>
+
+        <Section title="تاریخچه تراکنش‌ها">
+          {stats.transactions.length > 0 && (
+            <div className="space-y-2">
+              <TransactionHistorySearchBar value={txSearchQuery} onChange={setTxSearchQuery} />
+              <TransactionHistoryTypeFilter value={txTypeFilter} onChange={setTxTypeFilter} />
+            </div>
+          )}
+          {stats.transactions.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState
+                icon={<WalletIcon />}
+                title="هنوز تراکنشی ثبت نشده"
+                action={<Button onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}>ثبت تراکنش</Button>}
+              />
+            </div>
+          ) : walletHistoryItems.length === 0 ? (
+            <div className="rounded-card bg-panel">
+              <EmptyState compact title={txSearchQuery.trim() ? 'تراکنشی با این جستجو پیدا نشد' : 'تراکنشی با این نوع نیست'} />
             </div>
           ) : (
-            <p className="text-xs text-slate-500 leading-relaxed">
-              نام صاحب حساب، شماره کارت، حساب یا شبا را اضافه کنید تا با یک لمس کپی شود.
-            </p>
-          )}
-        </div>
-
-        <div className="pt-2">
-          <h3 className="text-lg font-semibold text-white mb-3">تاریخچه تراکنش‌ها</h3>
-          {stats.transactions.length > 0 && (
-            <div className="mb-4 space-y-3">
-              <TransactionHistorySearchBar
-                value={txSearchQuery}
-                onChange={setTxSearchQuery}
-              />
-              <TransactionHistoryTypeFilter
-                value={txTypeFilter}
-                onChange={setTxTypeFilter}
-              />
-            </div>
-          )}
-          <div className="space-y-3">
-            {stats.transactions.length === 0 && (
-              <EmptyState
-                icon={<WalletIcon size={24} />}
-                title="هنوز تراکنشی برای این کیف پول ثبت نشده."
-                actionLabel="ثبت تراکنش"
-                onAction={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
-              />
-            )}
-            {stats.transactions.length > 0 && visibleWalletTxs.length === 0 && walletHistoryItems.length === 0 && (
-              <div className="text-center text-slate-500 text-sm py-6">
-                {txSearchQuery.trim()
-                  ? 'تراکنشی با این جستجو پیدا نشد.'
-                  : 'تراکنشی با این نوع وجود ندارد.'}
-              </div>
-            )}
-            {walletHistoryItems.map((item) => {
-              if (item.kind === 'convert') {
-                return (
+            <div className="space-y-2">
+              {walletHistoryItems.map((item) =>
+                item.kind === 'convert' ? (
                   <ConvertTransactionCard
                     key={item.group.operationId}
                     group={item.group}
                     assets={assets}
-                    onEdit={() =>
-                      router.push(`/transactions/${item.group.sell.id}/edit`)
-                    }
+                    onEdit={() => router.push(`/transactions/${item.group.sell.id}/edit`)}
                     onDelete={() => void deleteConvert(item.group)}
                   />
-                );
-              }
-              const tx = item.tx;
-              return (
-              <TxRow
-                key={tx.id}
-                tx={tx}
-                wallet={wallet}
-                wallets={wallets}
-                assets={assets}
-                categories={categories}
-                onEdit={() => router.push(`/transactions/${tx.id}/edit`)}
-                onDelete={() => void deleteTx(tx.id)}
-              />
-            );
-            })}
-          </div>
-        </div>
+                ) : (
+                  <TxRow
+                    key={item.tx.id}
+                    tx={item.tx}
+                    wallet={wallet}
+                    wallets={wallets}
+                    persons={persons}
+                    assets={assets}
+                    categories={categories}
+                    onEdit={() => router.push(`/transactions/${item.tx.id}/edit`)}
+                    onDelete={() => void deleteTx(item.tx.id)}
+                  />
+                )
+              )}
+            </div>
+          )}
+        </Section>
       </div>
 
-      <WalletPaymentDetailsSheet
-        open={paymentSheetOpen}
-        onClose={() => setPaymentSheetOpen(false)}
-        wallet={wallet}
-        onSaved={updateWallet}
-      />
+      <WalletPaymentDetailsSheet open={paymentSheetOpen} onClose={() => setPaymentSheetOpen(false)} wallet={wallet} onSaved={updateWallet} />
 
-      <div className="fixed bottom-6 right-1/2 translate-x-1/2 w-[calc(100%-3rem)] max-w-100 flex gap-2 z-30">
-        <button
-          type="button"
-          onClick={() => router.push(`/transactions/new?walletId=${wallet.id}&type=TRANSFER`)}
-          className="flex-1 bg-white/10 hover:bg-white/15 text-white p-4 rounded-2xl font-bold border border-white/10 transition-all flex justify-center items-center gap-2"
-        >
-          <ArrowLeftRight size={18} />
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-(--ds-max-width) gap-2 bg-canvas/90 px-(--ds-gutter) pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] backdrop-blur-md">
+        <Button variant="soft" size="lg" startIcon={<ArrowLeftRight />} onClick={() => router.push(`/transactions/new?walletId=${wallet.id}&type=TRANSFER`)}>
           انتقال
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}
-          className="flex-1 bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl font-bold shadow-[0_4px_20px_rgba(147,51,234,0.4)] transition-all flex justify-center items-center gap-2"
-        >
-          <Plus size={20} />
+        </Button>
+        <Button size="lg" className="min-w-0 flex-1" startIcon={<Plus />} onClick={() => router.push(`/transactions/new?walletId=${wallet.id}`)}>
           تراکنش جدید
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -426,6 +344,7 @@ function TxRow({
   tx,
   wallet,
   wallets,
+  persons,
   assets,
   categories,
   onEdit,
@@ -434,76 +353,39 @@ function TxRow({
   tx: Transaction;
   wallet: Wallet;
   wallets: Wallet[];
+  persons: Person[];
   assets: Asset[];
   categories: { id: string; name: string }[];
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const isSource = tx.source_wallet_id === wallet.id;
-  const meta = CURRENCY_META[wallet.currency];
   const amount = isSource ? Number(tx.source_amount) : Number(tx.target_amount);
-  const sign = isSource ? -1 : 1;
-  const displayAmount = sign * amount;
-  const isIn = sign > 0;
-
-  // Counterparty resolution: show the "other side" of the transaction.
-  const counterparty = describeCounterparty(tx, wallet, wallets, assets, categories);
-
-  const accent = isIn ? 'bg-emerald-500' : 'bg-rose-500';
-  const tone = isIn ? 'text-emerald-400' : 'text-rose-400';
-  const Icon = tx.type === 'TRANSFER' ? ArrowLeftRight : isIn ? ArrowDownRight : ArrowUpRight;
-
+  const isIn = !isSource;
+  const counterparty = describeCounterparty(tx, wallet, wallets, persons, assets, categories);
   return (
-    <div className="bg-panel p-4 rounded-2xl border border-white/5 flex flex-col gap-3 relative overflow-hidden">
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${accent}`} />
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center ${tone} shrink-0`}>
-            <Icon size={16} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-slate-200 text-sm font-medium">
-              {TYPE_LABELS[tx.type]}
-            </p>
-            <p className="text-slate-500 text-xs mt-0.5 truncate">
-              {counterparty}
-            </p>
-          </div>
-        </div>
-        <div className="text-left shrink-0">
-          <p className={`text-sm font-bold  ${tone}`} dir="ltr">
-            {isIn ? '+' : '-'}
-            {meta.symbol} {formatCurrencyAmount(Math.abs(displayAmount), wallet.currency)}
-          </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            {latinizeDigits(tx.date_string)}
-          </p>
-        </div>
-      </div>
-      <div className="flex justify-between items-center pt-2 border-t border-white/5">
-        <span className="text-[10px] text-slate-600 truncate" dir="ltr">
-          {tx.note || ''}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-blue-400/50 hover:text-blue-400 transition-colors p-1.5"
-            aria-label="ویرایش"
-          >
-            <Edit3 size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-rose-400/50 hover:text-rose-400 transition-colors p-1.5"
-            aria-label="حذف"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
-    </div>
+    <List>
+      <ListRow
+        chevron={false}
+        leading={
+          <Avatar
+            tone={tx.type === 'TRANSFER' ? 'neutral' : isIn ? 'positive' : 'negative'}
+            fallback={tx.type === 'TRANSFER' ? <ArrowLeftRight /> : isIn ? <ArrowDownLeft /> : <ArrowUpLeft />}
+          />
+        }
+        title={[TYPE_LABELS[tx.type], counterparty].filter(Boolean).join(' · ')}
+        subtitle={[toPersianDigits(tx.date_string), tx.note].filter(Boolean).join(' · ')}
+        trailing={
+          <span className="flex flex-col items-end gap-0.5">
+            <NativeAmount value={isIn ? Math.abs(amount) : -Math.abs(amount)} currency={wallet.currency} size="sm" signed={isIn} tone="auto" compact />
+            <span className="flex">
+              <IconButton size="sm" aria-label="ویرایش" icon={<Pencil />} onClick={onEdit} />
+              <IconButton size="sm" aria-label="حذف" icon={<Trash2 />} onClick={onDelete} />
+            </span>
+          </span>
+        }
+      />
+    </List>
   );
 }
 
@@ -511,6 +393,7 @@ function describeCounterparty(
   tx: Transaction,
   wallet: Wallet,
   wallets: Wallet[],
+  persons: Person[],
   assets: Asset[],
   categories: { id: string; name: string }[]
 ): string {
@@ -518,14 +401,18 @@ function describeCounterparty(
   const isSource = tx.source_wallet_id === wallet.id;
   const otherWalletId = isSource ? tx.target_wallet_id : tx.source_wallet_id;
   const otherAssetId = isSource ? tx.target_asset_id : tx.source_asset_id;
+  const otherPersonId = isSource ? tx.target_person_id : tx.source_person_id;
 
   if (otherWalletId) {
     const w = wallets.find((x) => x.id === otherWalletId);
-    return w ? `→ ${w.name}` : '— کیف پول حذف‌شده';
+    return w ? w.name : 'کیف پول حذف‌شده';
   }
   if (otherAssetId) {
     const a = assets.find((x) => x.id === otherAssetId);
-    return a ? `→ ${a.name}` : '— دارایی حذف‌شده';
+    return a ? a.name : 'دارایی حذف‌شده';
+  }
+  if (otherPersonId) {
+    return persons.find((x) => x.id === otherPersonId)?.name ?? 'شخص';
   }
   // INCOME / EXPENSE have no endpoint counterparty; show category title.
   if ((tx.type === 'INCOME' || tx.type === 'EXPENSE') && tx.category_id) {

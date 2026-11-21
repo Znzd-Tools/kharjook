@@ -1,15 +1,12 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import { BottomSheet } from '@/shared/components/BottomSheet';
-import { Button } from '@/shared/components/Button';
+/**
+ * Old confirm API (`const { confirm } = useConfirm()` with `message` and
+ * `variant`), kept for screens not yet rewritten. It now opens the
+ * design-system dialog. New code: `useConfirm` from '@/design-system'.
+ */
+import type { ReactNode } from 'react';
+import { useConfirm as useDsConfirm } from '@/design-system';
 
 interface ConfirmOptions {
   title?: string;
@@ -23,56 +20,22 @@ interface ConfirmContextValue {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 }
 
-const ConfirmContext = createContext<ConfirmContextValue | null>(null);
-
+/** No-op wrapper: the design-system dialog provider is in DesignSystemProvider. */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const [options, setOptions] = useState<ConfirmOptions | null>(null);
-  const resolveRef = useRef<((value: boolean) => void) | null>(null);
-
-  const confirm = useCallback((opts: ConfirmOptions) => {
-    return new Promise<boolean>((resolve) => {
-      resolveRef.current = resolve;
-      setOptions(opts);
-      setOpen(true);
-    });
-  }, []);
-
-  const finish = (value: boolean) => {
-    setOpen(false);
-    resolveRef.current?.(value);
-    resolveRef.current = null;
-    setOptions(null);
-  };
-
-  return (
-    <ConfirmContext.Provider value={{ confirm }}>
-      {children}
-      <BottomSheet
-        open={open}
-        onClose={() => finish(false)}
-        title={options?.title ?? 'تأیید'}
-      >
-        <p className="text-sm text-slate-300 leading-relaxed mb-6">{options?.message}</p>
-        <div className="flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={() => finish(false)}>
-            {options?.cancelLabel ?? 'انصراف'}
-          </Button>
-          <Button
-            variant={options?.variant === 'danger' ? 'danger' : 'primary'}
-            className="flex-1"
-            onClick={() => finish(true)}
-          >
-            {options?.confirmLabel ?? 'تأیید'}
-          </Button>
-        </div>
-      </BottomSheet>
-    </ConfirmContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 export function useConfirm(): ConfirmContextValue {
-  const ctx = useContext(ConfirmContext);
-  if (!ctx) throw new Error('useConfirm must be used within ConfirmProvider');
-  return ctx;
+  const confirm = useDsConfirm();
+  return {
+    // A short message becomes the title; a long one goes under a generic title.
+    confirm: (o) =>
+      confirm({
+        title: o.title ?? (o.message.length <= 60 ? o.message : 'تأیید'),
+        description: o.title || o.message.length > 60 ? o.message : undefined,
+        confirmLabel: o.confirmLabel,
+        cancelLabel: o.cancelLabel,
+        tone: o.variant === 'danger' ? 'danger' : 'default',
+      }),
+  };
 }

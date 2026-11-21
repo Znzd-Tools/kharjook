@@ -1,15 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, PiggyBank, Plus, Trash2, X } from 'lucide-react';
+import { AmountField, Button, EmptyState, Field, IconButton, Input, List, ListRow, ProgressBar, Section, Sheet, Skeleton, StatTile, Text, toast, useConfirm } from '@/design-system';
+import { Check, Pencil, Plus, Trash2 } from '@/design-system/icons';
+import { NativeAmount } from './NativeAmount';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuth } from '@/features/portfolio/PortfolioProvider';
-import { useToast } from '@/shared/components/Toast';
-import { useConfirm } from '@/shared/components/ConfirmDialog';
-import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
 import { CATEGORY_COLORS } from '@/features/categories/constants/category-colors';
-import type { Currency, Wallet, WalletSavingsPot } from '@/shared/types/domain';
-import { formatCurrencyAmount } from '@/shared/utils/format-currency';
+import type { Wallet, WalletSavingsPot } from '@/shared/types/domain';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
 import {
   canSetPotAmount,
@@ -43,8 +41,7 @@ export function WalletSavingsPotsSection({
   walletBalance: number;
 }) {
   const { user } = useAuth();
-  const toast = useToast();
-  const { confirm } = useConfirm();
+  const confirm = useConfirm();
   const [pots, setPots] = useState<WalletSavingsPot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,7 +68,7 @@ export function WalletSavingsPotsSection({
     } finally {
       setIsLoading(false);
     }
-  }, [toast, wallet.id]);
+  }, [wallet.id]);
 
   useEffect(() => {
     void refresh();
@@ -173,7 +170,7 @@ export function WalletSavingsPotsSection({
   };
 
   const handleArchive = async (pot: WalletSavingsPot) => {
-    if (!(await confirm({ message: `قلک «${pot.name}» حذف شود؟`, variant: 'danger', confirmLabel: 'حذف' }))) return;
+    if (!(await confirm({ title: `قلک «${pot.name}» حذف شود؟`, confirmLabel: 'حذف', tone: 'danger' }))) return;
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -214,206 +211,136 @@ export function WalletSavingsPotsSection({
     }
   };
 
-  return (
-    <section className="bg-panel rounded-2xl border border-white/5 p-4 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <PiggyBank size={16} className="text-emerald-400 shrink-0" />
-          <div>
-            <h3 className="text-sm font-semibold text-white">قلک‌ها</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              تخصیص مجازی داخل این کیف — تراکنش جدا ثبت نمی‌شود
-            </p>
-          </div>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 shrink-0"
-          >
-            <Plus size={14} />
-            جدید
-          </button>
-        )}
-      </div>
+  const cur = wallet.currency;
+  const amountProps = {
+    currency: cur === 'USD' ? ('USD' as const) : ('TOMAN' as const),
+    unitLabel: cur === 'TRY' || cur === 'EUR' ? meta.label : undefined,
+  };
+  const step = Math.max(walletBalance * 0.05, 1);
 
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-slate-500">تخصیص‌شده</p>
-          <p className="text-slate-200 mt-1" dir="ltr">
-            {meta.symbol} {formatCurrencyAmount(allocated, wallet.currency as Currency)}
-          </p>
-        </div>
-        <div className="bg-white/3 rounded-xl p-2.5">
-          <p className="text-slate-500">آزاد</p>
-          <p className="text-slate-200 mt-1" dir="ltr">
-            {meta.symbol} {formatCurrencyAmount(freeBalance, wallet.currency as Currency)}
-          </p>
-        </div>
+  return (
+    <Section
+      title="قلک‌ها"
+      description="تخصیص مجازی داخل همین کیف؛ تراکنشی ثبت نمی‌شود."
+      action={
+        <Button variant="link" size="sm" startIcon={<Plus />} onClick={openCreate}>
+          قلک جدید
+        </Button>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <StatTile label="تخصیص‌شده" value={<NativeAmount value={allocated} currency={cur} size="sm" compact />} />
+        <StatTile label="آزاد" value={<NativeAmount value={freeBalance} currency={cur} size="sm" compact />} />
       </div>
 
       {allocated > walletBalance + 1e-6 && (
-        <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-          جمع قلک‌ها از موجودی فعلی کیف پول بیشتر است. یکی از قلک‌ها را کم کن.
-        </p>
-      )}
-
-      {formOpen && (
-        <form onSubmit={handleSubmit} className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-400">{form.editingId ? 'ویرایش قلک' : 'قلک جدید'}</p>
-            <button type="button" onClick={resetForm} className="text-slate-500 hover:text-white">
-              <X size={14} />
-            </button>
-          </div>
-          <input
-            value={form.name}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="نام (مثلا: سفر، اضطراری)"
-            className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none focus:border-emerald-500"
-            maxLength={64}
-            required
-          />
-          <div className="flex gap-1.5 flex-wrap">
-            {CATEGORY_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, color }))}
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: color }}
-              >
-                {form.color === color && <Check size={12} className="text-white/90" />}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] text-slate-500 mb-1">تخصیص فعلی</label>
-              <FormattedNumberInput
-                value={form.currentAmount}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
-                className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-slate-500 mb-1">هدف (اختیاری)</label>
-              <FormattedNumberInput
-                value={form.targetAmount}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
-                className="w-full bg-elevated border border-white/10 rounded-xl p-2.5 text-sm text-white outline-none text-left"
-                dir="ltr"
-                placeholder="—"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50"
-          >
-            {isSubmitting ? 'در حال ذخیره...' : form.editingId ? 'ذخیره' : 'افزودن قلک'}
-          </button>
-        </form>
+        <Text variant="caption" tone="warning">
+          جمع قلک‌ها از موجودی کیف بیشتر است. یکی را کم کن.
+        </Text>
       )}
 
       {isLoading ? (
-        <p className="text-center text-slate-500 text-xs py-4 animate-pulse">در حال دریافت...</p>
+        <Skeleton className="h-16 rounded-card" />
       ) : pots.length === 0 ? (
-        <p className="text-center text-slate-500 text-xs py-4">
-          هنوز قلکی نساخته‌ای. برای بودجه‌بندی مجازی داخل همین کیف، یک قلک بساز.
-        </p>
+        <div className="rounded-card bg-panel">
+          <EmptyState compact title="هنوز قلکی نیست" description="برای بودجه‌بندی مجازی داخل همین کیف، یک قلک بساز." />
+        </div>
       ) : (
-        <div className="space-y-3">
+        <List>
           {pots.map((pot) => {
             const progress = potProgressPercent(pot);
-            const width = progress != null ? Math.min(Math.max(progress, 0), 100) : 0;
             return (
-              <div
+              <ListRow
                 key={pot.id}
-                className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: pot.color }}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm text-slate-100 truncate">{pot.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5" dir="ltr">
-                        {meta.symbol}{' '}
-                        {formatCurrencyAmount(pot.current_amount, wallet.currency as Currency)}
-                        {pot.target_amount != null && (
-                          <>
-                            {' '}
-                            / {formatCurrencyAmount(pot.target_amount, wallet.currency as Currency)}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => openEdit(pot)}
-                      className="text-[11px] px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300"
-                    >
-                      ویرایش
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => void handleArchive(pot)}
-                      className="p-1.5 rounded-lg text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/10"
-                      aria-label="حذف"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {progress != null && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-500">
-                      <span>پیشرفت هدف</span>
-                      <span>{toPersianDigits(Math.round(progress))}٪</span>
-                    </div>
-                    <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 right-0 rounded-full bg-emerald-500 transition-[width]"
-                        style={{ width: `${width > 0 ? Math.max(width, 4) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => void nudgeAllocation(pot, -Math.max(walletBalance * 0.05, 1))}
-                    className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 disabled:opacity-50"
-                  >
-                    −۵٪
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSubmitting || freeBalance <= 0}
-                    onClick={() => void nudgeAllocation(pot, Math.min(freeBalance, Math.max(walletBalance * 0.05, 1)))}
-                    className="flex-1 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-xs text-emerald-300 disabled:opacity-50"
-                  >
-                    +۵٪
-                  </button>
-                </div>
-              </div>
+                chevron={false}
+                leading={<span className="size-3 rounded-full" style={{ backgroundColor: pot.color }} aria-hidden />}
+                title={pot.name}
+                subtitle={
+                  <span className="flex flex-col gap-1.5">
+                    <span className="inline-flex items-center gap-1">
+                      <NativeAmount value={Number(pot.current_amount)} currency={cur} size="xs" compact />
+                      {pot.target_amount != null && (
+                        <>
+                          از <NativeAmount value={Number(pot.target_amount)} currency={cur} size="xs" compact />
+                        </>
+                      )}
+                    </span>
+                    {progress != null && (
+                      <ProgressBar value={Math.max(0, progress)} max={100} tone="positive" valueLabel={`${toPersianDigits(Math.round(progress))}٪`} />
+                    )}
+                    <span className="flex gap-2">
+                      <Button size="sm" variant="secondary" disabled={isSubmitting} onClick={() => void nudgeAllocation(pot, -step)}>
+                        −۵٪
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        disabled={isSubmitting || freeBalance <= 0}
+                        onClick={() => void nudgeAllocation(pot, Math.min(freeBalance, step))}
+                      >
+                        +۵٪
+                      </Button>
+                    </span>
+                  </span>
+                }
+                trailing={
+                  <span className="flex">
+                    <IconButton size="sm" aria-label={`ویرایش ${pot.name}`} icon={<Pencil />} disabled={isSubmitting} onClick={() => openEdit(pot)} />
+                    <IconButton size="sm" aria-label={`حذف ${pot.name}`} icon={<Trash2 />} disabled={isSubmitting} onClick={() => void handleArchive(pot)} />
+                  </span>
+                }
+              />
             );
           })}
-        </div>
+        </List>
       )}
-    </section>
+
+      <Sheet
+        open={formOpen}
+        onOpenChange={(o) => !o && resetForm()}
+        title={form.editingId ? 'ویرایش قلک' : 'قلک جدید'}
+        footer={
+          <Button type="submit" form="pot-form" size="lg" fullWidth loading={isSubmitting}>
+            {form.editingId ? 'ذخیره' : 'افزودن قلک'}
+          </Button>
+        }
+      >
+        <form id="pot-form" onSubmit={handleSubmit} className="space-y-4">
+          <Field label="نام">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="مثلاً سفر، اضطراری"
+              maxLength={64}
+              required
+            />
+          </Field>
+          <Field label="رنگ">
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="رنگ">
+              {CATEGORY_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.color === color}
+                  aria-label={color}
+                  onClick={() => setForm((prev) => ({ ...prev, color }))}
+                  className="ds-focus flex size-8 items-center justify-center rounded-full"
+                  style={{ backgroundColor: color }}
+                >
+                  {form.color === color && <Check className="size-4 text-fg-on-accent" />}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="تخصیص فعلی">
+            <AmountField value={form.currentAmount} onValueChange={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))} {...amountProps} />
+          </Field>
+          <Field label="هدف (اختیاری)">
+            <AmountField value={form.targetAmount} onValueChange={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))} {...amountProps} />
+          </Field>
+        </form>
+      </Sheet>
+    </Section>
   );
 }

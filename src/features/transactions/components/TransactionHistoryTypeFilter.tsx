@@ -1,7 +1,7 @@
 'use client';
 
 import type { TransactionType } from '@/shared/types/domain';
-import { FilterChip } from '@/shared/components/FilterChip';
+import { Chip, ChipGroup } from '@/design-system';
 
 export type TxHistoryTypeFilter = TransactionType | 'ALL';
 
@@ -29,26 +29,13 @@ export function TransactionHistoryTypeFilter({
   onChange: (next: TxHistoryTypeFilter) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="tablist" aria-label="نوع تراکنش">
-      <FilterChip
-        active={value === 'ALL'}
-        onClick={() => onChange('ALL')}
-        role="tab"
-        aria-selected={value === 'ALL'}
-      >
-        همه
-      </FilterChip>
+    <ChipGroup aria-label="نوع تراکنش" value={[value]} onValueChange={(v) => v[0] && onChange(v[0] as TxHistoryTypeFilter)}>
+      <Chip value="ALL">همه</Chip>
       {ORDER.map((t) => (
-        <FilterChip
-          key={t}
-          active={value === t}
-          onClick={() => onChange(t)}
-          role="tab"
-          aria-selected={value === t}
-        >
+        <Chip key={t} value={t}>
           {LABELS[t]}
-        </FilterChip>
+        </Chip>
       ))}
-    </div>
+    </ChipGroup>
   );
 }

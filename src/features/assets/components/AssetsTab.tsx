@@ -5,20 +5,29 @@ import { PortfolioPnlCard } from '@/features/pnl/components/PortfolioPnlCard';
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Settings2, TargetIcon, TrendingUp } from 'lucide-react';
-import { EntityIcon } from '@/shared/components/EntityIcon';
-import { EmptyState } from '@/shared/components/EmptyState';
-import { FilterChip } from '@/shared/components/FilterChip';
-import { RouteSkeleton } from '@/shared/components/RouteSkeleton';
-import type { Asset, Category, Goal } from '@/shared/types/domain';
+import {
+  Amount,
+  Avatar,
+  Badge,
+  Button,
+  Chip,
+  ChipGroup,
+  Delta,
+  EmptyState,
+  IconButton,
+  List,
+  ListRow,
+  Section,
+  Skeleton,
+} from '@/design-system';
+import { Coins, Settings, Target, TrendingUp } from '@/design-system/icons';
+import type { Asset, Goal } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
-import { formatCurrency } from '@/shared/utils/format-currency';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
 import {
   computeAssetPnl,
-  pick,
   pnlPercent,
   type AssetPnl,
 } from '@/features/reports/utils/asset-pnl';
@@ -101,209 +110,115 @@ export function AssetsTab() {
     return map;
   }, [goals]);
 
+  const openAsset = (id: string) => router.push(`/assets/${id}`);
+  const rowProps = { transactions, currencyMode, usdRate, snapshots, totalValueToman, onOpen: openAsset };
+
   return (
-    <div className="p-6 animate-[fade-in_300ms_ease-out] space-y-6">
+    <div className="space-y-5 px-(--ds-gutter) pt-1 pb-6">
       {pnlV2 && <PortfolioPnlCard />}
-      <div className="flex justify-between items-center gap-3">
-        <h2 className="text-xl font-bold text-white shrink-0">لیست دارایی‌ها</h2>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => router.push('/manage/goals')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-purple-300 hover:border-purple-500/30 active:scale-[0.98] transition"
-            aria-label="هدف‌ها"
-            title="هدف‌ها"
-          >
-            <TargetIcon size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/prices')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 active:scale-[0.98] transition"
-            aria-label="قیمت‌ها و نرخ‌ها"
-            title="قیمت‌ها و نرخ‌ها"
-          >
-            <TrendingUp size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/manage/assets')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-purple-500/30 active:scale-[0.98] transition"
-            aria-label="مدیریت دارایی‌ها"
-            title="مدیریت"
-          >
-            <Settings2 size={18} />
-          </button>
-        </div>
-      </div>
 
-      {isLoadingData && assets.length === 0 && <RouteSkeleton blocks={3} compact />}
-
-      {!isLoadingData && assets.length === 0 && (
-        <EmptyState
-          icon={<TrendingUp size={24} />}
-          title="هنوز دارایی‌ای نساخته‌ای."
-          actionLabel="افزودن دارایی"
-          onAction={() => router.push('/manage/assets')}
-        />
-      )}
-
-      {assets.length > 0 && visibleAssets.length === 0 && (
-        <EmptyState
-          icon={<TrendingUp size={24} />}
-          title="دارایی با ارزش غیرصفر پیدا نشد."
-          actionLabel="نمایش دارایی‌های صفر"
-          onAction={() => setZeroValueFilter('show')}
-        />
-      )}
-
-      {assets.length > 0 && visibleAssets.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterChip
-              active={viewMode === 'groups'}
-              onClick={() => setViewMode('groups')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
-            >
-              گروه‌ها
-            </FilterChip>
-            <FilterChip
-              active={viewMode === 'all'}
-              onClick={() => setViewMode('all')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
-            >
-              همه
-            </FilterChip>
-            <span className="w-px h-5 bg-white/10 mx-1" aria-hidden />
-            <FilterChip
-              active={zeroValueFilter === 'hide'}
-              onClick={() => setZeroValueFilter('hide')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
-            >
-              بدون صفر
-            </FilterChip>
-            <FilterChip
-              active={zeroValueFilter === 'show'}
-              onClick={() => setZeroValueFilter('show')}
-              activeClassName="bg-purple-500/20 border-purple-500/40 text-white"
-              className="rounded-xl text-[11px] font-bold"
-            >
-              شامل صفر
-            </FilterChip>
+      <Section
+        title="دارایی‌ها"
+        action={
+          <div className="flex items-center gap-1">
+            <IconButton size="sm" variant="ghost" aria-label="هدف‌ها" icon={<Target />} onClick={() => router.push('/manage/goals')} />
+            <IconButton size="sm" variant="ghost" aria-label="قیمت‌ها و نرخ‌ها" icon={<TrendingUp />} onClick={() => router.push('/prices')} />
+            <IconButton size="sm" variant="ghost" aria-label="مدیریت دارایی‌ها" icon={<Settings />} onClick={() => router.push('/manage/assets')} />
           </div>
+        }
+      >
+        {isLoadingData && assets.length === 0 && (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-card" />
+            ))}
+          </div>
+        )}
 
-          {viewMode === 'groups' ? (
-            <div className="space-y-8">
-              {groupedAssets.map((group) => (
-                <AssetGroupSection
-                  key={group.id}
-                  group={group}
-                  transactions={transactions}
-                  currencyMode={currencyMode}
-                  usdRate={usdRate}
-                  pnlByAssetId={pnlByAssetId}
-                  assetGoalsByAsset={assetGoalsByAsset}
-                  groupGoalByCategory={groupGoalByCategory}
-                  snapshots={snapshots}
-                  totalValueToman={totalValueToman}
-                  onOpenAsset={(id) => router.push(`/assets/${id}`)}
+        {!isLoadingData && assets.length === 0 && (
+          <div className="rounded-card bg-panel">
+            <EmptyState
+              icon={<Coins />}
+              title="هنوز دارایی‌ای نساخته‌ای"
+              action={<Button onClick={() => router.push('/manage/assets')}>افزودن دارایی</Button>}
+            />
+          </div>
+        )}
+
+        {assets.length > 0 && (
+          <div className="flex items-center gap-2">
+            <ChipGroup aria-label="نمایش" value={[viewMode]} onValueChange={(v) => v[0] && setViewMode(v[0] as AssetListViewMode)} scroll={false}>
+              <Chip value="groups">گروه‌ها</Chip>
+              <Chip value="all">همه</Chip>
+            </ChipGroup>
+            <span className="h-5 w-px bg-line" aria-hidden />
+            <ChipGroup aria-label="دارایی‌های صفر" value={[zeroValueFilter]} onValueChange={(v) => v[0] && setZeroValueFilter(v[0] as ZeroValueFilter)} scroll={false}>
+              <Chip value="hide">بدون صفر</Chip>
+              <Chip value="show">شامل صفر</Chip>
+            </ChipGroup>
+          </div>
+        )}
+
+        {assets.length > 0 && visibleAssets.length === 0 && (
+          <div className="rounded-card bg-panel">
+            <EmptyState
+              icon={<Coins />}
+              title="دارایی با ارزش غیرصفر نیست"
+              action={<Button variant="soft" onClick={() => setZeroValueFilter('show')}>نمایش دارایی‌های صفر</Button>}
+            />
+          </div>
+        )}
+      </Section>
+
+      {visibleAssets.length > 0 &&
+        (viewMode === 'groups' ? (
+          groupedAssets.map((group) => (
+            <Section
+              key={group.id}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: group.color }} aria-hidden />
+                  {group.name}
+                </span>
+              }
+            >
+              {group.id !== 'uncategorized' && groupGoalByCategory.has(group.id) && (
+                <GoalProgressDisplay
+                  label="هدف گروه"
+                  kind="percent"
+                  variant="compact"
+                  className="px-1"
+                  progress={calculateGroupGoalProgress(groupGoalByCategory.get(group.id)!, snapshots, totalValueToman)}
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {flatAssets.map((asset) => {
-                const cat = categories.find((c) => c.id === asset.category_id);
-                const groupColor = cat?.color ?? '#64748b';
-                return (
+              )}
+              <List>
+                {group.assets.map((asset) => (
                   <AssetListRow
                     key={asset.id}
                     asset={asset}
-                    groupColor={groupColor}
-                    transactions={transactions}
-                    currencyMode={currencyMode}
-                    usdRate={usdRate}
+                    groupColor={group.color}
                     pnl={pnlByAssetId.get(asset.id)}
                     assetGoals={assetGoalsByAsset.get(asset.id) ?? []}
-                    snapshots={snapshots}
-                    totalValueToman={totalValueToman}
-                    onOpen={() => router.push(`/assets/${asset.id}`)}
+                    {...rowProps}
                   />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AssetGroupSection({
-  group,
-  transactions,
-  currencyMode,
-  usdRate,
-  pnlByAssetId,
-  assetGoalsByAsset,
-  groupGoalByCategory,
-  snapshots,
-  totalValueToman,
-  onOpenAsset,
-}: {
-  group: Category & { assets: Asset[] };
-  transactions: Parameters<typeof calculateAssetStats>[1];
-  currencyMode: Parameters<typeof calculateAssetStats>[2];
-  usdRate: number;
-  pnlByAssetId: Map<string, AssetPnl>;
-  assetGoalsByAsset: Map<string, Goal[]>;
-  groupGoalByCategory: Map<string, Goal>;
-  snapshots: ReturnType<typeof buildAssetSnapshots>;
-  totalValueToman: number;
-  onOpenAsset: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2 mb-2 px-1">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: group.color }}
-          ></div>
-          <h3 className="text-sm font-medium text-slate-400">{group.name}</h3>
-        </div>
-        {group.id !== 'uncategorized' && groupGoalByCategory.has(group.id) && (
-          <GoalProgressDisplay
-            label="هدف گروه"
-            kind="percent"
-            variant="compact"
-            progress={calculateGroupGoalProgress(
-              groupGoalByCategory.get(group.id)!,
-              snapshots,
-              totalValueToman
-            )}
-          />
-        )}
-      </div>
-
-      {group.assets.map((asset) => (
-        <AssetListRow
-          key={asset.id}
-          asset={asset}
-          groupColor={group.color}
-          transactions={transactions}
-          currencyMode={currencyMode}
-          usdRate={usdRate}
-          pnl={pnlByAssetId.get(asset.id)}
-          assetGoals={assetGoalsByAsset.get(asset.id) ?? []}
-          snapshots={snapshots}
-          totalValueToman={totalValueToman}
-          onOpen={() => onOpenAsset(asset.id)}
-        />
-      ))}
+                ))}
+              </List>
+            </Section>
+          ))
+        ) : (
+          <List>
+            {flatAssets.map((asset) => (
+              <AssetListRow
+                key={asset.id}
+                asset={asset}
+                groupColor={categories.find((c) => c.id === asset.category_id)?.color}
+                pnl={pnlByAssetId.get(asset.id)}
+                assetGoals={assetGoalsByAsset.get(asset.id) ?? []}
+                {...rowProps}
+              />
+            ))}
+          </List>
+        ))}
     </div>
   );
 }
@@ -321,7 +236,7 @@ function AssetListRow({
   onOpen,
 }: {
   asset: Asset;
-  groupColor: string;
+  groupColor?: string;
   transactions: Parameters<typeof calculateAssetStats>[1];
   currencyMode: Parameters<typeof calculateAssetStats>[2];
   usdRate: number;
@@ -329,120 +244,54 @@ function AssetListRow({
   assetGoals: Goal[];
   snapshots: ReturnType<typeof buildAssetSnapshots>;
   totalValueToman: number;
-  onOpen: () => void;
+  onOpen: (id: string) => void;
 }) {
   const stats = calculateAssetStats(asset, transactions, currencyMode, usdRate);
-  const displayValue =
-    currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
+  const displayValue = currencyMode === 'USD' ? stats.currentValueUsd : stats.currentValueToman;
   const decimals = assetDecimals(asset);
-  // Active (open) P/L on the units held now — shown first, it is the number
-  // you can still act on. This-year and from-the-beginning stay below.
+  // Active (open) P/L on the units held now first: it is the number you can still act on.
   const inPnl = pnl != null && pnl.included;
   const hasOpen = inPnl && pnl.holdings > 0 && pnl.active.available && pnl.active.cost.toman > 0;
-  const openPnl = pnl ? pick(pnl.active.value, currencyMode) : 0;
   const openPercent = pnl ? (pnlPercent(pnl.active.value, pnl.active.cost, currencyMode) ?? 0) : 0;
-  const isOpenProfit = openPnl >= 0;
-  const yearPnl = pnl ? pick(pnl.year.value, currencyMode) : 0;
-  const allTimePnl = pnl ? pick(pnl.allTime.value, currencyMode) : 0;
-  const showYear = inPnl && !pnl.year.empty;
-  const showAllTime = inPnl && pick(pnl.allTime.invested, currencyMode) > 0;
 
   return (
-    <div
-      onClick={onOpen}
-      className="bg-panel border border-white/5 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:bg-elevated transition-colors active:scale-[0.98]"
-    >
-      <div className="flex items-center gap-4">
-        <EntityIcon
-          iconUrl={asset.icon_url}
-          fallback={<Activity size={24} />}
-          bgColor={`${groupColor}20`}
-          color={groupColor}
-          className="w-12 h-12"
-        />
-        <div>
-          <h3 className="font-semibold text-slate-200">{asset.name}</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            {formatAssetAmount(stats.totalAmount, decimals)} {asset.unit}
-          </p>
-          {asset.include_in_balance === false && (
-            <p className="text-[10px] text-sky-300/80 mt-1">خارج از ارزش کل سبد</p>
-          )}
-          {asset.include_in_profit_loss === false && (
-            <p className="text-[10px] text-amber-300/80 mt-1">خارج از سود/زیان</p>
-          )}
-          {assetGoals.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {assetGoals.slice(0, 2).map((goal) => (
-                <GoalProgressDisplay
-                  key={goal.id}
-                  label={
-                    goal.target_kind === 'quantity' ? 'هدف مقدار' : 'هدف درصد سبد'
-                  }
-                  kind={goalValueKindFromGoal(goal.target_kind)}
-                  unit={asset.unit}
-                  variant="compact"
-                  progress={calculateAssetGoalProgress(goal, snapshots, totalValueToman)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="text-left">
-        <p className="font-bold text-slate-200" dir="ltr">
-          {formatCurrency(displayValue, currencyMode)}
-        </p>
-        {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && (
-          <p className="text-[9px] text-amber-300/70 mt-0.5">با قیمت آخرین معامله</p>
-        )}
-        {hasOpen && (
-          <p
-            className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
-              isOpenProfit ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'
-            }`}
-            dir="ltr"
-            title="سود/زیان باز"
-          >
-            {isOpenProfit ? '+' : ''}
-            {formatCurrency(openPnl, currencyMode)}
-            <span className="font-medium opacity-80">
-              {isOpenProfit ? '+' : ''}
-              {openPercent.toFixed(1)}%
+    <ListRow
+      onClick={() => onOpen(asset.id)}
+      chevron={false}
+      leading={<Avatar src={asset.icon_url} name={asset.name} fallback={<Coins />} color={groupColor} />}
+      title={asset.name}
+      subtitle={
+        <span className="flex flex-col gap-1">
+          <span className="flex flex-wrap items-center gap-1">
+            <span className="tabular">
+              {formatAssetAmount(stats.totalAmount, decimals)} {asset.unit}
             </span>
-          </p>
-        )}
-        {(showYear || showAllTime) && (
-          <p className="text-[10px] mt-1 text-slate-500 leading-4" dir="rtl">
-            {showYear && (
-              <>
-                امسال{pnl.year.partial ? '*' : ''}{' '}
-                <span
-                  dir="ltr"
-                  className={yearPnl >= 0 ? 'text-emerald-400/80' : 'text-rose-400/80'}
-                >
-                  {yearPnl >= 0 ? '+' : ''}
-                  {formatCurrency(yearPnl, currencyMode)}
-                </span>
-              </>
-            )}
-            {showYear && showAllTime && <br />}
-            {showAllTime && (
-              <>
-                از ابتدا{' '}
-                <span
-                  dir="ltr"
-                  className={allTimePnl >= 0 ? 'text-emerald-400/80' : 'text-rose-400/80'}
-                >
-                  {allTimePnl >= 0 ? '+' : ''}
-                  {formatCurrency(allTimePnl, currencyMode)}
-                </span>
-              </>
-            )}
-          </p>
-        )}
-      </div>
-    </div>
+            {asset.include_in_balance === false && <Badge tone="info">خارج از ارزش کل</Badge>}
+            {asset.include_in_profit_loss === false && <Badge tone="warning">خارج از سود و زیان</Badge>}
+            {stats.totalAmount > 0 && stats.currentPriceSource === 'trade' && <Badge>قیمت آخرین معامله</Badge>}
+          </span>
+          {assetGoals.slice(0, 2).map((goal) => (
+            <GoalProgressDisplay
+              key={goal.id}
+              label={goal.target_kind === 'quantity' ? 'هدف مقدار' : 'هدف درصد سبد'}
+              kind={goalValueKindFromGoal(goal.target_kind)}
+              unit={asset.unit}
+              variant="compact"
+              progress={calculateAssetGoalProgress(goal, snapshots, totalValueToman)}
+            />
+          ))}
+        </span>
+      }
+      trailing={
+        <span className="flex flex-col items-end gap-1">
+          <Amount value={displayValue} currency={currencyMode} size="sm" compact />
+          {hasOpen && (
+            <span title="سود و زیان باز">
+              <Delta value={openPercent} pill />
+            </span>
+          )}
+        </span>
+      }
+    />
   );
 }
