@@ -118,12 +118,12 @@ export function ForecastView() {
         <Banner tone="positive">در ۹۰ روز آینده موجودی‌ات منفی نمی‌شود.</Banner>
       )}
 
-      <Section title="موجودی پایان هر هفته">
+      <Section title="موجودی پایان هر هفته" description="هفته‌ی ۱ تا ۱۳ از امروز.">
         <div className="rounded-card bg-panel p-4">
           <BarChart
             aria-label="موجودی پیش‌بینی‌شده پایان هر هفته"
             mode="signed"
-            data={weeks.map((d) => ({ key: d.date, label: toPersianDigits(d.date.slice(5)), value: Math.round(toMode(d.balance)) }))}
+            data={weeks.map((d, i) => ({ key: d.date, label: toPersianDigits(String(i + 1)), value: Math.round(toMode(d.balance)) }))}
             formatValue={(v) => `${Math.round(v / (currencyMode === 'USD' ? 1 : 1_000_000)).toLocaleString('fa-IR')}${currencyMode === 'USD' ? '$' : ' م'}`}
           />
         </div>
