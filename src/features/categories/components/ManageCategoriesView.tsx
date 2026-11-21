@@ -28,6 +28,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Badge, SegmentedControl } from '@/design-system';
+import { categoryScope, type CategoryScope } from '@/features/portfolio/utils/total-wealth';
 import { supabase } from '@/shared/lib/supabase/client';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import { FormattedNumberInput } from '@/shared/components/FormattedNumberInput';
@@ -45,6 +47,8 @@ type FormState = {
   color: string;
   parentId: string | null;
   monthlyCapToman: string;
+  /** Asset categories: where the assets of the category count. */
+  scope: CategoryScope;
 };
 
 const KIND_TABS: { id: CategoryKind; label: string }[] = [
@@ -65,6 +69,13 @@ const emptyForm: FormState = {
   color: CATEGORY_COLORS[0],
   parentId: null,
   monthlyCapToman: '',
+  scope: 'portfolio',
+};
+
+const SCOPE_HELP: Record<CategoryScope, string> = {
+  portfolio: 'دارایی‌های این دسته در سبد، اهداف و دارایی کل می‌آیند.',
+  wealth_only: 'فقط در «دارایی کل» می‌آیند، نه در سبد و اهداف (مثل رهن).',
+  ignored: 'در هیچ جمعی نمی‌آیند و فقط در فهرست دارایی‌ها دیده می‌شوند (مثل سهمی که قیمت بازار ندارد).',
 };
 
 export function ManageCategoriesView() {
@@ -72,7 +83,7 @@ export function ManageCategoriesView() {
   const toast = useToast();
   const { confirm } = useConfirm();
   const { user } = useAuth();
-  const { categories, setCategories } = useData();
+  const { categories, setCategories, assets, setAssets } = useData();
 
   const [activeKind, setActiveKind] = useState<CategoryKind>('asset');
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -215,6 +226,31 @@ export function ManageCategoriesView() {
     setCapsByCategoryId((prev) => new Map(prev).set(categoryId, saved));
   };
 
+  /**
+   * The category flag is the default for its assets: when it changes, copy
+   * it to `include_in_balance` of every asset in the category, so all the
+   * portfolio numbers (which read the asset flag) follow.
+   */
+  const syncAssetsToCategory = async (categoryId: string, inPortfolio: boolean) => {
+    const targets = assets.filter(
+      (a) => a.category_id === categoryId && (a.include_in_balance !== false) !== inPortfolio
+    );
+    if (targets.length === 0) return;
+    const { error } = await supabase
+      .from('assets')
+      .update({ include_in_balance: inPortfolio })
+      .eq('category_id', categoryId);
+    if (error) throw error;
+    setAssets((prev) =>
+      prev.map((a) => (a.category_id === categoryId ? { ...a, include_in_balance: inPortfolio } : a))
+    );
+    toast.success(
+      inPortfolio
+        ? `${targets.length.toLocaleString('fa-IR')} دارایی به سبد سرمایه‌گذاری اضافه شد.`
+        : `${targets.length.toLocaleString('fa-IR')} دارایی از سبد سرمایه‌گذاری خارج شد.`
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = form.name.trim();
@@ -224,6 +260,10 @@ export function ManageCategoriesView() {
     }
 
     const parentId = activeKind === 'asset' ? null : form.parentId;
+    // Only asset categories carry the portfolio flag.
+    const scope: CategoryScope = activeKind === 'asset' ? form.scope : 'portfolio';
+    const inPortfolio = scope === 'portfolio';
+    const ignoreInWealth = scope === 'ignored';
 
     // Defense in depth: a client can't make a category its own ancestor.
     if (parentId && form.editingId && descendantsOfEditing.has(parentId)) {
@@ -235,7 +275,16 @@ export function ManageCategoriesView() {
       if (form.editingId) {
         const editingId = form.editingId;
         const snapshot = categories;
-        const patch = { name, color: form.color, parent_id: parentId };
+        const patch = {
+          name,
+          color: form.color,
+          parent_id: parentId,
+          in_portfolio: inPortfolio,
+          ignore_in_wealth: ignoreInWealth,
+        };
+        const before = categories.find((c) => c.id === editingId);
+        const portfolioChanged =
+          activeKind === 'asset' && (before?.in_portfolio !== false) !== inPortfolio;
         await runOptimisticMutation({
           snapshot,
           applyOptimistic: () => {
@@ -278,6 +327,9 @@ export function ManageCategoriesView() {
         if (activeKind === 'expense') {
           await persistCategoryCap(editingId, form.monthlyCapToman);
         }
+        if (portfolioChanged) {
+          await syncAssetsToCategory(editingId, inPortfolio);
+        }
       } else {
         const nextOrder =
           scoped
@@ -296,6 +348,8 @@ export function ManageCategoriesView() {
           color: form.color,
           kind: activeKind,
           parent_id: parentId,
+          in_portfolio: inPortfolio,
+          ignore_in_wealth: ignoreInWealth,
           order_index: nextOrder,
           created_at: new Date().toISOString(),
         };
@@ -323,6 +377,8 @@ export function ManageCategoriesView() {
                   color: form.color,
                   kind: activeKind,
                   parent_id: parentId,
+                  in_portfolio: inPortfolio,
+                  ignore_in_wealth: ignoreInWealth,
                   order_index: nextOrder,
                 },
               ])
@@ -370,6 +426,7 @@ export function ManageCategoriesView() {
       color: cat.color,
       parentId: cat.parent_id,
       monthlyCapToman: cap ? String(cap.monthly_limit_toman) : '',
+      scope: categoryScope(cat),
     });
   };
 
@@ -613,6 +670,24 @@ export function ManageCategoriesView() {
             </div>
           )}
 
+          {activeKind === 'asset' && (
+            <div className="flex flex-col gap-2 rounded-control bg-panel p-3">
+              <p className="text-callout font-medium text-fg">در کدام جمع حساب شود؟</p>
+              <SegmentedControl<CategoryScope>
+                aria-label="در کدام جمع حساب شود؟"
+                size="sm"
+                value={form.scope}
+                onValueChange={(scope) => setForm({ ...form, scope })}
+                options={[
+                  { value: 'portfolio', label: 'سبد سرمایه‌گذاری' },
+                  { value: 'wealth_only', label: 'فقط دارایی کل' },
+                  { value: 'ignored', label: 'نادیده' },
+                ]}
+              />
+              <p className="text-caption text-fg-subtle">{SCOPE_HELP[form.scope]}</p>
+            </div>
+          )}
+
           {activeKind === 'expense' && (
             <div>
               <label htmlFor="category-monthly-cap" className="block text-xs text-slate-400 mb-1">
@@ -744,6 +819,9 @@ function CategoryNode({
           >
             {category.name}
           </span>
+          {category.kind === 'asset' && categoryScope(category) !== 'portfolio' && (
+            <Badge>{categoryScope(category) === 'ignored' ? 'نادیده' : 'فقط دارایی کل'}</Badge>
+          )}
           {capLimitToman != null && capLimitToman > 0 && (
             <span className="text-[10px] text-amber-400/80 shrink-0">
               سقف {Number(capLimitToman).toLocaleString('en-US')}

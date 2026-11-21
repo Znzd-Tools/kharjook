@@ -75,7 +75,7 @@ export function createKharjookServer(userId: string) {
     });
 
   // ---- read ----
-  read('get_overview', 'Overview', 'Net worth (Toman + USD), cash, allocation by asset group, profit (active / this year / all time, in Toman and USD), goal counts.', {}, (b) => getOverview(b));
+  read('get_overview', 'Overview', 'Net worth = the investment portfolio (Toman + USD), total wealth (portfolio + assets kept out of it, like a car or a deposit), cash, allocation by asset group, profit (active / this year / all time, in Toman and USD), goal counts.', {}, (b) => getOverview(b));
   read('get_assets', 'Assets', 'Every asset with quantity, price, value, cost, profit and share of the portfolio.', {}, (b) => getAssets(b));
   read('get_goals', 'Portfolio goals', 'Target vs actual for each goal (quantity or allocation %), drift, and suggested action.', {}, (b) => getGoals(b));
   read<Parameters<typeof listTransactions>[1]>(

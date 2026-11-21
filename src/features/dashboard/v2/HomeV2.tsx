@@ -146,6 +146,7 @@ export function HomeV2() {
   const hidden = usePrivacy();
   const { layout, save } = useDashboardLayout();
   const [editOpen, setEditOpen] = useState(false);
+  const [wealthOpen, setWealthOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allocView, setAllocView] = useState<"groups" | "assets">("groups");
   const [capFor, setCapFor] = useState<string | null>(null);
@@ -357,13 +358,18 @@ export function HomeV2() {
       tone: "negative",
     });
 
+  // Assets kept out of the portfolio (car, deposit ...) show as total wealth.
+  const hasOutside = stats.outsidePortfolioToman > 0;
+
   /* ------------------------------ blocks ------------------------------ */
 
   const blocks: Record<BlockKey, ReactNode> = {
     hero: (
       <Card variant="hero" padding="lg" className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-caption text-fg-on-hero-muted">ارزش کل دارایی</p>
+          <p className="text-caption text-fg-on-hero-muted">
+            {hasOutside ? "سبد سرمایه‌گذاری" : "ارزش کل دارایی"}
+          </p>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -449,6 +455,23 @@ export function HomeV2() {
             </span>
           </div>
         </div>
+        {hasOutside && (
+          <button
+            type="button"
+            onClick={() => setWealthOpen(true)}
+            className="ds-focus flex w-full items-center justify-between gap-3 rounded-control bg-white/20 px-3 py-2 text-caption text-fg-on-hero"
+          >
+            <span>دارایی کل (با دارایی‌های خارج از سبد)</span>
+            <Amount
+              value={toDisplay(stats.totalWealthToman)}
+              currency={cur}
+              size="sm"
+              compact
+              tone="inherit"
+              hidden={hidden}
+            />
+          </button>
+        )}
       </Card>
     ),
 
@@ -917,6 +940,67 @@ export function HomeV2() {
         categoryId={capFor}
         onOpenChange={(o) => !o && setCapFor(null)}
       />
+
+      <Sheet
+        open={wealthOpen}
+        onOpenChange={setWealthOpen}
+        title="دارایی کل"
+        description="سبد سرمایه‌گذاری به‌علاوه‌ی دارایی‌هایی که خارج از سبد هستند. بدهی‌ها کم نشده‌اند. اهداف و درصدها فقط روی سبد حساب می‌شوند."
+      >
+        <List>
+          <ListRow
+            chevron={false}
+            title="سبد سرمایه‌گذاری"
+            subtitle="دارایی‌های سبد و نقد"
+            trailing={
+              <Amount
+                value={toDisplay(stats.totalPortfolioToman)}
+                currency={cur}
+                size="sm"
+                hidden={hidden}
+              />
+            }
+          />
+          {stats.outsideGroups.map((g) => (
+            <ListRow
+              key={g.id}
+              chevron={false}
+              title={g.name}
+              subtitle="خارج از سبد"
+              trailing={
+                <Amount
+                  value={toDisplay(g.valueToman)}
+                  currency={cur}
+                  size="sm"
+                  hidden={hidden}
+                />
+              }
+            />
+          ))}
+          <ListRow
+            chevron={false}
+            title="دارایی کل"
+            trailing={
+              <Amount
+                value={toDisplay(stats.totalWealthToman)}
+                currency={cur}
+                size="md"
+                hidden={hidden}
+              />
+            }
+          />
+        </List>
+        {stats.ignoredAssetsCount > 0 && (
+          <p className="mt-3 text-caption text-fg-muted">
+            {stats.ignoredAssetsCount.toLocaleString("fa-IR")} دارایی «نادیده» است و در هیچ جمعی
+            نیامده.
+          </p>
+        )}
+        <p className="mt-3 text-caption text-fg-muted">
+          برای تغییر، در «مدیریت دسته‌بندی‌ها» برای هر دسته‌ی دارایی یکی از سه حالت «سبد»، «فقط
+          دارایی کل» یا «نادیده» را انتخاب کن.
+        </p>
+      </Sheet>
 
       <Sheet
         open={editOpen}
