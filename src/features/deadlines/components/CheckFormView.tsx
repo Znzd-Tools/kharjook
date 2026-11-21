@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { AmountField, Button, Chip, ChipGroup, DateField, Field, Input, PickerField, Skeleton, Textarea, TopBar } from '@/design-system';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AmountField, Button, Chip, ChipGroup, DateField, Field, Input, PickerField, Skeleton, Switch, Textarea, TopBar } from '@/design-system';
 import { LOAN_REMINDER_DAY_OPTIONS, normalizeReminderDaysBefore } from '@/features/deadlines/utils/loan-reminder-days';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { CURRENCY_META } from '@/features/wallets/constants/currency-meta';
@@ -23,6 +23,8 @@ type CheckFormState = {
   dueDate: string;
   note: string;
   reminderDaysBefore: number[];
+  /** Guarantee cheque: security only, never a due payment. */
+  isGuarantee: boolean;
 };
 
 function initialState(): CheckFormState {
@@ -36,6 +38,7 @@ function initialState(): CheckFormState {
     dueDate: formatJalaali(todayJalaali()),
     note: '',
     reminderDaysBefore: [2],
+    isGuarantee: false,
   };
 }
 
@@ -46,7 +49,12 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
   const { wallets, categories } = useData();
   const isEdit = !!checkId;
 
-  const [form, setForm] = useState<CheckFormState>(initialState);
+  const searchParams = useSearchParams();
+  // «چک ضمانت جدید» from the guarantee tab opens with the switch on.
+  const [form, setForm] = useState<CheckFormState>(() => ({
+    ...initialState(),
+    isGuarantee: !checkId && searchParams.get('guarantee') === '1',
+  }));
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const goBack = useSafeBack('/deadlines/checks');
@@ -83,6 +91,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
           dueDate: check.due_date_string,
           note: check.note ?? '',
           reminderDaysBefore: check.reminder_days_before ?? [2],
+          isGuarantee: check.is_guarantee ?? false,
         });
       } catch (error) {
         console.error(error);
@@ -137,6 +146,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
         category_id: form.categoryId,
         note: form.note.trim() || null,
         reminder_days_before: normalizeReminderDaysBefore(form.reminderDaysBefore),
+        is_guarantee: form.isGuarantee,
         updated_at: new Date().toISOString(),
       };
 
@@ -204,6 +214,13 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
             <Input value={form.checkNumber} onChange={(e) => set('checkNumber', e.target.value)} placeholder="اختیاری" dir="ltr" inputMode="numeric" />
           </Field>
         </div>
+        <Switch
+          label="چک ضمانت"
+          description="برای ضمانت داده شده و پرداخت نمی‌شود: در سررسیدها، جمع ماه و یادآوری‌ها نمی‌آید و در بخش «ضمانت» دیده می‌شود."
+          checked={form.isGuarantee}
+          onCheckedChange={(c) => set('isGuarantee', c)}
+        />
+        {!form.isGuarantee && (
         <Field label="یادآوری قبل از سررسید (تلگرام و اپ)">
           <ChipGroup
             aria-label="روزهای یادآوری"
@@ -218,6 +235,7 @@ export function CheckFormView({ checkId }: { checkId?: string }) {
             ))}
           </ChipGroup>
         </Field>
+        )}
         <Field label="یادداشت">
           <Textarea value={form.note} onChange={(e) => set('note', e.target.value)} rows={3} placeholder="اختیاری" />
         </Field>

@@ -1,10 +1,11 @@
+import { Suspense } from 'react';
 import { CheckFormView } from '@/features/deadlines/components/CheckFormView';
 
-export default async function EditCheckPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditCheckPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <CheckFormView checkId={id} />;
+  return (
+    <Suspense>
+      <CheckFormView checkId={id} />
+    </Suspense>
+  );
 }

@@ -100,7 +100,7 @@ export async function processPushReminders(): Promise<{ sent: number; errors: st
   for (const userId of userIds) {
     try {
       const [checks, installments, subscriptions, rates] = await Promise.all([
-        admin.from('checks').select('*').eq('user_id', userId).eq('status', 'pending').is('deleted_at', null),
+        admin.from('checks').select('*').eq('user_id', userId).eq('status', 'pending').eq('is_guarantee', false).is('deleted_at', null),
         admin.from('loan_installments').select('*').eq('user_id', userId).eq('is_paid', false),
         admin.from('subscriptions').select('*').eq('user_id', userId).eq('status', 'active').is('deleted_at', null),
         admin.from('currency_rates').select('*').eq('user_id', userId),

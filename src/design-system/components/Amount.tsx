@@ -1,4 +1,7 @@
+'use client';
+
 import { cva, type VariantProps } from 'class-variance-authority';
+import { NumberShimmer, useAmountPending } from './AmountPending';
 import { cn } from '../lib/cn';
 import { formatMoney, type Currency } from '../lib/format';
 
@@ -43,6 +46,8 @@ export interface AmountProps extends VariantProps<typeof amountVariants> {
   hideUnit?: boolean;
   fractionDigits?: number;
   className?: string;
+  /** Show the number even while data is loading (e.g. a value the user typed). */
+  live?: boolean;
 }
 
 /**
@@ -60,7 +65,16 @@ export function Amount({
   fractionDigits,
   size,
   className,
+  live,
 }: AmountProps) {
+  const pending = useAmountPending(live);
+  if (pending) {
+    return (
+      <span className={cn(amountVariants({ size }), className)} role="status" aria-label="در حال محاسبه">
+        <NumberShimmer width={compact ? '4.5ch' : size === 'hero' ? '7ch' : '6ch'} />
+      </span>
+    );
+  }
   const m = formatMoney(value, { currency, signed, compact, fractionDigits });
   const resolved = tone === 'auto' ? (value > 0 ? 'positive' : value < 0 ? 'negative' : 'muted') : tone;
   const unit = hideUnit ? null : (

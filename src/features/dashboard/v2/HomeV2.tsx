@@ -88,6 +88,7 @@ import {
   frequentPatterns,
 } from "@/features/transactions/utils/usage-stats";
 import { PortfolioPnlCard } from "@/features/pnl/components/PortfolioPnlCard";
+import { UnplacedAssetsCard } from "@/features/asset-places/components/UnplacedAssetsCard";
 import { buildPnlSummary } from "@/features/pnl/utils/pnl-summary";
 import { netWorthChangeThisMonth } from "@/features/pnl/utils/net-worth-change";
 import { BLOCKS, moveBlock, type BlockKey } from "./blocks";
@@ -498,6 +499,7 @@ export function HomeV2() {
         </Section>
       ) : null,
 
+    places: <UnplacedAssetsCard />,
     pnl: <PortfolioPnlCard />,
 
     month: (

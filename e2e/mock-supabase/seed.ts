@@ -54,7 +54,12 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
       {
         id: 'chk1', title: 'چک آقای رضایی', bank_name: 'ملت', check_number: '123456', amount: 12_000_000, currency: 'IRT',
         due_date_string: '1405/08/19', wallet_id: 'w-irt', category_id: 'c-rent', status: 'pending', cleared_at: null,
-        paid_transaction_id: null, note: null, deleted_at: null, ...stamp,
+        paid_transaction_id: null, note: null, deleted_at: null, is_guarantee: false, ...stamp,
+      },
+      {
+        id: 'chk-g', title: 'چک ضمانت اجاره', bank_name: 'ملی', check_number: '777', amount: 200_000_000, currency: 'IRT',
+        due_date_string: '1405/12/29', wallet_id: 'w-irt', category_id: null, status: 'pending', cleared_at: null,
+        paid_transaction_id: null, note: null, deleted_at: null, is_guarantee: true, ...stamp,
       },
     ],
     subscriptions: [
@@ -74,6 +79,11 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
     budget_allocations: [],
     portfolio_snapshots: [],
     mcp_tokens: [],
+    asset_places: [
+      { id: 'pl-ex', user_id: 'u1', name: 'نوبیتکس', kind: 'exchange', note: null, order_index: 0, archived_at: null, created_at: now, updated_at: now },
+    ],
+    // دلار: 300 held, 200 in the exchange → 100 unplaced (Home shows it).
+    asset_place_holdings: [{ id: 'aph-1', user_id: 'u1', asset_id: 'usd', place_id: 'pl-ex', quantity: 200, updated_at: now }],
     mcp_audit: [],
     wallet_savings_pots: [],
     price_sources: [],

@@ -55,6 +55,29 @@ export function bucketFor(due: string, today: JalaaliDate): TimelineBucket {
   return 'later';
 }
 
+/**
+ * Money due in the current Jalali month (paid-later overdue items of this month
+ * included), and overdue money from earlier months, kept apart. Items in an asset
+ * (quantities, not money) are skipped. `toToman` converts one item.
+ */
+export function monthDueTotals(
+  items: Pick<TimelineItem, 'due' | 'amount' | 'currency' | 'assetId'>[],
+  today: JalaaliDate,
+  toToman: (amount: number, currency: Currency) => number
+): { thisMonth: number; overduePrior: number } {
+  const monthStart = `${today.jy}/${String(today.jm).padStart(2, '0')}/01`;
+  const monthEnd = `${today.jy}/${String(today.jm).padStart(2, '0')}/31`;
+  let thisMonth = 0;
+  let overduePrior = 0;
+  for (const i of items) {
+    if (i.assetId) continue;
+    const toman = toToman(i.amount, i.currency);
+    if (i.due >= monthStart && i.due <= monthEnd) thisMonth += toman;
+    else if (i.due < monthStart) overduePrior += toman;
+  }
+  return { thisMonth, overduePrior };
+}
+
 export function buildTimeline(
   input: { checks: Check[]; installments: InstallmentWithLoan[]; subscriptions: Subscription[] },
   today: JalaaliDate
@@ -62,7 +85,8 @@ export function buildTimeline(
   const t = formatJalaali(today);
   const items: TimelineItem[] = [];
   for (const c of input.checks) {
-    if (c.status !== 'pending' || c.deleted_at) continue;
+    // Guarantee cheques are security, not a payment.
+    if (c.status !== 'pending' || c.deleted_at || c.is_guarantee) continue;
     items.push({
       key: `check:${c.id}`, kind: 'check', id: c.id, title: c.title, due: c.due_date_string,
       amount: Number(c.amount), currency: c.currency, assetId: null, walletId: c.wallet_id,

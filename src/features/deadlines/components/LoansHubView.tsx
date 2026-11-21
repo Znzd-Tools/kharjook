@@ -77,6 +77,7 @@ export function LoansHubView() {
   const [settlementTarget, setSettlementTarget] = useState<LoanInstallment | null>(null);
   const [settlementWalletId, setSettlementWalletId] = useState<string | null>(null);
   const [settlementPayAmount, setSettlementPayAmount] = useState('');
+  const [showFinished, setShowFinished] = useState(false);
   const [menuFor, setMenuFor] = useState<Loan | null>(null);
   const confirm = useConfirm();
   const goBack = useSafeBack('/deadlines?v=loans');
@@ -594,7 +595,8 @@ export function LoansHubView() {
             <>
               {([
                 ['وام‌های فعال', filteredLoanRows.filter((r) => !(r.totalCount > 0 && r.paidCount >= r.totalCount))],
-                ['تمام‌شده', filteredLoanRows.filter((r) => r.totalCount > 0 && r.paidCount >= r.totalCount)],
+                // Finished loans are not in the first view: behind the button below.
+                ['تمام‌شده', showFinished ? filteredLoanRows.filter((r) => r.totalCount > 0 && r.paidCount >= r.totalCount) : []],
               ] as const).map(([title, rows], gi) =>
                 rows.length === 0 ? (
                   gi === 0 ? (
@@ -658,6 +660,11 @@ export function LoansHubView() {
                     </ul>
                   </section>
                 )
+              )}
+              {filteredLoanRows.filter((r) => r.totalCount > 0 && r.paidCount >= r.totalCount).length > 0 && (
+                <Button variant="ghost" fullWidth onClick={() => setShowFinished((v) => !v)}>
+                  {showFinished ? 'پنهان کردن وام‌های تمام‌شده' : `وام‌های تمام‌شده (${(filteredLoanRows.filter((r) => r.totalCount > 0 && r.paidCount >= r.totalCount).length).toLocaleString('fa-IR')})`}
+                </Button>
               )}
             </>
           )

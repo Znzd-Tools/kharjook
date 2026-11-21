@@ -47,7 +47,7 @@ export function AppShellV2({ children, modal }: { children: ReactNode; modal: Re
       countDueSoon(
         [
           ...(upcomingDeadlines ?? []).map((i) => ({ due: i.due_date_string })),
-          ...(checks ?? []).filter((c) => c.status === 'pending').map((c) => ({ due: c.due_date_string })),
+          ...(checks ?? []).filter((c) => c.status === 'pending' && !c.is_guarantee).map((c) => ({ due: c.due_date_string })),
           ...(activeSubscriptions ?? []).map((s) => ({ due: s.next_due_date_string })),
         ],
         todayJalaali()

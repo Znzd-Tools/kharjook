@@ -25,13 +25,16 @@ export interface Book {
   caps: CategorySpendingCap[];
   envelopes: { category_id: string; rollover: boolean; created_at: string }[];
   allocations: { category_id: string; month: string; amount_toman: number }[];
+  /** Where assets are held (user's own places) and how much is in each. */
+  places: { id: string; name: string; kind: string }[];
+  placeHoldings: { asset_id: string; place_id: string; quantity: number }[];
   usdRate: number;
 }
 
 export async function loadBook(userId: string): Promise<Book> {
   const a = createSupabaseAdminClient();
   const own = <T,>(table: string, cols = '*') => a.from(table).select(cols).eq('user_id', userId) as unknown as Promise<{ data: T[] | null }>;
-  const [tx, assets, wallets, categories, persons, prices, rates, goals, checks, subs, loans, inst, caps, env, alloc] = await Promise.all([
+  const [tx, assets, wallets, categories, persons, prices, rates, goals, checks, subs, loans, inst, caps, env, alloc, placesRes, placeHoldingsRes] = await Promise.all([
     fetchAllUserTransactions(a, userId),
     own<Asset>('assets'),
     a.from('wallets').select('*').eq('user_id', userId).is('archived_at', null) as unknown as Promise<{ data: Wallet[] | null }>,
@@ -47,6 +50,8 @@ export async function loadBook(userId: string): Promise<Book> {
     own<CategorySpendingCap>('category_spending_caps'),
     own<Book['envelopes'][number]>('budget_envelopes', 'category_id, rollover, created_at'),
     own<Book['allocations'][number]>('budget_allocations', 'category_id, month, amount_toman'),
+    a.from('asset_places').select('id, name, kind').eq('user_id', userId).is('archived_at', null) as unknown as Promise<{ data: Book['places'] | null }>,
+    own<Book['placeHoldings'][number]>('asset_place_holdings', 'asset_id, place_id, quantity'),
   ]);
   const currencyRates = (rates.data ?? []) as CurrencyRate[];
   return {
@@ -66,6 +71,8 @@ export async function loadBook(userId: string): Promise<Book> {
     caps: caps.data ?? [],
     envelopes: env.data ?? [],
     allocations: alloc.data ?? [],
+    places: placesRes.data ?? [],
+    placeHoldings: placeHoldingsRes.data ?? [],
     usdRate: Number(currencyRates.find((r) => r.currency === 'USD')?.toman_per_unit) || 0,
   };
 }

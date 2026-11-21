@@ -8,7 +8,7 @@ import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 
 export type SettleCheckResult =
   | { ok: true; transactionId: string }
-  | { ok: false; error: string; code: 'not_found' | 'already_cleared' | 'invalid' | 'db' };
+  | { ok: false; error: string; code: 'not_found' | 'already_cleared' | 'guarantee' | 'invalid' | 'db' };
 
 export async function settleCheck(input: {
   userId: string;
@@ -32,6 +32,9 @@ export async function settleCheck(input: {
   const check = checkRow as Check;
   if (check.status !== 'pending') {
     return { ok: false, error: 'این چک قبلاً تسویه شده.', code: 'already_cleared' };
+  }
+  if (check.is_guarantee) {
+    return { ok: false, error: 'چک ضمانت پرداختی نیست؛ اول در ویرایش چک، ضمانت را خاموش کن.', code: 'guarantee' };
   }
 
   const [{ data: walletRow }, { data: ratesRows }] = await Promise.all([

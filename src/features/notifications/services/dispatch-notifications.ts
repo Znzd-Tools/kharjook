@@ -142,6 +142,7 @@ async function loadPendingChecks(userId: string): Promise<CheckListItem[]> {
     .select('*')
     .eq('user_id', userId)
     .eq('status', 'pending')
+    .eq('is_guarantee', false)
     .is('deleted_at', null)
     .order('due_date_string', { ascending: true });
 

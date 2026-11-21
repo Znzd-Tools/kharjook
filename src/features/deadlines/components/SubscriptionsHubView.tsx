@@ -13,7 +13,6 @@ import {
   Field,
   IconButton,
   PickerField,
-  SegmentedControl,
   Sheet,
   Skeleton,
   Text,
@@ -41,7 +40,8 @@ import {
   type Period,
 } from '@/shared/utils/period';
 
-type FilterKey = 'active' | 'cancelled' | 'all';
+/** active is the first view; cancelled ones are behind a button. */
+type FilterKey = 'active' | 'cancelled';
 
 const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   active: 'فعال',
@@ -91,8 +91,8 @@ export function SubscriptionsHubView() {
     void refresh();
   }, [refresh]);
 
+  const cancelledCount = rows.filter((row) => row.status === 'cancelled').length;
   const filteredRows = useMemo(() => {
-    if (filter === 'all') return rows;
     if (filter === 'cancelled') return rows.filter((row) => row.status === 'cancelled');
     return rows.filter((row) => row.status === 'active');
   }, [filter, rows]);
@@ -311,16 +311,16 @@ export function SubscriptionsHubView() {
           )}
         </section>
 
-        <SegmentedControl
-          aria-label="وضعیت اشتراک"
-          value={filter}
-          onValueChange={(v) => setFilter(v as FilterKey)}
-          options={[
-            { value: 'active', label: 'فعال' },
-            { value: 'cancelled', label: 'لغو شده' },
-            { value: 'all', label: 'همه' },
-          ]}
-        />
+        {filter === 'cancelled' && (
+          <div className="flex items-center justify-between gap-2">
+            <Text variant="callout" weight="semibold">
+              اشتراک‌های لغوشده
+            </Text>
+            <Button size="sm" variant="ghost" onClick={() => setFilter('active')}>
+              بازگشت
+            </Button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-2">
@@ -386,6 +386,12 @@ export function SubscriptionsHubView() {
               );
             })}
           </ul>
+        )}
+
+        {filter === 'active' && cancelledCount > 0 && (
+          <Button variant="ghost" fullWidth onClick={() => setFilter('cancelled')}>
+            اشتراک‌های لغوشده ({cancelledCount.toLocaleString('fa-IR')})
+          </Button>
         )}
       </div>
 

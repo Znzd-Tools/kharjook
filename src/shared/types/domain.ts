@@ -364,6 +364,8 @@ export interface Check {
   wallet_id: string | null;
   category_id: string | null;
   status: CheckStatus;
+  /** Guarantee cheque (ضمانت): never a due payment. Missing = false. */
+  is_guarantee?: boolean;
   cleared_at: string | null;
   paid_transaction_id: string | null;
   note: string | null;

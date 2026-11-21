@@ -1,6 +1,9 @@
+'use client';
+
 import { ArrowDownLeft, ArrowUpLeft, Minus } from '../icons';
 import { cn } from '../lib/cn';
 import { formatPercent } from '../lib/format';
+import { NumberShimmer, useAmountPending } from './AmountPending';
 
 export interface DeltaProps {
   /** Percent value, e.g. 12.5 for +12.5%. */
@@ -15,6 +18,8 @@ export interface DeltaProps {
 
 /** Change indicator: arrow + signed percent. Color is never the only cue. */
 export function Delta({ value, pill, invert, size = 'sm', className }: DeltaProps) {
+  const pending = useAmountPending();
+  if (pending) return <NumberShimmer width="3.5ch" className={className} />;
   const up = value > 0;
   const flat = value === 0;
   const good = flat ? null : invert ? !up : up;

@@ -43,7 +43,7 @@ import { DeadlineAmount, deadlineToman } from './DeadlineAmount';
 import { currencyTomanRate, personCurrency } from '@/shared/utils/person-currency';
 import { PersonAmount } from '@/features/persons/components/PersonAmount';
 import { useSettleDeadline } from '@/features/deadlines/hooks/use-settle-deadline';
-import { BUCKET_LABEL, buildTimeline, daysLeftLabel, type TimelineBucket, type TimelineItem } from '@/features/deadlines/utils/timeline';
+import { BUCKET_LABEL, buildTimeline, monthDueTotals, daysLeftLabel, type TimelineBucket, type TimelineItem } from '@/features/deadlines/utils/timeline';
 
 type PlanView = 'due' | 'loans' | 'people';
 
@@ -64,6 +64,7 @@ export function PlanTabV2() {
   const router = useRouter();
   const { checks, activeSubscriptions, upcomingDeadlines, wallets, persons, transactions, currencyRates } = useData();
   const { usdRate } = useUI();
+  const [showDoneLoans, setShowDoneLoans] = useState(false);
   const today = useMemo(() => todayJalaali(), []);
 
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -137,9 +138,10 @@ export function PlanTabV2() {
   }, [transactions, wallets]);
 
   // Every currency counts, through its rate (₺ 299 → Toman). Asset-based installments are quantities, not money.
-  const monthTotalToman = items
-    .filter((i) => i.bucket !== 'later' && !i.assetId)
-    .reduce((s, i) => s + deadlineToman(i.amount, i.currency, currencyRates), 0);
+  // Jalali month only: the "next 7 days" bucket can reach into next month.
+  const { thisMonth: monthTotalToman, overduePrior: overduePriorToman } = monthDueTotals(items, today, (amount, currency) =>
+    deadlineToman(amount, currency, currencyRates)
+  );
 
   /* ------------------------------ pay ------------------------------ */
 
@@ -196,6 +198,11 @@ export function PlanTabV2() {
             سررسیدهای این ماه
           </Text>
           <Amount value={monthTotalToman} size="lg" compact />
+          {overduePriorToman > 0 && (
+            <span className="flex items-center gap-1 text-caption text-negative-ink">
+              + <Amount value={overduePriorToman} size="xs" compact tone="negative" /> عقب‌افتاده از ماه‌های قبل
+            </span>
+          )}
         </div>
         <Avatar size="lg" tone="lilac" fallback={<CalendarDays />} />
       </div>
@@ -316,11 +323,19 @@ export function PlanTabV2() {
             <Section title="وام‌های فعال" action={<Button variant="link" size="sm" render={<Link href="/deadlines/loans" />} nativeButton={false}>مدیریت و وام جدید</Button>}>
               {active.length ? <List>{active.map(row)}</List> : <Text variant="caption" tone="subtle">همه وام‌ها تسویه شده‌اند.</Text>}
             </Section>
-            {done.length > 0 && (
-              <Section title={`تمام‌شده (${done.length.toLocaleString('fa-IR')})`}>
-                <List>{done.map(row)}</List>
-              </Section>
-            )}
+            {done.length > 0 &&
+              (showDoneLoans ? (
+                <Section
+                  title={`تمام‌شده (${done.length.toLocaleString('fa-IR')})`}
+                  action={<Button variant="link" size="sm" onClick={() => setShowDoneLoans(false)}>پنهان کردن</Button>}
+                >
+                  <List>{done.map(row)}</List>
+                </Section>
+              ) : (
+                <Button variant="ghost" fullWidth onClick={() => setShowDoneLoans(true)}>
+                  وام‌های تمام‌شده ({done.length.toLocaleString('fa-IR')})
+                </Button>
+              ))}
           </>
         );
       })()}

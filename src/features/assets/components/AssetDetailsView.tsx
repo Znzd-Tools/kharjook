@@ -23,6 +23,7 @@ import {
 } from '@/design-system';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpLeft, Coins, Pencil, Plus, Trash2 } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
+import { AssetPlacesSection } from '@/features/asset-places/components/AssetPlacesSection';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
@@ -353,6 +354,8 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
             }
           />
         </div>
+
+        <AssetPlacesSection asset={asset} />
 
         <PositionHistory periods={positionHistory(asset, transactions, usdRate)} />
 

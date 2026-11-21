@@ -9,6 +9,7 @@ export { useLongPress } from './lib/use-long-press';
 export * from './components/ActionSheet';
 export * from './components/Amount';
 export * from './components/AmountField';
+export * from './components/AmountPending';
 export * from './components/Avatar';
 export * from './components/Badge';
 export * from './components/Banner';

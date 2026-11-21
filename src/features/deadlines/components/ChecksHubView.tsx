@@ -32,7 +32,8 @@ import { formatJalaali, formatJalaaliHuman, parseJalaali, todayJalaali } from '@
 import { tomanPerUnit } from '@/shared/utils/currency-conversion';
 import { daysBetweenJalaali } from '@/features/notifications/utils/jalali-days';
 
-type FilterKey = 'pending' | 'cleared' | 'all';
+/** payable: cheques to pay · guarantee: security only · closed: finished (behind a button). */
+type FilterKey = 'payable' | 'guarantee' | 'closed';
 
 const STATUS_LABEL: Record<CheckStatus, string> = {
   pending: 'در انتظار',
@@ -56,7 +57,7 @@ export function ChecksHubView() {
   const rateHistories = useRateHistories();
 
   const [checks, setChecks] = useState<Check[]>([]);
-  const [filter, setFilter] = useState<FilterKey>('pending');
+  const [filter, setFilter] = useState<FilterKey>('payable');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [settlementTarget, setSettlementTarget] = useState<Check | null>(null);
@@ -88,18 +89,15 @@ export function ChecksHubView() {
     void refresh();
   }, [refresh]);
 
-  const filteredChecks = useMemo(() => {
-    if (filter === 'all') return checks;
-    if (filter === 'cleared') {
-      return checks.filter(
-        (check) =>
-          check.status === 'cleared' ||
-          check.status === 'bounced' ||
-          check.status === 'cancelled'
-      );
-    }
-    return checks.filter((check) => check.status === 'pending');
-  }, [checks, filter]);
+  const groups = useMemo(
+    () => ({
+      payable: checks.filter((c) => c.status === 'pending' && !c.is_guarantee),
+      guarantee: checks.filter((c) => c.status === 'pending' && c.is_guarantee),
+      closed: checks.filter((c) => c.status !== 'pending'),
+    }),
+    [checks]
+  );
+  const filteredChecks = groups[filter];
 
   const walletItems = useMemo(
     () =>
@@ -298,16 +296,26 @@ export function ChecksHubView() {
         }
       />
       <div className="space-y-4 px-(--ds-gutter)">
-        <SegmentedControl
-          aria-label="وضعیت چک"
-          value={filter}
-          onValueChange={(v) => setFilter(v as FilterKey)}
-          options={[
-            { value: 'pending', label: 'در انتظار' },
-            { value: 'cleared', label: 'بسته شده' },
-            { value: 'all', label: 'همه' },
-          ]}
-        />
+        {filter === 'closed' ? (
+          <div className="flex items-center justify-between gap-2">
+            <Text variant="callout" weight="semibold">
+              چک‌های بسته‌شده
+            </Text>
+            <Button size="sm" variant="ghost" onClick={() => setFilter('payable')}>
+              بازگشت
+            </Button>
+          </div>
+        ) : (
+          <SegmentedControl
+            aria-label="نوع چک"
+            value={filter}
+            onValueChange={(v) => setFilter(v as FilterKey)}
+            options={[
+              { value: 'payable', label: `پرداختی (${groups.payable.length.toLocaleString('fa-IR')})` },
+              { value: 'guarantee', label: `ضمانت (${groups.guarantee.length.toLocaleString('fa-IR')})` },
+            ]}
+          />
+        )}
 
         {isLoading ? (
           <div className="space-y-2">
@@ -318,9 +326,21 @@ export function ChecksHubView() {
           <div className="rounded-card bg-panel">
             <EmptyState
               icon={<FileText />}
-              title={filter === 'pending' ? 'چک در انتظاری نداری' : 'موردی برای نمایش نیست'}
-              description={filter === 'pending' ? 'چک‌های صادره را با تاریخ سررسید ثبت کن تا سررسید را از دست ندهی.' : undefined}
-              action={filter === 'pending' ? <Button onClick={() => router.push('/deadlines/checks/new')}>ثبت اولین چک</Button> : undefined}
+              title={filter === 'payable' ? 'چک پرداختی در انتظاری نداری' : filter === 'guarantee' ? 'چک ضمانتی نداری' : 'چک بسته‌شده‌ای نیست'}
+              description={
+                filter === 'payable'
+                  ? 'چک‌های صادره را با تاریخ سررسید ثبت کن تا سررسید را از دست ندهی.'
+                  : filter === 'guarantee'
+                    ? 'چکی که برای ضمانت دادی اینجا می‌آید و جزو پرداخت‌ها حساب نمی‌شود.'
+                    : undefined
+              }
+              action={
+                filter === 'closed' ? undefined : (
+                  <Button onClick={() => router.push(filter === 'guarantee' ? '/deadlines/checks/new?guarantee=1' : '/deadlines/checks/new')}>
+                    {filter === 'guarantee' ? 'ثبت چک ضمانت' : 'ثبت چک'}
+                  </Button>
+                )
+              }
             />
           </div>
         ) : (
@@ -344,7 +364,11 @@ export function ChecksHubView() {
                         {[check.bank_name, check.check_number ? `#${check.check_number}` : null, category?.name].filter(Boolean).join(' · ') || '—'}
                       </Text>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge tone={statusTone(check, days)}>{STATUS_LABEL[check.status]}</Badge>
+                        {check.is_guarantee && check.status === 'pending' ? (
+                          <Badge tone="info">ضمانت</Badge>
+                        ) : (
+                          <Badge tone={statusTone(check, days)}>{STATUS_LABEL[check.status]}</Badge>
+                        )}
                         <Text variant="caption" tone="muted">
                           سررسید {due ? formatJalaaliHuman(due) : check.due_date_string}
                         </Text>
@@ -352,7 +376,7 @@ export function ChecksHubView() {
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-2">
-                    {check.status === 'pending' && (
+                    {check.status === 'pending' && !check.is_guarantee && (
                       <Button size="sm" variant="soft" disabled={isSubmitting} onClick={() => openSettle(check)}>
                         تسویه
                       </Button>
@@ -367,6 +391,12 @@ export function ChecksHubView() {
             })}
           </ul>
         )}
+
+        {filter !== 'closed' && groups.closed.length > 0 && (
+          <Button variant="ghost" fullWidth onClick={() => setFilter('closed')}>
+            چک‌های بسته‌شده ({groups.closed.length.toLocaleString('fa-IR')})
+          </Button>
+        )}
       </div>
 
       <ActionSheet
@@ -376,11 +406,11 @@ export function ChecksHubView() {
         actions={
           menuFor
             ? [
+                ...(menuFor.status === 'pending' && !menuFor.is_guarantee
+                  ? [{ key: 'bounce', label: 'برگشت خورد', onSelect: () => void handleMarkBounced(menuFor) }]
+                  : []),
                 ...(menuFor.status === 'pending'
-                  ? [
-                      { key: 'bounce', label: 'برگشت خورد', onSelect: () => void handleMarkBounced(menuFor) },
-                      { key: 'cancel', label: 'عودت / لغو', onSelect: () => void handleMarkCancelled(menuFor) },
-                    ]
+                  ? [{ key: 'cancel', label: menuFor.is_guarantee ? 'ضمانت برگشت داده شد' : 'عودت / لغو', onSelect: () => void handleMarkCancelled(menuFor) }]
                   : []),
                 {
                   key: 'delete',

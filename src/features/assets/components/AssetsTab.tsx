@@ -19,7 +19,7 @@ import {
   Section,
   Skeleton,
 } from '@/design-system';
-import { Coins, Settings, Target, TrendingUp } from '@/design-system/icons';
+import { Coins, Landmark, Settings, Target, TrendingUp } from '@/design-system/icons';
 import type { Asset, Goal } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
@@ -121,6 +121,7 @@ export function AssetsTab() {
           <div className="flex items-center gap-1">
             <IconButton size="sm" variant="ghost" aria-label="هدف‌ها" icon={<Target />} onClick={() => router.push('/manage/goals')} />
             <IconButton size="sm" variant="ghost" aria-label="قیمت‌ها و نرخ‌ها" icon={<TrendingUp />} onClick={() => router.push('/prices')} />
+            <IconButton size="sm" variant="ghost" aria-label="محل نگهداری دارایی‌ها" icon={<Landmark />} onClick={() => router.push('/manage/places')} />
             <IconButton size="sm" variant="ghost" aria-label="مدیریت دارایی‌ها" icon={<Settings />} onClick={() => router.push('/manage/assets')} />
           </div>
         }

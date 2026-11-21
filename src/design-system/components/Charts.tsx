@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
+import { useAmountPending } from './AmountPending';
 
 /* ------------------------------------------------------------------ */
 /* Sparkline — trend at a glance, no axes.                             */
@@ -27,7 +28,7 @@ const STROKE = {
 } as const;
 
 /** Tiny line chart for stat tiles and asset rows. */
-export function Sparkline({ data, width = 96, height = 28, tone = 'auto', area = true, className, ...props }: SparklineProps) {
+function SparklineInner({ data, width = 96, height = 28, tone = 'auto', area = true, className, ...props }: SparklineProps) {
   const gid = useId();
   const path = useMemo(() => {
     if (data.length < 2) return null;
@@ -89,7 +90,7 @@ export interface AllocationBarProps {
 const CHART_VARS = Array.from({ length: 8 }, (_, i) => `var(--color-chart-${i + 1})`);
 
 /** Stacked 100% bar with legend. Color follows the entity order, never rank. */
-export function AllocationBar({ segments, maxSegments = 5, legend = true, formatValue, className }: AllocationBarProps) {
+function AllocationBarInner({ segments, maxSegments = 5, legend = true, formatValue, className }: AllocationBarProps) {
   const [hover, setHover] = useState<string | null>(null);
   const items = useMemo(() => {
     const colored = segments.map((s, i) => ({ ...s, color: s.color ?? CHART_VARS[i] ?? 'var(--color-chart-other)' }));
@@ -161,7 +162,7 @@ export interface BarChartProps {
 }
 
 /** Compact bar chart with hover value. One axis, no gridlines. */
-export function BarChart({ data, height = 120, activeKey, formatValue = String, mode = 'magnitude', className, ...props }: BarChartProps) {
+function BarChartInner({ data, height = 120, activeKey, formatValue = String, mode = 'magnitude', className, ...props }: BarChartProps) {
   const [hover, setHover] = useState<string | null>(null);
   const shown = hover ?? activeKey ?? data.at(-1)?.key;
   const current = data.find((d) => d.key === shown);
@@ -214,4 +215,35 @@ export function BarChart({ data, height = 120, activeKey, formatValue = String, 
       </div>
     </figure>
   );
+}
+
+/* While the numbers are not final (see AmountPendingProvider), charts show a
+   shimmer block of their own size instead of a shape that changes later. */
+
+export function Sparkline(props: SparklineProps) {
+  const pending = useAmountPending();
+  if (pending) {
+    return (
+      <span
+        aria-hidden
+        className={cn('inline-block animate-ds-shimmer rounded-control bg-hover', props.className)}
+        style={{ width: props.width ?? 96, height: props.height ?? 28 }}
+      />
+    );
+  }
+  return <SparklineInner {...props} />;
+}
+
+export function AllocationBar(props: AllocationBarProps) {
+  const pending = useAmountPending();
+  if (pending) return <span aria-hidden className={cn('block h-3 w-full animate-ds-shimmer rounded-full bg-hover', props.className)} />;
+  return <AllocationBarInner {...props} />;
+}
+
+export function BarChart(props: BarChartProps) {
+  const pending = useAmountPending();
+  if (pending) {
+    return <span aria-hidden className={cn('block w-full animate-ds-shimmer rounded-card bg-hover', props.className)} style={{ height: props.height ?? 120 }} />;
+  }
+  return <BarChartInner {...props} />;
 }

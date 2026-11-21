@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, Button, List, ListRow, Section, SegmentedControl, TopBar, useConfirm } from '@/design-system';
-import { Bell, Lightbulb, LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
+import { Bell, Landmark, Lightbulb, LayoutGrid, Percent, Target, TrendingUp } from '@/design-system/icons';
 import { useAuth, useUI } from '@/features/portfolio/PortfolioProvider';
 import { latinizeDigits } from '@/shared/utils/latinize-digits';
 import { PasskeySettingsSection } from '@/features/settings/components/PasskeySettingsSection';
@@ -11,6 +11,7 @@ import { PasskeySettingsSection } from '@/features/settings/components/PasskeySe
 const LINKS = [
   { href: '/manage/categories', title: 'دسته‌بندی‌ها و سقف هزینه', icon: <LayoutGrid />, tone: 'peach' as const },
   { href: '/manage/goals', title: 'اهداف تخصیص', icon: <Target />, tone: 'lilac' as const },
+  { href: '/manage/places', title: 'محل نگهداری دارایی‌ها', icon: <Landmark />, tone: 'mint' as const },
   { href: '/manage/rates', title: 'نرخ ارزها', icon: <Percent />, tone: 'sky' as const },
   { href: '/manage/price-sources', title: 'منابع قیمت', icon: <TrendingUp />, tone: 'lemon' as const },
 ];

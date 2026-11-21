@@ -85,6 +85,15 @@ interface DataValue {
   dataFetchError: boolean;
   /** False while background pages of transactions are still loading. */
   transactionsFullyLoaded: boolean;
+  /**
+   * True when the numbers on screen are final: fresh server data (with every
+   * transaction page and fresh prices) is in. Before that, amounts show a
+   * shimmer: the device cache is old and would change under the user. Later
+   * refreshes replace the data in one step, so they keep the old numbers
+   * until the new ones are ready. A failed fetch (offline) also counts as
+   * settled: the cached data shows.
+   */
+  isDataSettled: boolean;
   spendingCaps: CategorySpendingCap[];
   checks: Check[];
   activeSubscriptions: Subscription[];
@@ -172,6 +181,7 @@ export function PortfolioProvider({
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataFetchError, setDataFetchError] = useState(false);
   const [transactionsFullyLoaded, setTransactionsFullyLoaded] = useState(true);
+  const [hasFreshData, setHasFreshData] = useState(false);
   const [spendingCaps, setSpendingCaps] = useState<CategorySpendingCap[]>([]);
   const [checks, setChecks] = useState<Check[]>([]);
   const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
@@ -314,8 +324,36 @@ export function PortfolioProvider({
 
       const nextCategories = (catRes.data as Category[]) || [];
       let nextAssets = (astRes.data as Asset[]) || [];
-      const nextTransactions = (txRes.data as Transaction[]) || [];
-      const transactionTotalCount = txRes.count ?? nextTransactions.length;
+      const firstTransactionPage = (txRes.data as Transaction[]) || [];
+      const transactionTotalCount = txRes.count ?? firstTransactionPage.length;
+      // Load every page BEFORE anything is shown or computed: totals from only
+      // the newest page are wrong and would change on screen page by page.
+      // Pages load in parallel (the total is known). Duplicates (a row added
+      // while loading shifts offsets) are dropped: a doubled BUY doubles a holding.
+      const nextTransactions = [...firstTransactionPage];
+      if (transactionTotalCount > TRANSACTIONS_PAGE_SIZE) {
+        const offsets: number[] = [];
+        for (let o = TRANSACTIONS_PAGE_SIZE; o < transactionTotalCount; o += TRANSACTIONS_PAGE_SIZE) offsets.push(o);
+        const pages = await Promise.all(
+          offsets.map((o) =>
+            supabase
+              .from('transactions')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .order('id', { ascending: false })
+              .range(o, o + TRANSACTIONS_PAGE_SIZE - 1)
+          )
+        );
+        const seen = new Set(nextTransactions.map((tx) => tx.id));
+        for (const page of pages) {
+          if (page.error) throw page.error;
+          for (const tx of (page.data as Transaction[]) ?? []) {
+            if (seen.has(tx.id)) continue;
+            seen.add(tx.id);
+            nextTransactions.push(tx);
+          }
+        }
+      }
       const nextWallets = (walRes.data as Wallet[]) || [];
       let nextCurrencyRates = (rateRes.data as CurrencyRate[]) || [];
       const nextPersons = (perRes.data as Person[]) || [];
@@ -440,37 +478,9 @@ export function PortfolioProvider({
       setActiveSubscriptions(nextActiveSubscriptions);
       setUpcomingDeadlines(nextUpcomingDeadlines);
       freshLoaded.current = true;
+      setHasFreshData(true);
 
-      const needsMoreTransactions = transactionTotalCount > TRANSACTIONS_PAGE_SIZE;
-      setTransactionsFullyLoaded(!needsMoreTransactions);
-
-      if (needsMoreTransactions) {
-        void (async () => {
-          let offset = TRANSACTIONS_PAGE_SIZE;
-          let merged = [...nextTransactions];
-          while (offset < transactionTotalCount) {
-            const { data: page, error: pageError } = await supabase
-              .from('transactions')
-              .select('*')
-              .order('created_at', { ascending: false })
-              .order('id', { ascending: false })
-              .range(offset, offset + TRANSACTIONS_PAGE_SIZE - 1);
-            if (pageError || !page?.length) break;
-            // A row added while paging shifts the offsets; never count a
-            // row twice (a doubled BUY doubles the asset quantity).
-            const seen = new Set(merged.map((tx) => tx.id));
-            merged = [...merged, ...(page as Transaction[]).filter((tx) => !seen.has(tx.id))];
-            offset += TRANSACTIONS_PAGE_SIZE;
-            if (seq === fetchSeq.current) {
-              setTransactions(merged);
-            }
-            if (page.length < TRANSACTIONS_PAGE_SIZE) break;
-          }
-          if (seq === fetchSeq.current) {
-            setTransactionsFullyLoaded(true);
-          }
-        })();
-      }
+      setTransactionsFullyLoaded(true);
     } catch (error) {
       if (seq !== fetchSeq.current) return;
       console.error('Error fetching data:', error);
@@ -678,6 +688,7 @@ export function PortfolioProvider({
       isLoadingData,
       dataFetchError,
       transactionsFullyLoaded,
+      isDataSettled: dataFetchError || (hasFreshData && transactionsFullyLoaded),
       spendingCaps,
       checks,
       activeSubscriptions,
@@ -696,6 +707,7 @@ export function PortfolioProvider({
       refreshAll,
     }),
     [
+      hasFreshData,
       categories,
       assets,
       transactions,

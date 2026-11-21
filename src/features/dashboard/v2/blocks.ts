@@ -4,6 +4,7 @@
 export const BLOCKS = [
   { key: 'hero', label: 'ارزش کل دارایی' },
   { key: 'attention', label: 'نیاز به توجه' },
+  { key: 'places', label: 'محل نامشخص دارایی‌ها' },
   { key: 'pnl', label: 'سود و زیان' },
   { key: 'month', label: 'این ماه' },
   { key: 'networth', label: 'تغییر ارزش این ماه' },
@@ -25,12 +26,24 @@ export const DEFAULT_LAYOUT: DashboardLayout = { order: BLOCKS.map((b) => b.key)
 
 const isKey = (k: unknown): k is BlockKey => BLOCKS.some((b) => b.key === k);
 
-/** Clean any stored layout: drop unknown keys, append new blocks at the end. */
+/**
+ * Clean any stored layout: drop unknown keys, and put a block the stored
+ * layout does not know yet right after its default neighbour (not at the end,
+ * where a new block would go unseen).
+ */
 export function normalizeLayout(raw: unknown): DashboardLayout {
   const r = (raw ?? {}) as { order?: unknown[]; hidden?: unknown[] };
   const order = Array.isArray(r.order) ? r.order.filter(isKey) : [];
   const seen = new Set(order);
-  for (const b of BLOCKS) if (!seen.has(b.key)) order.push(b.key);
+  BLOCKS.forEach((b, i) => {
+    if (seen.has(b.key)) return;
+    const prev = i > 0 ? BLOCKS[i - 1]!.key : null;
+    const at = prev ? order.indexOf(prev) : -1;
+    if (prev && at >= 0) order.splice(at + 1, 0, b.key);
+    else if (!prev) order.unshift(b.key);
+    else order.push(b.key);
+    seen.add(b.key);
+  });
   const hidden = Array.isArray(r.hidden) ? [...new Set(r.hidden.filter(isKey))] : [];
   return { order: [...new Set(order)], hidden };
 }

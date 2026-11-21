@@ -117,6 +117,19 @@ export function getAssets(book: Book) {
           : null,
         counted_in_profit: asset.include_in_profit_loss !== false,
         counted_in_net_worth: asset.include_in_balance !== false,
+        /** Where it is held (user's own places); unplaced = quantity in no place. */
+        places: (() => {
+          const rows = book.placeHoldings
+            .filter((h) => h.asset_id === asset.id && Number(h.quantity) > 0)
+            .map((h) => ({ place: book.places.find((p) => p.id === h.place_id), quantity: Number(h.quantity) }))
+            .filter((r) => r.place);
+          const placed = rows.reduce((s, r) => s + r.quantity, 0);
+          return {
+            in_places: rows.map((r) => ({ place: r.place!.name, kind: r.place!.kind, quantity: r.quantity })),
+            unplaced: Math.max(0, st.totalAmount - placed),
+            over_placed: Math.max(0, placed - st.totalAmount),
+          };
+        })(),
       };
     })
     .sort((a, b) => b.value_toman - a.value_toman);
