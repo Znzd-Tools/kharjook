@@ -26,6 +26,9 @@ test('a cancelled cheque leaves the first view and is behind «چک‌های ب�
   await page.getByRole('menuitem', { name: 'عودت / لغو' }).or(page.getByRole('button', { name: 'عودت / لغو' })).first().click();
   await expect.poll(async () => (await dbRows<{ id: string; status: string }>('checks')).find((c) => c.id === 'chk1')?.status).toBe('cancelled');
   await expect(page.getByLabel('چک چک آقای رضایی')).toHaveCount(0);
+  // The success toast covers the bottom button until it closes.
+  await page.mouse.move(0, 0);
+  await expect(page.getByText('چک عودت/لغو شد')).toBeHidden({ timeout: 10_000 });
   await page.getByRole('button', { name: /چک‌های بسته‌شده/ }).click();
   await expect(page.getByLabel('چک چک آقای رضایی')).toBeVisible();
 });

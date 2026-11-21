@@ -6,11 +6,11 @@ test('home shows the unplaced part; assigning it puts it in the place (no transa
   const txBefore = (await dbRows<{ id: string }>('transactions')).length;
   await open(page, '/');
   // Mock: 300 دلار, 200 in نوبیتکس → 100 unplaced (other assets have no place at all).
-  const row = page.getByRole('button', { name: /^۱۰۰ دلار دلار محلش مشخص نیست/ });
+  const row = page.getByRole('button', { name: /^(100|۱۰۰) دلار دلار محلش مشخص نیست/ });
   await expect(row).toBeVisible();
   await row.click();
   const sheet = page.getByRole('dialog', { name: /محل نگهداری دلار/ });
-  await sheet.getByRole('button', { name: 'انتخاب محل' }).click();
+  await sheet.getByRole('button', { name: 'به', exact: true }).click();
   await page.getByRole('dialog', { name: 'به' }).getByRole('option', { name: 'نوبیتکس' }).or(page.getByRole('dialog', { name: 'به' }).getByRole('button', { name: 'نوبیتکس' })).first().click();
   await sheet.getByRole('button', { name: 'ثبت' }).click();
   await expect.poll(async () => (await dbRows<H>('asset_place_holdings')).find((h) => h.asset_id === 'usd')?.quantity).toBe(300);
@@ -25,7 +25,7 @@ test('asset page lists places and the unplaced part; places page shows what is i
 
   await open(page, '/manage/places');
   await page.getByPlaceholder(/نوبیتکس، تراست‌والت/).fill('تراست‌والت');
-  await page.getByRole('radio', { name: 'کیف پول' }).click();
+  await page.getByRole('group', { name: 'نوع محل' }).getByRole('button', { name: 'کیف پول', exact: true }).click();
   await page.getByRole('button', { name: 'افزودن محل' }).click();
   await expect.poll(async () => (await dbRows<{ name: string; kind: string }>('asset_places')).find((p) => p.name === 'تراست‌والت')?.kind).toBe('wallet');
   await expect(page.getByText('تراست‌والت').first()).toBeVisible();
