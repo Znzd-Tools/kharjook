@@ -12,8 +12,8 @@ export function SubscriptionAmountDisplay({
   currencyRates,
   currencyMode,
   usdRate,
-  primaryClassName = 'text-slate-200',
-  secondaryClassName = 'text-[10px] text-slate-500 mt-0.5',
+  primaryClassName = 'text-fg',
+  secondaryClassName = 'text-caption text-fg-subtle mt-0.5',
   align = 'start',
 }: {
   amount: number;

@@ -158,10 +158,9 @@ function PriceSourceAdvancedSectionInner({
 
   if (sources.length === 0) {
     return (
-      <p className="text-xs text-slate-500 leading-5">
-        هیچ دارایی با منبع قیمت خودکار نداری. پس از اتصال منبع به یک دارایی،
-        تنظیمات پیشرفته اینجا نمایش داده می‌شود.
-      </p>
+      <Text variant="caption" tone="subtle">
+        هیچ دارایی‌ای منبع قیمت خودکار ندارد. وقتی منبعی را به یک دارایی وصل کنی، این تنظیمات اینجا می‌آید.
+      </Text>
     );
   }
 

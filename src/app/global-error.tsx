@@ -15,16 +15,16 @@ export default function GlobalError({
 
   return (
     <html lang="fa" dir="rtl">
-      <body className="min-h-dvh bg-sunken text-slate-200 flex items-center justify-center p-6">
+      <body className="flex min-h-dvh items-center justify-center bg-canvas p-6 text-fg">
         <div className="text-center space-y-4">
-          <h1 className="text-lg font-bold text-white">خطای سیستمی</h1>
-          <p className="text-sm text-slate-400">اپ دچار مشکل شد. صفحه را دوباره بارگذاری کن.</p>
+          <h1 className="text-title font-bold">خطای سیستمی</h1>
+          <p className="text-callout text-fg-muted">اپ دچار مشکل شد. صفحه را دوباره بارگذاری کن.</p>
           <button
             type="button"
             onClick={reset}
-            className="px-6 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-medium"
+            className="h-11 rounded-control bg-accent px-6 text-callout font-semibold text-fg-on-accent"
           >
-            تلاش مجدد
+            تلاش دوباره
           </button>
         </div>
       </body>

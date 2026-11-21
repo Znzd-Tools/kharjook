@@ -1,4 +1,5 @@
 'use client';
+import type { GoalValueKind } from '@/features/goals/utils/goal-progress-display';
 
 /**
  * Dashboard numbers (net worth, cash, PnL, month cashflow, distribution,
@@ -18,7 +19,17 @@ import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { useRateHistories } from '@/features/rates/hooks/use-rate-histories';
 import { clampPeriodToToday, currentPeriod } from '@/shared/utils/period';
 import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
-import type { HomeGoalRow } from '@/features/dashboard/components/HomeTab';
+
+export type HomeGoalRow = {
+  id: string;
+  name: string;
+  kindLabel: string;
+  valueKind: GoalValueKind;
+  currentValue: number;
+  targetValue: number;
+  unit?: string;
+  buySuggestion: string | null;
+};
 
 export function useHomeStats() {
   const {

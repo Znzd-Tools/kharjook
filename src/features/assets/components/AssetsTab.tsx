@@ -1,6 +1,5 @@
 'use client';
 
-import { useFlag } from '@/shared/lib/flags/client';
 import { PortfolioPnlCard } from '@/features/pnl/components/PortfolioPnlCard';
 
 import { useMemo, useState } from 'react';
@@ -47,7 +46,6 @@ import {
 } from '@/features/assets/utils/asset-list-filters';
 
 export function AssetsTab() {
-  const pnlV2 = useFlag('v2.pnl');
   const router = useRouter();
   const { assets, categories, transactions, goals, dailyPrices, isLoadingData } = useData();
   const { currencyMode, usdRate } = useUI();
@@ -115,7 +113,7 @@ export function AssetsTab() {
 
   return (
     <div className="space-y-5 px-(--ds-gutter) pt-1 pb-6">
-      {pnlV2 && <PortfolioPnlCard />}
+      <PortfolioPnlCard />
 
       <Section
         title="دارایی‌ها"

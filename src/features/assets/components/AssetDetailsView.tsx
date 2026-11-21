@@ -1,6 +1,5 @@
 'use client';
 
-import { useFlag } from '@/shared/lib/flags/client';
 import { PositionHistory } from '@/features/pnl/components/PositionHistory';
 import { positionHistory } from '@/features/pnl/utils/position-history';
 
@@ -79,7 +78,6 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
   const router = useRouter();
   const goBack = useSafeBack('/assets');
   const confirm = useConfirm();
-  const pnlV2 = useFlag('v2.pnl');
   const { assets, categories, transactions, goals, dailyPrices, setTransactions, wallets } = useData();
   const { currencyMode, usdRate } = useUI();
   const [txTypeFilter, setTxTypeFilter] = useState<TxHistoryTypeFilter>('ALL');
@@ -356,7 +354,7 @@ export function AssetDetailsView({ assetId }: AssetDetailsViewProps) {
           />
         </div>
 
-        {pnlV2 && <PositionHistory periods={positionHistory(asset, transactions, usdRate)} />}
+        <PositionHistory periods={positionHistory(asset, transactions, usdRate)} />
 
         <Section title="تاریخچه عملیات">
           {assetTxsSorted.length > 0 && (

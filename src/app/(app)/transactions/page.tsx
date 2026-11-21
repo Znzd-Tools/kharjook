@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { TransactionsTab } from '@/features/transactions/components/TransactionsTab';
+import { LedgerV2 } from '@/features/transactions/v2/LedgerV2';
 
 export default function TransactionsPage() {
   return (
     <Suspense>
-      <TransactionsTab />
+      <LedgerV2 />
     </Suspense>
   );
 }

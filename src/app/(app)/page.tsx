@@ -1,5 +1,5 @@
-import { HomeTab } from '@/features/dashboard/components/HomeTab';
+import { HomeV2 } from '@/features/dashboard/v2/HomeV2';
 
 export default function HomePage() {
-  return <HomeTab />;
+  return <HomeV2 />;
 }

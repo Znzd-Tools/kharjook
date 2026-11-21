@@ -32,7 +32,7 @@ export function Modal({ children, label = 'پنجره' }: ModalProps) {
       aria-modal="true"
       aria-label={label}
       tabIndex={-1}
-      className="absolute inset-0 z-50 bg-surface-inset overflow-y-auto overflow-x-hidden scrollbar-hide outline-none"
+      className="absolute inset-0 z-50 bg-canvas overflow-y-auto overflow-x-hidden scrollbar-hide outline-none"
     >
       {children}
     </div>
