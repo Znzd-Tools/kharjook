@@ -1,4 +1,6 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_NOW } from './e2e/now';
 
 /**
  * End-to-end tests run the real Next.js app against the mock Supabase
@@ -9,6 +11,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const MOCK_PORT = 54329;
 const APP_PORT = 3100;
+// Servers start at the same fixed time as the browser (see e2e/now.ts).
+const CLOCK_ENV = { E2E_NOW, NODE_OPTIONS: `--require ${path.resolve('e2e/fake-now.cjs')}` };
 
 export default defineConfig({
   testDir: './e2e/tests',
@@ -38,7 +42,7 @@ export default defineConfig({
   webServer: [
     {
       command: `node e2e/mock-supabase/server.ts`,
-      env: { PORT: String(MOCK_PORT) },
+      env: { PORT: String(MOCK_PORT), ...CLOCK_ENV },
       url: `http://127.0.0.1:${MOCK_PORT}/__health`,
       reuseExistingServer: !process.env.CI,
     },
@@ -49,6 +53,7 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'mock-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: 'mock-service-key',
         NEXT_TELEMETRY_DISABLED: '1',
+        ...CLOCK_ENV,
       },
       url: `http://localhost:${APP_PORT}/login`,
       timeout: 300_000,

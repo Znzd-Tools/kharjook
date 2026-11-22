@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { E2E_NOW } from '../now';
 
 export const MOCK = 'http://127.0.0.1:54329';
 export const STORAGE = 'e2e/.auth/state.json';
@@ -43,6 +44,7 @@ export const test = base.extend<{ autoSetup: void }>({
   autoSetup: [
     async ({ page }, use) => {
       await resetDb();
+      await page.clock.install({ time: new Date(E2E_NOW) });
       await stubNetwork(page);
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
