@@ -13,6 +13,12 @@ export async function dbRows<T = Record<string, unknown>>(table: string): Promis
   return (await res.json()) as T[];
 }
 
+/** Replace a table's rows in the mock DB (set up a state for one test). */
+export async function setRows(table: string, rows: Record<string, unknown>[]) {
+  const res = await fetch(`${MOCK}/__db/${table}`, { method: 'PUT', body: JSON.stringify(rows), headers: { 'content-type': 'application/json' } });
+  expect(res.ok).toBeTruthy();
+}
+
 /** Offline-safe: stub the external price API, block third-party hosts. */
 export async function stubNetwork(page: Page) {
   await page.route('**/api/prices/quotes**', (r) => r.fulfill({ json: { quotes: [] } }));

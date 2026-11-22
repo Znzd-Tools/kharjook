@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AmountField, Button, Field, PickerField, Sheet, Text, toast } from '@/design-system';
 import type { Asset } from '@/shared/types/domain';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
-import { moveBetweenPlaces, type AssetPlace, type Placement } from '../utils/placement';
+import { moveBetweenPlaces, placeTolerance, type AssetPlace, type Placement } from '../utils/placement';
 
 const UNPLACED = '__unplaced';
 /** Target: take it out of the place (sold, spent): the place goes down, nothing goes up. */
@@ -54,14 +54,17 @@ export function PlaceMoveSheet({
 
   const save = async () => {
     if (!to) return toast.error('مقصد را انتخاب کن');
+    // The field shows the amount rounded to the asset's decimals; when it
+    // equals the full source amount, move the exact amount (no tiny rest).
+    const tol = placeTolerance(decimals);
+    const n = Math.abs(Number(qty) - available) < tol ? available : Number(qty);
     let next: Map<string, number>;
     if (to === OUT) {
-      const n = Number(qty);
-      if (!(n > 0) || fromId === null || n > available + 1e-9) return toast.error('مقدار نامعتبر است.');
+      if (!(n > 0) || fromId === null || n > available + tol) return toast.error('مقدار نامعتبر است.');
       next = new Map(current);
       next.set(fromId, Math.max(0, available - n));
     } else {
-      const r = moveBetweenPlaces(current, placement.unplaced, fromId, to, Number(qty));
+      const r = moveBetweenPlaces(current, placement.unplaced, fromId, to, Math.min(n, available));
       if ('error' in r) return toast.error(r.error);
       next = r.next;
     }

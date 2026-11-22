@@ -48,7 +48,20 @@ export interface Placement {
   rows: { placeId: string; quantity: number }[];
 }
 
-export function placementOf(holding: number, rows: Pick<AssetPlaceHolding, 'place_id' | 'quantity'>[]): Placement {
+/**
+ * Noise limit for an asset: half of its smallest shown unit (USDT with 2
+ * decimals: 0.005). A difference below it is invisible, so it is not
+ * "unplaced" (float sums like 623.3799999999999 vs 623.38).
+ */
+export function placeTolerance(decimals: number): number {
+  return Math.max(PLACE_EPSILON, 0.5 * 10 ** -Math.max(0, decimals));
+}
+
+export function placementOf(
+  holding: number,
+  rows: Pick<AssetPlaceHolding, 'place_id' | 'quantity'>[],
+  tolerance = PLACE_EPSILON
+): Placement {
   const clean = rows.filter((r) => Number(r.quantity) > PLACE_EPSILON).map((r) => ({ placeId: r.place_id, quantity: Number(r.quantity) }));
   const placed = clean.reduce((s, r) => s + r.quantity, 0);
   const h = Math.max(0, holding);
@@ -56,10 +69,49 @@ export function placementOf(holding: number, rows: Pick<AssetPlaceHolding, 'plac
   return {
     holding: h,
     placed,
-    unplaced: diff > PLACE_EPSILON ? diff : 0,
-    over: diff < -PLACE_EPSILON ? -diff : 0,
+    unplaced: diff >= tolerance ? diff : 0,
+    over: diff <= -tolerance ? -diff : 0,
     rows: clean,
   };
+}
+
+/**
+ * The holding went down below what the places say (sell, expense, payment).
+ *  - one place, or nothing left: the answer is clear → `auto` with the new map.
+ *  - several places: the user must say where it came from → `ask`.
+ */
+export function reconcileOver(p: Placement): { kind: 'none' } | { kind: 'auto'; next: Map<string, number> } | { kind: 'ask' } {
+  if (!(p.over > 0)) return { kind: 'none' };
+  if (p.holding <= 0) return { kind: 'auto', next: new Map(p.rows.map((r) => [r.placeId, 0])) };
+  if (p.rows.length === 1) return { kind: 'auto', next: new Map([[p.rows[0]!.placeId, p.holding]]) };
+  return { kind: 'ask' };
+}
+
+/**
+ * Take `taken` (per place) out of the places. The total must equal `p.over`
+ * within `tolerance`; the rounding rest goes to the place that keeps the
+ * most, so the places sum to the holding exactly.
+ */
+export function applyReduction(p: Placement, taken: Map<string, number>, tolerance: number): { next: Map<string, number> } | { error: string } {
+  let sum = 0;
+  for (const r of p.rows) {
+    const t = taken.get(r.placeId) ?? 0;
+    if (t < 0) return { error: 'مقدار منفی مجاز نیست.' };
+    if (t > r.quantity + tolerance) return { error: 'از یک محل بیشتر از موجودی‌اش برداشته‌ای.' };
+    sum += t;
+  }
+  if (Math.abs(sum - p.over) >= tolerance) return { error: 'جمع مقدارها باید با مقدار کم‌شده برابر باشد.' };
+  const next = new Map(p.rows.map((r) => {
+    const left = r.quantity - (taken.get(r.placeId) ?? 0);
+    return [r.placeId, left < tolerance ? 0 : left] as const;
+  }));
+  // Put the rounding rest on the place that keeps the most.
+  const keeper = [...next.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (keeper && keeper[1] > 0) {
+    const rest = p.holding - [...next.values()].reduce((s, v) => s + v, 0);
+    next.set(keeper[0], Math.max(0, keeper[1] + rest));
+  }
+  return { next };
 }
 
 /**

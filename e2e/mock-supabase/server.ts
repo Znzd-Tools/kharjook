@@ -6,6 +6,7 @@
  * Test helpers:
  *   POST /__reset          → restore the seed
  *   GET  /__db/:table      → raw rows (assert saved data, not only UI)
+ *   PUT  /__db/:table      → replace the rows (set up a state for one test)
  *
  * Run: node e2e/mock-supabase/server.ts   (PORT env, default 54329)
  */
@@ -207,6 +208,10 @@ const server = createServer(async (req, res) => {
     // Test helpers
     if (path === '/__reset' && req.method === 'POST') {
       db = buildSeed();
+      return send(res, 200, { ok: true });
+    }
+    if (path.startsWith('/__db/') && req.method === 'PUT') {
+      db[path.slice(6)] = ((await readBody(req)) as Row[]) ?? [];
       return send(res, 200, { ok: true });
     }
     if (path.startsWith('/__db/')) return send(res, 200, db[path.slice(6)] ?? []);
