@@ -374,7 +374,8 @@ export function PortfolioProvider({
         const { data: loansData } = await supabase
           .from('loans')
           .select('id,title,currency')
-          .in('id', loanIds);
+          .in('id', loanIds)
+          .is('deleted_at', null);
         if (seq !== fetchSeq.current) return;
         const loanMap = new Map(
           ((loansData ?? []) as Pick<Loan, 'id' | 'title' | 'currency'>[]).map((loan) => [
@@ -382,7 +383,8 @@ export function PortfolioProvider({
             loan,
           ])
         );
-        nextUpcomingDeadlines = installments.map((item) => ({
+        // Skip installments of a deleted loan (not in loanMap).
+        nextUpcomingDeadlines = installments.filter((item) => loanMap.has(item.loan_id)).map((item) => ({
           ...item,
           loanTitle: loanMap.get(item.loan_id)?.title,
           loanCurrency: loanMap.get(item.loan_id)?.currency,
