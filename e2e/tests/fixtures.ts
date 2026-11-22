@@ -49,6 +49,9 @@ export const test = base.extend<{ autoSetup: void }>({
   autoSetup: [
     async ({ page }, use) => {
       await resetDb();
+      // The seed data is written for Aban 1405; pin "today" there so the
+      // tests do not break when the real month changes.
+      await page.clock.setFixedTime(new Date('2026-11-15T09:00:00Z'));
       await stubNetwork(page);
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));
