@@ -124,6 +124,15 @@ describe('portfolio plan', () => {
     expect(p.actions.find((a) => a.kind === 'buy')).toMatchObject({ key: 'a:usd', toman: 100 });
   });
 
+  it('a set of assets is one bucket, bought via its biggest asset', () => {
+    const setGoals = [
+      { id: 's1', scope: 'basket', name: 'همه', asset_ids: ['gold', 'usd'], asset_id: null, category_id: null, target_kind: 'allocation_percent', target_percent: 100 },
+    ] as never[];
+    const p = buildRebalance({ rows, goals: setGoals, categories: [] as never[], newCashToman: 100, allowSell: false });
+    // set target = 100% of 1100 = 1100, has 1000 → buy 100 via its biggest asset (gold).
+    expect(p.actions).toEqual([expect.objectContaining({ label: 'همه', kind: 'buy', toman: 100, via: 'gold' })]);
+  });
+
   it('risk: concentration, low cash, FX debt bigger than FX assets', () => {
     const r = portfolioRisks({
       score: buildScorecard(rows), groupShares: [], cashToman: 50, avgMonthlySpending: 100,

@@ -139,12 +139,14 @@ export function createKharjookServer(userId: string) {
   write<Parameters<typeof setGoal>[1]>(
     'set_goal',
     'Add or edit goal',
-    'Portfolio goal. scope asset: target quantity or allocation % of one asset. scope asset_group: allocation % of an asset category. Send id to edit.',
+    'Portfolio goal. scope asset: target quantity or allocation % of one asset. scope asset_group: allocation % of an asset category. scope basket: one allocation % for a hand-picked set of 2+ assets (name + asset_ids). An asset can be in one basket only, and not in a basket and a goal group together. Send id to edit.',
     {
       id: z.string().optional(),
-      scope: z.enum(['asset', 'asset_group']),
+      scope: z.enum(['asset', 'asset_group', 'basket']),
       asset_id: z.string().optional(),
       category_id: z.string().optional(),
+      asset_ids: z.array(z.string()).optional().describe('basket only: the assets in the set (2 or more)'),
+      name: z.string().max(60).optional().describe('basket only: name of the set'),
       kind: z.enum(['quantity', 'allocation_percent']),
       value: z.number().positive(),
     },

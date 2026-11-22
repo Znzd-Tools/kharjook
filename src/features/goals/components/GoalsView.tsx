@@ -12,8 +12,10 @@ import {
   Badge,
   Banner,
   Button,
+  Checkbox,
   EmptyState,
   Field,
+  Input,
   PickerField,
   SegmentedControl,
   Sheet,
@@ -36,11 +38,31 @@ interface Draft {
   scope: GoalScope;
   assetId: string | null;
   categoryId: string | null;
+  /** Set ("basket") goals: name and assets. */
+  name: string;
+  assetIds: string[];
   kind: GoalTargetKind;
   value: string;
 }
 
-const EMPTY: Draft = { id: null, scope: 'asset_group', assetId: null, categoryId: null, kind: 'allocation_percent', value: '' };
+const EMPTY: Draft = { id: null, scope: 'asset_group', assetId: null, categoryId: null, name: '', assetIds: [], kind: 'allocation_percent', value: '' };
+
+/** The goal row a draft would save (also used to check the rules live). */
+function draftToGoal(draft: Draft, userId: string): Omit<Goal, 'id'> {
+  const kind: GoalTargetKind = draft.scope === 'asset' ? draft.kind : 'allocation_percent';
+  const target = Number(draft.value);
+  return {
+    user_id: userId,
+    scope: draft.scope,
+    asset_id: draft.scope === 'asset' ? draft.assetId : null,
+    category_id: draft.scope === 'asset_group' ? draft.categoryId : null,
+    name: draft.scope === 'basket' ? draft.name.trim() : null,
+    asset_ids: draft.scope === 'basket' ? draft.assetIds : null,
+    target_kind: kind,
+    target_quantity: kind === 'quantity' ? target : null,
+    target_percent: kind === 'allocation_percent' ? target : null,
+  };
+}
 
 export function GoalsView() {
   const goBack = useSafeBack('/assets');
@@ -60,8 +82,11 @@ export function GoalsView() {
 
   const met = rows.filter((r) => isGoalMet(r.currentValue, r.targetValue, r.valueKind)).length;
   const groupGoals = goals.filter((g) => g.scope === 'asset_group');
+  const basketGoals = goals.filter((g) => g.scope === 'basket');
   const assetGoals = goals.filter((g) => g.scope === 'asset');
-  const groupSum = groupGoals.reduce((s, g) => s + Number(g.target_percent ?? 0), 0);
+  const groupSum = [...groupGoals, ...basketGoals].reduce((s, g) => s + Number(g.target_percent ?? 0), 0);
+  /** Assets that can go in a set: the investment portfolio only. */
+  const portfolioAssets = assets.filter((a) => a.include_in_balance !== false);
 
   const openNew = () => setDraft({ ...EMPTY, scope: assetCats.length ? 'asset_group' : 'asset' });
   const openEdit = (goal: Goal) =>
@@ -70,6 +95,8 @@ export function GoalsView() {
       scope: goal.scope,
       assetId: goal.asset_id,
       categoryId: goal.category_id,
+      name: goal.name ?? '',
+      assetIds: goal.asset_ids ?? [],
       kind: goal.target_kind,
       value: String(goal.target_percent ?? goal.target_quantity ?? ''),
     });
@@ -77,18 +104,13 @@ export function GoalsView() {
   const save = async () => {
     if (!draft || !user) return;
     const target = Number(draft.value);
-    const kind: GoalTargetKind = draft.scope === 'asset_group' ? 'allocation_percent' : draft.kind;
-    if (draft.scope === 'asset' ? !draft.assetId : !draft.categoryId) return toast.error(draft.scope === 'asset' ? 'دارایی را انتخاب کن' : 'گروه را انتخاب کن');
+    const payload = draftToGoal(draft, user.id);
+    const kind = payload.target_kind;
+    if (draft.scope === 'asset' && !draft.assetId) return toast.error('دارایی را انتخاب کن');
+    if (draft.scope === 'asset_group' && !draft.categoryId) return toast.error('گروه را انتخاب کن');
+    if (draft.scope === 'basket' && !draft.name.trim()) return toast.error('برای مجموعه یک نام بگذار');
+    if (draft.scope === 'basket' && draft.assetIds.length < 2) return toast.error('حداقل دو دارایی انتخاب کن');
     if (!(target > 0) || (kind === 'allocation_percent' && target > 100)) return toast.error(kind === 'allocation_percent' ? 'درصد باید بین ۰ و ۱۰۰ باشد' : 'مقدار را وارد کن');
-    const payload = {
-      user_id: user.id,
-      scope: draft.scope,
-      asset_id: draft.scope === 'asset' ? draft.assetId : null,
-      category_id: draft.scope === 'asset_group' ? draft.categoryId : null,
-      target_kind: kind,
-      target_quantity: kind === 'quantity' ? target : null,
-      target_percent: kind === 'allocation_percent' ? target : null,
-    };
     const next = [...goals.filter((g) => g.id !== draft.id), { ...payload, id: draft.id ?? '__new__' } as Goal];
     const issues = validateGoalSet(next, assets, categories);
     if (issues.length) return toast.error(issues[0]!);
@@ -136,6 +158,11 @@ export function GoalsView() {
             <div className={`absolute inset-y-0 start-0 rounded-full ${ok ? 'bg-positive' : 'bg-accent'}`} style={{ width: `${Math.min(100, (r.currentValue / max) * 100)}%` }} />
             <div className="absolute -top-1 -bottom-1 w-0.5 rounded bg-fg" style={{ insetInlineStart: `${(r.targetValue / max) * 100}%` }} />
           </div>
+          {goal.scope === 'basket' && (
+            <p className="text-caption text-fg-subtle">
+              {(goal.asset_ids ?? []).map((id) => assets.find((a) => a.id === id)?.name).filter(Boolean).join('، ')}
+            </p>
+          )}
           {!ok && r.actionSuggestion && <p className="text-caption text-accent-ink">{r.actionSuggestion}</p>}
         </button>
       </li>
@@ -175,9 +202,9 @@ export function GoalsView() {
                 <p className="text-title font-bold text-fg">
                   {met.toLocaleString('fa-IR')} از {rows.length.toLocaleString('fa-IR')}
                 </p>
-                {groupGoals.length > 0 && (
+                {groupGoals.length + basketGoals.length > 0 && (
                   <Text variant="caption" tone="subtle">
-                    جمع هدف گروه‌ها: {groupSum.toLocaleString('fa-IR', { maximumFractionDigits: 1 })}٪
+                    جمع هدف گروه‌ها{basketGoals.length > 0 ? ' و مجموعه‌ها' : ''}: {groupSum.toLocaleString('fa-IR', { maximumFractionDigits: 1 })}٪
                   </Text>
                 )}
               </div>
@@ -190,6 +217,14 @@ export function GoalsView() {
                   گروه‌ها
                 </Text>
                 <ul className="space-y-2">{groupGoals.map(card)}</ul>
+              </section>
+            )}
+            {basketGoals.length > 0 && (
+              <section aria-label="مجموعه‌ها" className="space-y-2">
+                <Text variant="caption" tone="muted" className="px-1 font-semibold">
+                  مجموعه‌ها (چند دارایی با هم)
+                </Text>
+                <ul className="space-y-2">{basketGoals.map(card)}</ul>
               </section>
             )}
             {assetGoals.length > 0 && (
@@ -230,13 +265,40 @@ export function GoalsView() {
                   value={draft.scope}
                   onValueChange={(v) => setDraft({ ...draft, scope: v as GoalScope, kind: 'allocation_percent' })}
                   options={[
-                    { value: 'asset_group', label: 'یک گروه (مثلاً طلا)' },
+                    { value: 'asset_group', label: 'یک گروه' },
+                    { value: 'basket', label: 'چند دارایی' },
                     { value: 'asset', label: 'یک دارایی' },
                   ]}
                 />
               </Field>
             )}
-            {draft.scope === 'asset_group' ? (
+            {draft.scope === 'basket' ? (
+              <>
+                <Field label="نام مجموعه" hint="مثلاً «رمزارزها» یا «ریسکی».">
+                  <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="نام مجموعه" maxLength={60} />
+                </Field>
+                <Field label="دارایی‌های این مجموعه" hint="حداقل دو دارایی. هدف درصدی برای جمع همه‌ی آن‌هاست.">
+                  <div role="group" aria-label="دارایی‌های این مجموعه" className="space-y-1 rounded-card bg-sunken p-3">
+                    {portfolioAssets.map((a) => {
+                      const other = basketGoals.find((g) => g.id !== draft.id && (g.asset_ids ?? []).includes(a.id));
+                      const on = draft.assetIds.includes(a.id);
+                      return (
+                        <Checkbox
+                          key={a.id}
+                          label={a.name}
+                          description={other ? `در مجموعه‌ی «${other.name ?? ''}»` : undefined}
+                          disabled={Boolean(other)}
+                          checked={on}
+                          onCheckedChange={(c) =>
+                            setDraft({ ...draft, assetIds: c ? [...draft.assetIds, a.id] : draft.assetIds.filter((id) => id !== a.id) })
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </Field>
+              </>
+            ) : draft.scope === 'asset_group' ? (
               <Field label="گروه">
                 <PickerField
                   title="گروه دارایی"
@@ -276,29 +338,13 @@ export function GoalsView() {
             )}
             <Field
               label={draft.kind === 'quantity' && draft.scope === 'asset' ? `مقدار هدف (${assets.find((a) => a.id === draft.assetId)?.unit ?? ''})` : 'درصد هدف از کل سبد'}
-              hint={draft.kind === 'quantity' && draft.scope === 'asset' ? 'مثلاً ۱۰۰ گرم طلا.' : 'جمع همه گروه‌ها حداکثر ۱۰۰٪.'}
+              hint={draft.kind === 'quantity' && draft.scope === 'asset' ? 'مثلاً ۱۰۰ گرم طلا.' : 'جمع همه گروه‌ها و مجموعه‌ها حداکثر ۱۰۰٪.'}
             >
               <AmountField value={draft.value} onValueChange={(v) => setDraft({ ...draft, value: v })} unitLabel={draft.kind === 'quantity' && draft.scope === 'asset' ? ' ' : '٪'} />
             </Field>
             {(() => {
               const issues = draft.value
-                ? validateGoalSet(
-                    [
-                      ...goals.filter((g) => g.id !== draft.id),
-                      {
-                        id: draft.id ?? '__new__',
-                        user_id: '',
-                        scope: draft.scope,
-                        asset_id: draft.scope === 'asset' ? draft.assetId : null,
-                        category_id: draft.scope === 'asset_group' ? draft.categoryId : null,
-                        target_kind: draft.scope === 'asset_group' ? 'allocation_percent' : draft.kind,
-                        target_quantity: draft.kind === 'quantity' ? Number(draft.value) : null,
-                        target_percent: draft.kind !== 'quantity' || draft.scope === 'asset_group' ? Number(draft.value) : null,
-                      },
-                    ],
-                    assets,
-                    categories
-                  )
+                ? validateGoalSet([...goals.filter((g) => g.id !== draft.id), { ...draftToGoal(draft, ''), id: draft.id ?? '__new__' }], assets, categories)
                 : [];
               return issues.length ? <Banner tone="warning">{issues[0]}</Banner> : null;
             })()}

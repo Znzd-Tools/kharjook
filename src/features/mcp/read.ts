@@ -144,6 +144,7 @@ export function getGoals(book: Book) {
         id: r.id,
         name: r.name,
         scope: g.scope,
+        ...(g.scope === 'basket' ? { assets: (g.asset_ids ?? []).map((id) => book.assets.find((a) => a.id === id)?.name ?? id) } : {}),
         kind: g.target_kind,
         current: r2(r.currentValue),
         target: r2(r.targetValue),

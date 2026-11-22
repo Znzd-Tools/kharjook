@@ -132,11 +132,17 @@ export async function deleteTransaction(book: Book, id: string, confirm: boolean
 
 export async function setGoal(
   book: Book,
-  input: { id?: string; scope: GoalScope; asset_id?: string; category_id?: string; kind: GoalTargetKind; value: number }
+  input: { id?: string; scope: GoalScope; asset_id?: string; category_id?: string; asset_ids?: string[]; name?: string; kind: GoalTargetKind; value: number }
 ): Promise<WriteResult> {
-  const kind: GoalTargetKind = input.scope === 'asset_group' ? 'allocation_percent' : input.kind;
-  if (input.scope === 'asset' ? !book.assets.some((a) => a.id === input.asset_id) : !book.categories.some((c) => c.id === input.category_id && c.kind === 'asset'))
-    return { ok: false, error: 'unknown asset_id / asset category_id' };
+  const kind: GoalTargetKind = input.scope === 'asset' ? input.kind : 'allocation_percent';
+  if (input.scope === 'asset' && !book.assets.some((a) => a.id === input.asset_id)) return { ok: false, error: 'unknown asset_id' };
+  if (input.scope === 'asset_group' && !book.categories.some((c) => c.id === input.category_id && c.kind === 'asset')) return { ok: false, error: 'unknown asset category_id' };
+  const ids = Array.from(new Set(input.asset_ids ?? []));
+  if (input.scope === 'basket') {
+    if (ids.length < 2) return { ok: false, error: 'a basket needs asset_ids with 2 or more assets' };
+    if (ids.some((id) => !book.assets.some((a) => a.id === id))) return { ok: false, error: 'unknown id in asset_ids' };
+    if (!input.name?.trim()) return { ok: false, error: 'a basket needs a name' };
+  }
   if (!(input.value > 0) || (kind === 'allocation_percent' && input.value > 100)) return { ok: false, error: 'value must be > 0 (percent ≤ 100)' };
   if (input.id && !book.goals.some((g) => g.id === input.id)) return { ok: false, error: 'goal not found' };
   const row = {
@@ -144,6 +150,8 @@ export async function setGoal(
     scope: input.scope,
     asset_id: input.scope === 'asset' ? input.asset_id! : null,
     category_id: input.scope === 'asset_group' ? input.category_id! : null,
+    asset_ids: input.scope === 'basket' ? ids : null,
+    name: input.scope === 'basket' ? input.name!.trim() : null,
     target_kind: kind,
     target_quantity: kind === 'quantity' ? input.value : null,
     target_percent: kind === 'allocation_percent' ? input.value : null,
@@ -153,7 +161,8 @@ export async function setGoal(
   const a = createSupabaseAdminClient();
   const res = input.id ? await a.from('goals').update(row).eq('id', input.id).eq('user_id', book.userId) : await a.from('goals').insert(row);
   if (res.error) return { ok: false, error: res.error.message };
-  return { ok: true, summary: `${input.id ? 'updated' : 'added'} goal ${input.scope} ${input.asset_id ?? input.category_id} = ${input.value}` };
+  const what = input.scope === 'basket' ? `"${row.name}" (${ids.length} assets)` : (input.asset_id ?? input.category_id);
+  return { ok: true, summary: `${input.id ? 'updated' : 'added'} goal ${input.scope} ${what} = ${input.value}` };
 }
 
 export async function deleteGoal(book: Book, id: string, confirm: boolean): Promise<WriteResult> {

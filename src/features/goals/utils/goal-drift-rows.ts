@@ -139,6 +139,43 @@ export function buildGoalDriftRows(input: {
       continue;
     }
 
+    if (goal.scope === 'basket') {
+      const ids = (goal.asset_ids ?? []).filter((id) => assets.some((a) => a.id === id));
+      if (ids.length === 0) continue;
+      const setValueToman = ids.reduce((s, id) => s + (assetValueById.get(id) ?? 0), 0);
+      const currentValue = assetsValueToman > 0 ? (setValueToman / assetsValueToman) * 100 : 0;
+      const valueKind = goalValueKindFromGoal(goal.target_kind);
+      const progress = {
+        current: currentValue,
+        target: targetValue,
+        percentComplete: targetValue > 0 ? (currentValue / targetValue) * 100 : 0,
+        remaining: Math.max(0, targetValue - currentValue),
+      };
+      const name = goal.name?.trim() || 'مجموعه';
+      const suggestion = buildGoalActionSuggestion({
+        name,
+        kind: 'percent',
+        current: currentValue,
+        target: targetValue,
+        currentValueToman: setValueToman,
+        portfolioValueToman: assetsValueToman,
+        currencyMode,
+        usdRate,
+        allowSell: true,
+      });
+      rows.push({
+        id: goal.id,
+        name,
+        kindLabel: 'مجموعه',
+        valueKind,
+        currentValue,
+        targetValue,
+        deltaLabel: computeGoalDelta(progress, valueKind, '%').deltaLabel,
+        actionSuggestion: suggestion?.message ?? null,
+      });
+      continue;
+    }
+
     const category = goal.category_id ? categoryById.get(goal.category_id) : null;
     if (!category) continue;
     const groupValueToman = mainDistributionMap.get(category.id) ?? 0;

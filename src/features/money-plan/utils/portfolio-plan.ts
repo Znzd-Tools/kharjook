@@ -91,9 +91,25 @@ function buckets(rows: HoldingRow[], goals: Goal[], categories: Category[]): Buc
     assetGoalIds.add(g.asset_id);
     out.push({ key: `a:${g.asset_id}`, label: r.asset.name, targetPct: Number(g.target_percent), currentToman: r.valueToman, asset: r.asset });
   }
+  // Sets: their assets leave their groups (an asset counts in one bucket).
+  const inSet = new Set<string>();
+  for (const g of goals) {
+    if (g.scope !== 'basket' || !(Number(g.target_percent) > 0)) continue;
+    const ids = new Set(g.asset_ids ?? []);
+    const members = rows.filter((x) => ids.has(x.asset.id) && !assetGoalIds.has(x.asset.id));
+    members.forEach((m) => inSet.add(m.asset.id));
+    const biggest = [...members].sort((a, b) => b.valueToman - a.valueToman)[0];
+    out.push({
+      key: `g:set:${g.id}`,
+      label: g.name?.trim() || 'مجموعه',
+      targetPct: Number(g.target_percent),
+      currentToman: members.reduce((s, m) => s + m.valueToman, 0),
+      asset: biggest?.asset ?? null,
+    });
+  }
   for (const g of goals) {
     if (g.scope !== 'asset_group' || !g.category_id || !(Number(g.target_percent) > 0)) continue;
-    const members = rows.filter((x) => x.asset.category_id === g.category_id && !assetGoalIds.has(x.asset.id));
+    const members = rows.filter((x) => x.asset.category_id === g.category_id && !assetGoalIds.has(x.asset.id) && !inSet.has(x.asset.id));
     const biggest = [...members].sort((a, b) => b.valueToman - a.valueToman)[0];
     out.push({
       key: `g:${g.category_id}`,

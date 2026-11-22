@@ -27,7 +27,8 @@ export type NotificationDeliveryKind =
   | 'push_reminder'
   | 'expense_reminder'
   | 'price_update';
-export type GoalScope = 'asset' | 'asset_group';
+/** asset_group = an asset category; basket = a hand-picked set of assets (one % for all). */
+export type GoalScope = 'asset' | 'asset_group' | 'basket';
 export type GoalTargetKind = 'quantity' | 'allocation_percent';
 
 export interface Category {
@@ -238,6 +239,9 @@ export interface Goal {
   scope: GoalScope;
   asset_id: string | null;
   category_id: string | null;
+  /** Basket goals only: its name and its assets (2 or more). */
+  name?: string | null;
+  asset_ids?: string[] | null;
   target_kind: GoalTargetKind;
   target_quantity: number | null;
   target_percent: number | null;
