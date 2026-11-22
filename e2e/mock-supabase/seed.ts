@@ -38,8 +38,15 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
         auto_income_on_create: false, auto_income_wallet_id: null, description: null, reminder_days_before: [1],
         deleted_at: null, ...stamp,
       },
+      {
+        id: 'loan-del', title: 'وام حذف‌شده', type: 'loan', category_id: 'c-rent', currency: 'IRT', asset_id: null,
+        installment_amount: 1_000_000, total_amount: 3_000_000, loan_start_date_string: '1405/07/01',
+        first_due_date_string: '1405/08/25', repeat_count: 3, interval_number: 1, interval_period: 'month',
+        auto_income_on_create: false, auto_income_wallet_id: null, description: null, reminder_days_before: [1],
+        deleted_at: now, ...stamp,
+      },
     ],
-    loan_installments: Array.from({ length: 12 }, (_, i) => {
+    loan_installments: [...Array.from({ length: 12 }, (_, i) => {
       const m = 2 + i;
       const jy = 1405 + Math.floor((m - 1) / 12);
       const jm = ((m - 1) % 12) + 1;
@@ -50,6 +57,11 @@ export function buildSeed(): Record<string, Record<string, unknown>[]> {
         paid_at: paid ? now : null, paid_transaction_id: null, note: null, ...stamp,
       };
     }),
+    // Unpaid installment of a deleted loan: must never show anywhere.
+    {
+      id: 'inst-del', loan_id: 'loan-del', due_date_string: '1405/08/25', amount: 1_000_000, paid_amount: 0, sequence_no: 1,
+      is_paid: false, paid_at: null, paid_transaction_id: null, note: null, ...stamp,
+    }],
     checks: [
       {
         id: 'chk1', title: 'چک آقای رضایی', bank_name: 'ملت', check_number: '123456', amount: 12_000_000, currency: 'IRT',

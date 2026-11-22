@@ -72,3 +72,12 @@ test('plan: a Lira subscription shows ₺, not Toman', async ({ page }) => {
   await expect(row).toContainText('₺');
   await expect(row).toContainText('۹۹٫۹۹');
 });
+
+test('installments of a deleted loan never show', async ({ page }) => {
+  await open(page, '/deadlines');
+  await expect(page.getByRole('button', { name: 'پرداخت وام مسکن' }).first()).toBeVisible();
+  await expect(page.getByText('وام حذف‌شده')).toHaveCount(0);
+  await open(page, '/debts');
+  await expect(page.getByText('وام مسکن').first()).toBeVisible();
+  await expect(page.getByText('وام حذف‌شده')).toHaveCount(0);
+});
