@@ -94,6 +94,8 @@ export interface Asset {
   include_in_balance?: boolean;
   order_index?: number;
   created_at?: string;
+  /** Set when archived: hidden from lists and pickers, not in any total. */
+  archived_at?: string | null;
 }
 
 export interface Wallet {

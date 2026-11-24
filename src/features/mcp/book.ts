@@ -36,7 +36,7 @@ export async function loadBook(userId: string): Promise<Book> {
   const own = <T,>(table: string, cols = '*') => a.from(table).select(cols).eq('user_id', userId) as unknown as Promise<{ data: T[] | null }>;
   const [tx, assets, wallets, categories, persons, prices, rates, goals, checks, subs, loans, inst, caps, env, alloc, placesRes, placeHoldingsRes] = await Promise.all([
     fetchAllUserTransactions(a, userId),
-    own<Asset>('assets'),
+    a.from('assets').select('*').eq('user_id', userId).is('archived_at', null) as unknown as Promise<{ data: Asset[] | null }>,
     a.from('wallets').select('*').eq('user_id', userId).is('archived_at', null) as unknown as Promise<{ data: Wallet[] | null }>,
     own<Category>('categories'),
     own<Person>('persons'),

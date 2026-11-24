@@ -92,7 +92,7 @@ function dayLabel(date: string, today: string, yesterday: string) {
 
 export function LedgerV2() {
   const router = useRouter();
-  const { transactions, wallets, assets, persons, categories, isLoadingData, transactionsFullyLoaded } = useData();
+  const { transactions, wallets, assets, archivedWallets, archivedAssets, persons, categories, isLoadingData, transactionsFullyLoaded } = useData();
   const actions = useTransactionActions();
   const queued = useQueuedCount();
 
@@ -138,7 +138,11 @@ export function LedgerV2() {
     }
   }, [period, customFrom, customTo, today]);
 
-  const lookup = useMemo(() => ({ wallets, assets, persons, categories }), [wallets, assets, persons, categories]);
+  // Archived wallets/assets too: their old transactions keep their names.
+  const lookup = useMemo(
+    () => ({ wallets: [...wallets, ...archivedWallets], assets: [...assets, ...archivedAssets], persons, categories }),
+    [wallets, archivedWallets, assets, archivedAssets, persons, categories]
+  );
   // A category filter includes its sub-categories.
   const categoryIds = useMemo(
     () =>

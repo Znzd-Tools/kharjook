@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar, Badge, Button, Disclosure, EmptyState, Field, IconButton, Input, ListRow, Section, Switch, Text, TopBar, toast, useConfirm } from '@/design-system';
-import { Coins, LayoutGrid as Folder, Pencil, TrendingUp as Link2, Trash2 } from '@/design-system/icons';
+import { Archive, Coins, LayoutGrid as Folder, Pencil, TrendingUp as Link2, Trash2 } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import {
   DndContext,
@@ -25,6 +26,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { deleteEntityIcon } from '@/shared/utils/entity-icon-storage';
 import type { Asset } from '@/shared/types/domain';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
+import { useArchive } from '@/features/archive/hooks/use-archive';
 import { CategorySheetPicker } from '@/shared/components/CategorySheetPicker';
 import { IconPicker } from '@/shared/components/IconPicker';
 import {
@@ -41,7 +43,8 @@ export function ManageAssetsView() {
   const confirm = useConfirm();
   const goBack = useSafeBack('/assets');
   const { user } = useAuth();
-  const { categories, assets, setAssets, priceSourceCatalog } = useData();
+  const { categories, assets, setAssets, priceSourceCatalog, archivedAssets } = useData();
+  const { archiveAsset } = useArchive();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -470,7 +473,15 @@ export function ManageAssetsView() {
           </Button>
         </form>
 
-        <Section title="دارایی‌ها" description="برای جابه‌جایی، دستگیره کنار هر نام را بکش.">
+        <Section
+          title="دارایی‌ها"
+          description="برای جابه‌جایی، دستگیره کنار هر نام را بکش."
+          action={
+            <Button variant="link" size="sm" render={<Link href="/manage/archive" />} nativeButton={false}>
+              بایگانی{archivedAssets.length > 0 ? ` (${archivedAssets.length.toLocaleString('fa-IR')})` : ''}
+            </Button>
+          }
+        >
           {assets.length === 0 ? (
             <div className="rounded-card bg-panel">
               <EmptyState compact icon={<Coins />} title="هنوز دارایی‌ای نیست" />
@@ -492,6 +503,7 @@ export function ManageAssetsView() {
                         sourceLabel={source?.label ?? null}
                         onEdit={() => handleEdit(asset)}
                         onDelete={() => void handleDelete(asset.id)}
+                        onArchive={() => void archiveAsset(asset).then((ok) => ok && editingId === asset.id && resetForm())}
                         pending={pendingAssetIds.has(asset.id)}
                       />
                     );
@@ -547,6 +559,7 @@ function SortableAssetRow({
   sourceLabel,
   onEdit,
   onDelete,
+  onArchive,
   pending,
 }: {
   asset: Asset;
@@ -556,6 +569,7 @@ function SortableAssetRow({
   sourceLabel: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onArchive: () => void;
   pending: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
@@ -597,6 +611,7 @@ function SortableAssetRow({
         trailing={
           <span className="flex">
             <IconButton size="sm" aria-label={`ویرایش ${asset.name}`} icon={<Pencil />} disabled={pending} onClick={onEdit} />
+            <IconButton size="sm" aria-label={`بایگانی ${asset.name}`} icon={<Archive />} disabled={pending} onClick={onArchive} />
             <IconButton size="sm" aria-label={`حذف ${asset.name}`} icon={<Trash2 />} disabled={pending} onClick={onDelete} />
           </span>
         }

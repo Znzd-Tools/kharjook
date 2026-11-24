@@ -62,7 +62,7 @@ async function loadUserData(userId: string) {
     fetchAllUserTransactions(admin, userId),
     admin.from('categories').select('*').eq('user_id', userId),
     admin.from('wallets').select('*').eq('user_id', userId).is('archived_at', null),
-    admin.from('assets').select('*').eq('user_id', userId),
+    admin.from('assets').select('*').eq('user_id', userId).is('archived_at', null),
     admin.from('currency_rates').select('*').eq('user_id', userId),
   ]);
 

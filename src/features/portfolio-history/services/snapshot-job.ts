@@ -16,7 +16,7 @@ export async function snapshotUser(userId: string, opts: { backfill?: boolean } 
   const admin = createSupabaseAdminClient();
   const [tx, assets, wallets, prices, rates, history] = await Promise.all([
     fetchAllUserTransactions(admin, userId),
-    admin.from('assets').select('*').eq('user_id', userId),
+    admin.from('assets').select('*').eq('user_id', userId).is('archived_at', null),
     admin.from('wallets').select('*').eq('user_id', userId).is('archived_at', null),
     admin.from('daily_prices').select('*').eq('user_id', userId),
     admin.from('currency_rates').select('*').eq('user_id', userId),

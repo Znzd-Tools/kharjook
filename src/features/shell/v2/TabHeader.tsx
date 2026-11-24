@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Download,
   Wallet,
+  Archive,
 } from "@/design-system/icons";
 import { useAuth, useUI } from "@/features/portfolio/PortfolioProvider";
 import { haptic } from "@/shared/utils/haptics";
@@ -39,6 +40,7 @@ const MENU_ICON: Record<MenuLink["icon"], React.ReactNode> = {
   coins: <Coins />,
   wallet: <Wallet />,
   chart: <BarChart3 />,
+  archive: <Archive />,
 };
 
 /** Header for tab root screens: title, sub navigation and one ⋯ menu. */

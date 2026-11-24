@@ -76,6 +76,12 @@ interface DataValue {
    */
   dailyPrices: DailyPrice[];
   goals: Goal[];
+  /**
+   * Archived wallets and assets: not in `wallets` / `assets`, not in any
+   * total. Used for names of old transactions and the archive screen.
+   */
+  archivedWallets: Wallet[];
+  archivedAssets: Asset[];
   priceSourceSettings: PriceSourceSetting[];
   /** User's price source catalog — drives auto-fetch slugs/keys/labels. */
   priceSources: PriceSourceRecord[];
@@ -176,6 +182,8 @@ export function PortfolioProvider({
   const [persons, setPersons] = useState<Person[]>([]);
   const [dailyPrices, setDailyPrices] = useState<DailyPrice[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [archivedWallets, setArchivedWallets] = useState<Wallet[]>([]);
+  const [archivedAssets, setArchivedAssets] = useState<Asset[]>([]);
   const [priceSourceSettings, setPriceSourceSettings] = useState<PriceSourceSetting[]>([]);
   const [priceSources, setPriceSources] = useState<PriceSourceRecord[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -240,6 +248,8 @@ export function PortfolioProvider({
         checksRes,
         subsRes,
         instRes,
+        archWalRes,
+        archAstRes,
       ] = await Promise.all([
         supabase
           .from('categories')
@@ -249,6 +259,7 @@ export function PortfolioProvider({
         supabase
           .from('assets')
           .select('*')
+          .is('archived_at', null)
           .order('order_index', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: true }),
         supabase
@@ -303,6 +314,8 @@ export function PortfolioProvider({
           .eq('is_paid', false)
           .order('due_date_string', { ascending: true })
           .limit(120),
+        supabase.from('wallets').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false }),
+        supabase.from('assets').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false }),
       ]);
 
       if (seq !== fetchSeq.current) return;
@@ -473,6 +486,8 @@ export function PortfolioProvider({
       setPersons(nextPersons);
       setDailyPrices(nextDailyPrices);
       setGoals(nextGoals);
+      setArchivedWallets(archWalRes.error ? [] : ((archWalRes.data as Wallet[]) ?? []));
+      setArchivedAssets(archAstRes.error ? [] : ((archAstRes.data as Asset[]) ?? []));
       setPriceSourceSettings(nextPriceSourceSettings);
       setPriceSources(nextPriceSources);
       setSpendingCaps(nextSpendingCaps);
@@ -642,6 +657,8 @@ export function PortfolioProvider({
       setPersons([]);
       setDailyPrices([]);
       setGoals([]);
+      setArchivedWallets([]);
+      setArchivedAssets([]);
       setPriceSourceSettings([]);
       setPriceSources([]);
       setSpendingCaps([]);
@@ -684,6 +701,8 @@ export function PortfolioProvider({
       persons,
       dailyPrices,
       goals,
+      archivedWallets,
+      archivedAssets,
       priceSourceSettings,
       priceSources,
       priceSourceCatalog,
@@ -718,6 +737,8 @@ export function PortfolioProvider({
       persons,
       dailyPrices,
       goals,
+      archivedWallets,
+      archivedAssets,
       priceSourceSettings,
       priceSources,
       priceSourceCatalog,

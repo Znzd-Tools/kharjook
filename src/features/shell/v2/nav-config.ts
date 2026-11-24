@@ -14,7 +14,7 @@ export interface SubNavItem {
 export interface MenuLink {
   href: string;
   label: string;
-  icon: 'repeat' | 'upload' | 'grid' | 'target' | 'settings' | 'rate' | 'source' | 'coins' | 'wallet' | 'chart';
+  icon: 'repeat' | 'upload' | 'grid' | 'target' | 'settings' | 'rate' | 'source' | 'coins' | 'wallet' | 'chart' | 'archive';
 }
 
 export interface TabConfig {
@@ -62,6 +62,7 @@ export const TABS: TabConfig[] = [
       { href: '/manage/goals', label: 'اهداف تخصیص', icon: 'target' },
       { href: '/manage/assets', label: 'ویرایش دارایی‌ها', icon: 'coins' },
       { href: '/manage/wallets', label: 'ویرایش کیف پول‌ها', icon: 'wallet' },
+      { href: '/manage/archive', label: 'بایگانی', icon: 'archive' },
       { href: '/manage/rates', label: 'نرخ ارزها', icon: 'rate' },
       { href: '/manage/price-sources', label: 'منابع قیمت', icon: 'source' },
       { href: '/settings', label: 'تنظیمات', icon: 'settings' },

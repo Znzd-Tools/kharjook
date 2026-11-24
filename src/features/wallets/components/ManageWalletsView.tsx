@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
-import { AmountField, Avatar, Button, EmptyState, Field, IconButton, Input, ListRow, Section, SegmentedControl, Text, TopBar, toast, useConfirm } from '@/design-system';
-import { Pencil, Trash2 as Archive, Wallet as WalletIcon } from '@/design-system/icons';
+import { AmountField, Avatar, Button, EmptyState, Field, IconButton, Input, ListRow, Section, SegmentedControl, Text, TopBar, toast } from '@/design-system';
+import { Archive, Pencil, Wallet as WalletIcon } from '@/design-system/icons';
 import { useSafeBack } from '@/shared/hooks/use-safe-back';
 import { NativeAmount } from './NativeAmount';
 import {
@@ -25,7 +26,7 @@ import { IconPicker } from '@/shared/components/IconPicker';
 import { runOptimisticMutation } from '@/shared/utils/optimistic-mutation';
 import { haptic } from '@/shared/utils/haptics';
 import { supabase } from '@/shared/lib/supabase/client';
-import { deleteEntityIcon } from '@/shared/utils/entity-icon-storage';
+import { useArchive } from '@/features/archive/hooks/use-archive';
 import type { Currency, Wallet } from '@/shared/types/domain';
 import { useAuth, useData } from '@/features/portfolio/PortfolioProvider';
 import {
@@ -50,10 +51,10 @@ const emptyForm: FormState = {
 };
 
 export function ManageWalletsView() {
-  const confirm = useConfirm();
+  const { archiveWallet } = useArchive();
   const goBack = useSafeBack('/wallets');
   const { user } = useAuth();
-  const { wallets, setWallets } = useData();
+  const { wallets, setWallets, archivedWallets } = useData();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -253,69 +254,10 @@ export function ManageWalletsView() {
   };
 
   const handleArchive = async (w: Wallet) => {
-    if (
-      !(await confirm({
-        title: `«${w.name}» بایگانی شود؟`,
-        description: 'دیگر در فهرست‌ها دیده نمی‌شود. تراکنش‌های قبلی دست‌نخورده می‌مانند.',
-        tone: 'danger',
-        confirmLabel: 'بایگانی',
-      }))
-    )
-      return;
-
-    const execute = async () => {
-      const snapshot = wallets;
-      setArchivingId(w.id);
-      setPendingWalletIds((prev) => new Set(prev).add(w.id));
-      await runOptimisticMutation({
-        snapshot,
-        applyOptimistic: () => {
-          setWallets((prev) => prev.filter((x) => x.id !== w.id));
-        },
-        rollback: (prev) => {
-          setPendingWalletIds((p) => {
-            const next = new Set(p);
-            next.delete(w.id);
-            return next;
-          });
-          setWallets(prev);
-        },
-        commit: async () => {
-          const { error } = await supabase
-            .from('wallets')
-            .update({ archived_at: new Date().toISOString() })
-            .eq('id', w.id);
-          if (error) throw error;
-          if (w.icon_url) {
-            await deleteEntityIcon(supabase, w.icon_url);
-          }
-        },
-        onSuccess: () => {
-          setPendingWalletIds((p) => {
-            const next = new Set(p);
-            next.delete(w.id);
-            return next;
-          });
-        },
-      });
-      if (form.editingId === w.id) resetForm();
-    };
-
-    try {
-      await execute();
-    } catch (err) {
-      console.error(err);
-      toast.error('خطا در بایگانی.', {
-        action: { label: 'تلاش مجدد', onClick: () => void execute() },
-      });
-    } finally {
-      setPendingWalletIds((p) => {
-        const next = new Set(p);
-        next.delete(w.id);
-        return next;
-      });
-      setArchivingId(null);
-    }
+    setArchivingId(w.id);
+    const done = await archiveWallet(w);
+    setArchivingId(null);
+    if (done && form.editingId === w.id) resetForm();
   };
 
   return (
@@ -380,7 +322,15 @@ export function ManageWalletsView() {
           </Button>
         </form>
 
-        <Section title="کیف پول‌ها" description="برای جابه‌جایی، دستگیره کنار هر نام را بکش.">
+        <Section
+          title="کیف پول‌ها"
+          description="برای جابه‌جایی، دستگیره کنار هر نام را بکش."
+          action={
+            <Button variant="link" size="sm" render={<Link href="/manage/archive" />} nativeButton={false}>
+              بایگانی{archivedWallets.length > 0 ? ` (${archivedWallets.length.toLocaleString('fa-IR')})` : ''}
+            </Button>
+          }
+        >
           {wallets.length === 0 ? (
             <div className="rounded-card bg-panel">
               <EmptyState compact icon={<WalletIcon />} title="هنوز کیف پولی نساخته‌ای" />
