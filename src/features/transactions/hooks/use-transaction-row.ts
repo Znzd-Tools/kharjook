@@ -95,6 +95,24 @@ export function useTransactionRow({
     usdRate,
   ]);
 
+  // INCOME/EXPENSE with an asset (e.g. pay a cost in gold or USDT): seed the
+  // unit price from the asset once. Without it the price stayed 0 and the
+  // form said «قیمت واحد نامعتبر است». The user can still change it.
+  useEffect(() => {
+    if (form.type !== 'INCOME' && form.type !== 'EXPENSE') return;
+    const asset = form.type === 'INCOME' ? targetAsset : sourceAsset;
+    if (!asset) return;
+    const market = Number(asset.price_toman);
+    if (!(market > 0)) return;
+    const current = Number(form.priceToman);
+    if (Number.isFinite(current) && current > 0) return;
+    onChange((prev) => {
+      const existing = Number(prev.priceToman);
+      if (Number.isFinite(existing) && existing > 0) return prev;
+      return { ...prev, priceToman: canonicalNumber(market) };
+    });
+  }, [form.type, form.priceToman, sourceAsset, targetAsset, onChange]);
+
   // TRANSFER wallet↔asset: seed unit price from the asset once so qty/money
   // can be derived. User can still override the field.
   useEffect(() => {

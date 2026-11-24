@@ -155,3 +155,34 @@ test('create a category inline and use it', async ({ page }) => {
   const cat = (await dbRows<{ id: string; name: string }>('categories')).find((c) => c.name === 'باشگاه');
   expect((await newRows(before))[0]).toMatchObject({ category_id: cat?.id, source_amount: 900000 });
 });
+
+test('expense paid with an asset: unit price fills from the asset, saves; buttons stay on screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const before = await dbRows<Tx>('transactions');
+  await open(page, '/transactions/new?type=EXPENSE');
+  await page.getByRole('radio', { name: 'خوراک' }).click();
+  const goldChip = page.getByRole('button', { name: 'طلا', exact: true });
+  if (!(await goldChip.isVisible())) {
+    await page.getByRole('button', { name: /بیشتر/ }).first().click();
+    await page.getByRole('dialog').getByText('طلا', { exact: true }).first().click();
+  }
+  // Seed gold price 9,000,000 → the unit price field is filled, not 0.
+  await expect(page.getByText(/موجودی: .* گرم/)).toBeVisible();
+  await page.getByRole('textbox').first().fill('0.5');
+  await page.getByRole('button', { name: 'ثبت هزینه' }).click();
+  await expect(page.getByText('قیمت واحد (تومان) نامعتبر است.')).toHaveCount(0);
+  await expect.poll(async () => (await newRows(before)).length).toBe(1);
+  const [row] = await newRows(before);
+  expect(row).toMatchObject({ type: 'EXPENSE', source_asset_id: 'gold' });
+  expect(Number(row!.amount_toman_at_time)).toBe(4_500_000);
+});
+
+test('footer buttons stay inside a phone screen', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await open(page, '/transactions/new?type=EXPENSE');
+  for (const name of ['ثبت هزینه', 'ثبت و بعدی']) {
+    const box = (await page.getByRole('button', { name }).boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(360);
+  }
+});

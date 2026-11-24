@@ -47,6 +47,7 @@ import { fireExpenseAlert } from '@/features/notifications/client/fire-expense-a
 import { EndpointSheetPicker, type EndpointKind } from '@/features/transactions/components/EndpointSheetPicker';
 import { ConvertTransactionForm } from '@/features/transactions/components/ConvertTransactionForm';
 import { useTransactionRow } from '@/features/transactions/hooks/use-transaction-row';
+import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
 import { useTradeSnapshots } from '@/features/transactions/hooks/use-trade-snapshots';
 import { useTransactionActions } from '@/features/transactions/hooks/use-transaction-actions';
 import { undoTransactionInsert } from '@/features/transactions/utils/transaction-undo';
@@ -471,6 +472,16 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
       (row.sourceAsset && tgtCurrency)
     );
 
+  /** Balance in the endpoint's own unit: asset unit, wallet/person currency. */
+  const balanceLabel = (side: 'source' | 'target', balance: number) => {
+    const asset = side === 'source' ? row.sourceAsset : row.targetAsset;
+    if (asset) return `${formatAssetAmount(balance, assetDecimals(asset))} ${asset.unit}`;
+    const currency = side === 'source' ? srcCurrency : tgtCurrency;
+    if (!currency || currency === 'IRT' || currency === 'USD')
+      return formatMoney(balance, { currency: currency === 'USD' ? 'USD' : 'TOMAN', compact: true }).text;
+    return `${balance.toLocaleString('fa-IR', { maximumFractionDigits: 2 })} ${CURRENCY_META[currency].symbol}`;
+  };
+
   const endpointRow = (side: 'source' | 'target', label: string, allow: EndpointKind[], optional: boolean) => {
     const currentKey = side === 'source' ? refKey(form.sourceKind, form.sourceId) : refKey(form.targetKind, form.targetId);
     const t = type;
@@ -494,7 +505,7 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
         labelEnd={
           balance != null && current.id ? (
             <span className={cn('tabular', side === 'source' && row.isInsufficient && 'text-negative-ink')}>
-              موجودی: {formatMoney(balance, { currency: (side === 'source' ? srcCurrency : tgtCurrency) === 'USD' ? 'USD' : 'TOMAN', compact: true }).text}
+              موجودی: {balanceLabel(side, balance)}
             </span>
           ) : optional ? (
             'اختیاری'
@@ -774,7 +785,8 @@ export function AddTransactionV2(props: AddTransactionV2Props) {
               ثبت و بعدی
             </Button>
           )}
-          <Button fullWidth size="lg" loading={submitting} onClick={() => void submit(false)}>
+          {/* flex-1, not w-full: w-full next to a non-shrinking button overflowed the screen. */}
+          <Button size="lg" className="min-w-0 flex-1" loading={submitting} onClick={() => void submit(false)}>
             {isEdit ? 'ذخیره تغییرات' : isConvert ? 'ثبت تبدیل' : `ثبت ${TYPE_LABEL[uiMode]}`}
           </Button>
         </div>
