@@ -46,17 +46,22 @@ export function PnlCard({
         options={(['active', 'year', 'allTime'] as PnlView[]).map((v) => ({ value: v, label: VIEW_LABEL[v] }))}
       />
 
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <Amount value={t.value.toman} size="lg" tone="auto" signed compact />
-          {pctToman != null && <Delta value={pctToman} pill />}
+      {/* Toman vs dollar side by side: the dollar shows if you really got richer. */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1 rounded-control bg-sunken p-3">
+          <span className="block text-micro text-fg-subtle">به تومان</span>
+          <Amount value={t.value.toman} size="md" tone="auto" signed compact />
+          {pctToman != null && <Delta value={pctToman} />}
         </div>
-        <div className="flex flex-wrap items-baseline gap-x-3 text-caption text-fg-subtle">
-          <span>به دلار:</span>
-          <Amount value={t.value.usd} currency="USD" size="xs" tone="auto" signed />
+        <div className="space-y-1 rounded-control bg-sunken p-3">
+          <span className="block text-micro text-fg-subtle">به دلار (واقعی)</span>
+          <Amount value={t.value.usd} currency="USD" size="md" tone="auto" signed compact />
           {pctUsd != null && <Delta value={pctUsd} />}
         </div>
       </div>
+      {t.value.toman > 0 && t.value.usd < 0 && (
+        <p className="text-caption text-warning-ink">به تومان سود کرده‌ای، ولی به دلار ضرر؛ این سود بیشتر اثر تورم است، نه رشد واقعی.</p>
+      )}
 
       {view !== 'active' && <SplitBar realized={t.realized} unrealized={t.unrealized} />}
 

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
-  AllocationBar,
+  AreaChart,
   Amount,
   Avatar,
   Badge,
@@ -20,6 +20,7 @@ import {
   Chip,
   ChipGroup,
   Delta,
+  DonutChart,
   IconButton,
   List,
   ListRow,
@@ -27,7 +28,6 @@ import {
   Section,
   SegmentedControl,
   Sheet,
-  Sparkline,
   Switch,
   Text,
   formatMoney,
@@ -64,6 +64,8 @@ import {
   portfolioTotalTomanAtDate,
 } from "@/features/dashboard/utils/portfolio-history";
 import { buildYearCashflowByMonth } from "@/features/dashboard/utils/year-cashflow";
+import { RANGE_DAYS, heroTrend, trendChangePct, type TrendRange } from "@/features/dashboard/utils/hero-trend";
+import { useSnapshots } from "@/features/portfolio-history/components/NetWorthTrend";
 import {
   avgMonthlyExpense,
   idleCash,
@@ -134,6 +136,7 @@ export function HomeV2() {
     dailyPrices,
     spendingCaps,
     categories,
+    goals,
     checks,
     activeSubscriptions,
     upcomingDeadlines,
@@ -150,6 +153,8 @@ export function HomeV2() {
   const [wealthOpen, setWealthOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allocView, setAllocView] = useState<"groups" | "assets">("groups");
+  const [range, setRange] = useState<TrendRange>("1m");
+  const snapshots = useSnapshots();
   const [capFor, setCapFor] = useState<string | null>(null);
   const { pay, busyKey } = useSettleDeadline();
 
@@ -185,6 +190,43 @@ export function HomeV2() {
     today,
     todayStr,
   ]);
+  // Donut segments. Color follows the entity, never the rank: a group uses
+  // its category color; an asset uses the chart palette by its list order.
+  const allocSegments = useMemo(() => {
+    const pctNote = (p: number | null | undefined) =>
+      p ? `هدف ${Number(p).toLocaleString("fa-IR", { maximumFractionDigits: 1 })}٪` : undefined;
+    if (allocView === "groups") {
+      return stats.mainDistribution.map((d) => ({
+        key: d.id,
+        label: d.name,
+        value: d.valueToman,
+        color: d.id === "__uncat__" ? "var(--color-chart-other)" : categories.find((c) => c.id === d.id)?.color,
+        note: pctNote(goals.find((g) => g.scope === "asset_group" && g.category_id === d.id)?.target_percent),
+      }));
+    }
+    const order = new Map(assets.map((a, i) => [a.id, i]));
+    return stats.subDistribution.map((d) => ({
+      key: d.id,
+      label: d.name,
+      value: d.valueToman,
+      color: `var(--color-chart-${((order.get(d.id) ?? 0) % 8) + 1})`,
+      note: pctNote(goals.find((g) => g.scope === "asset" && g.asset_id === d.id && g.target_kind === "allocation_percent")?.target_percent),
+    }));
+  }, [allocView, stats.mainDistribution, stats.subDistribution, categories, goals, assets]);
+
+  // Hero trend: stored daily snapshots, ending at the live total.
+  const trend = useMemo(() => {
+    const liveToman = stats.totalPortfolioToman;
+    const live = { date: todayStr, toman: liveToman, usd: usdRate > 0 ? liveToman / usdRate : 0 };
+    const from = formatJalaali(addDays(today, -RANGE_DAYS[range]));
+    const pts = snapshots ? heroTrend(snapshots, range, usd ? "USD" : "TOMAN", live, from) : [];
+    if (pts.length >= 2) return pts;
+    // No history yet: the computed 30-day line.
+    return history.points.map((v, i) => ({ key: String(i), label: "", value: toDisplay(v) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshots, range, usd, stats.totalPortfolioToman, usdRate, today, todayStr, history.points]);
+  const trendPct = trendChangePct(trend);
+
   // Today = price moves of what you hold, fresh prices only.
   const todayChange = useMemo(
     () => todayMarketMove(assets, transactions, dailyPrices, usdRate, today),
@@ -409,15 +451,36 @@ export function HomeV2() {
                 hidden={hidden}
               />
             </span>
-            تغییر قیمت امروز
+            امروز
           </span>
-          <Sparkline
-            data={history.points}
-            tone="muted"
-            width={110}
-            height={30}
-            aria-label="روند ۳۰ روز ارزش کل"
-          />
+          {trendPct != null && (
+            <span className="text-caption text-fg-on-hero-muted">
+              <span className="font-semibold text-fg-on-hero tabular" dir="ltr">
+                {hidden ? "••" : `${trendPct >= 0 ? "+" : "−"}${Math.abs(trendPct).toLocaleString("fa-IR", { maximumFractionDigits: 1 })}٪`}
+              </span>{" "}
+              در {range === "1m" ? "یک ماه" : range === "3m" ? "سه ماه" : "یک سال"}
+            </span>
+          )}
+        </div>
+        <AreaChart
+          data={trend}
+          tone="on-hero"
+          height={84}
+          aria-label="روند ارزش سبد"
+          formatValue={(v) => <Amount value={v} currency={cur} size="xs" compact hidden={hidden} />}
+        />
+        <div role="group" aria-label="بازه‌ی نمودار" className="flex justify-center gap-1">
+          {(["1m", "3m", "1y"] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              aria-pressed={range === r}
+              onClick={() => setRange(r)}
+              className={`ds-focus rounded-full px-3 py-1 text-micro font-semibold transition-colors ${range === r ? "bg-white/40 text-fg-on-hero" : "text-fg-on-hero-muted hover:bg-white/20"}`}
+            >
+              {r === "1m" ? "۱ ماه" : r === "3m" ? "۳ ماه" : "۱ سال"}
+            </button>
+          ))}
         </div>
         <div className="space-y-1.5">
           <div
@@ -752,11 +815,16 @@ export function HomeV2() {
               { value: "assets", label: "دارایی‌ها" },
             ]}
           />
-          <AllocationBar
-            segments={(allocView === "groups"
-              ? stats.mainDistribution
-              : stats.subDistribution
-            ).map((d) => ({ key: d.id, label: d.name, value: d.valueToman }))}
+          <DonutChart
+            aria-label={allocView === "groups" ? "ترکیب سبد به تفکیک گروه" : "ترکیب سبد به تفکیک دارایی"}
+            segments={allocSegments}
+            center={
+              <>
+                <span className="text-micro text-fg-subtle">{allocView === "groups" ? "گروه‌ها" : "دارایی‌ها"}</span>
+                <Amount value={toDisplay(assetsToman)} currency={cur} size="sm" compact hidden={hidden} />
+              </>
+            }
+            formatValue={(v) => <Amount value={toDisplay(v)} currency={cur} size="xs" compact hidden={hidden} />}
           />
           {runway != null && (
             <p className="text-caption text-fg-subtle">

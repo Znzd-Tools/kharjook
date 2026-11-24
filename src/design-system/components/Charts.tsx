@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { cloneElement, useId, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
 import { useAmountPending } from './AmountPending';
 
@@ -217,6 +217,318 @@ function BarChartInner({ data, height = 120, activeKey, formatValue = String, mo
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* AreaChart — one value over time, with a touch crosshair.            */
+/* ------------------------------------------------------------------ */
+
+export interface AreaPoint {
+  key: string;
+  /** Short label for the tooltip (e.g. a date). */
+  label: string;
+  value: number;
+}
+
+export interface AreaChartProps {
+  data: AreaPoint[];
+  height?: number;
+  /** `on-hero`: draws in the hero text color (for the hero card). */
+  tone?: 'accent' | 'positive' | 'negative' | 'on-hero';
+  /** Value in the tooltip. */
+  formatValue?: (value: number) => ReactNode;
+  /** Called with the point under the finger (null when it leaves). */
+  onActiveChange?: (point: AreaPoint | null) => void;
+  'aria-label': string;
+  className?: string;
+}
+
+const AREA_COLOR = { ...STROKE, 'on-hero': 'var(--color-fg-on-hero)' } as const;
+
+/**
+ * Line + soft area, no axes (the hero number is the scale). Time runs left
+ * to right. Drag or hover to read any point: a vertical line, a dot and the
+ * value. Tooltip text uses text tokens, never the line color.
+ */
+function AreaChartInner({ data, height = 96, tone = 'accent', formatValue = String, onActiveChange, className, ...props }: AreaChartProps) {
+  const gid = useId();
+  const [active, setActive] = useState<number | null>(null);
+  const W = 300;
+  const geo = useMemo(() => {
+    if (data.length < 2) return null;
+    const vals = data.map((d) => d.value);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const span = max - min || Math.abs(max) || 1;
+    const top = 6;
+    const bottom = height - 4;
+    const x = (i: number) => (i / (data.length - 1)) * W;
+    const y = (v: number) => bottom - ((v - min) / span) * (bottom - top);
+    const pts = data.map((d, i) => [x(i), y(d.value)] as const);
+    const line = pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+    return { pts, line, area: `${line} L${W},${height} L0,${height} Z` };
+  }, [data, height]);
+  const color = AREA_COLOR[tone];
+
+  const pick = (clientX: number, el: SVGSVGElement) => {
+    const r = el.getBoundingClientRect();
+    const t = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    const i = Math.round(t * (data.length - 1));
+    setActive(i);
+    onActiveChange?.(data[i] ?? null);
+  };
+  const leave = () => {
+    setActive(null);
+    onActiveChange?.(null);
+  };
+
+  if (!geo) return <div className={cn('w-full', className)} style={{ height }} />;
+  const a = active != null ? geo.pts[active] : null;
+  const point = active != null ? data[active] : null;
+
+  return (
+    <figure className={cn('relative w-full select-none', className)} style={{ height }}>
+      <svg
+        role="img"
+        aria-label={props['aria-label']}
+        viewBox={`0 0 ${W} ${height}`}
+        preserveAspectRatio="none"
+        className="h-full w-full touch-pan-y overflow-visible"
+        style={{ direction: 'ltr' }}
+        onPointerMove={(e) => pick(e.clientX, e.currentTarget)}
+        onPointerDown={(e) => pick(e.clientX, e.currentTarget)}
+        onPointerLeave={leave}
+        onPointerUp={(e) => e.pointerType !== 'mouse' && leave()}
+      >
+        <defs>
+          <linearGradient id={gid} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path d={geo.area} fill={`url(#${gid})`} />
+        <path d={geo.line} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {a && <line x1={a[0]} x2={a[0]} y1={0} y2={height} stroke={color} strokeOpacity={0.4} strokeWidth={1} vectorEffect="non-scaling-stroke" />}
+      </svg>
+      {a && point && (
+        <>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-panel"
+            style={{ left: `${(a[0] / W) * 100}%`, top: a[1], backgroundColor: color }}
+          />
+          <span
+            className="pointer-events-none absolute -top-7 -translate-x-1/2 whitespace-nowrap rounded-control bg-panel px-2 py-0.5 text-micro text-fg shadow-md"
+            style={{ left: `${Math.min(85, Math.max(15, (a[0] / W) * 100))}%` }}
+          >
+            <span className="text-fg-subtle">{point.label}</span> <span className="font-semibold tabular">{formatValue(point.value)}</span>
+          </span>
+        </>
+      )}
+    </figure>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* DonutChart — parts of a whole, with a center label.                 */
+/* ------------------------------------------------------------------ */
+
+export interface DonutSegment {
+  key: string;
+  label: string;
+  value: number;
+  /** Entity color (e.g. the category color). Default: chart-1..8 by order. */
+  color?: string;
+  /** Extra text in the legend row (e.g. "هدف ۳۰٪"). */
+  note?: ReactNode;
+}
+
+export interface DonutChartProps {
+  segments: DonutSegment[];
+  size?: number;
+  thickness?: number;
+  /** Max segments before folding the rest into "سایر". Default 6. */
+  maxSegments?: number;
+  /** Center content when nothing is selected. */
+  center?: ReactNode;
+  /** Center/legend value for a segment. */
+  formatValue?: (value: number, share: number) => ReactNode;
+  legend?: boolean;
+  'aria-label': string;
+  className?: string;
+}
+
+const toFa = (n: number) => n.toFixed(0).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!);
+
+function arcPath(cx: number, cy: number, r: number, a0: number, a1: number) {
+  const p = (a: number) => [cx + r * Math.sin(a), cy - r * Math.cos(a)] as const;
+  const [x0, y0] = p(a0);
+  const [x1, y1] = p(a1);
+  return `M${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
+}
+
+/**
+ * Donut with a gap between segments. Tap a segment or a legend row to see
+ * its value in the center; tap again to clear. Color follows the entity.
+ */
+function DonutChartInner({ segments, size = 168, thickness = 22, maxSegments = 6, center, formatValue, legend = true, className, ...props }: DonutChartProps) {
+  const [sel, setSel] = useState<string | null>(null);
+  const items = useMemo(() => {
+    const colored = segments
+      .filter((s) => s.value > 0)
+      .map((s, i) => ({ ...s, color: s.color ?? CHART_VARS[i] ?? 'var(--color-chart-other)' }));
+    if (colored.length <= maxSegments) return colored;
+    const sorted = [...colored].sort((a, b) => b.value - a.value);
+    const keep = new Set(sorted.slice(0, maxSegments - 1).map((s) => s.key));
+    const rest = colored.filter((s) => !keep.has(s.key)).reduce((a, s) => a + s.value, 0);
+    return [...colored.filter((s) => keep.has(s.key)), { key: '__other', label: 'سایر', value: rest, color: 'var(--color-chart-other)', note: undefined }];
+  }, [segments, maxSegments]);
+  const total = items.reduce((a, s) => a + s.value, 0) || 1;
+  const r = (size - thickness) / 2;
+  const c = size / 2;
+  const gap = items.length > 1 ? 0.035 : 0;
+  const arcs = useMemo(() => {
+    const ends = items.reduce<number[]>((list, s) => [...list, (list.at(-1) ?? 0) + s.value], []);
+    return items.map((s, i) => {
+      const a0 = ((ends[i - 1] ?? 0) / total) * Math.PI * 2;
+      const a1 = (ends[i]! / total) * Math.PI * 2;
+      return { ...s, d: items.length === 1 ? null : arcPath(c, c, r, a0 + gap / 2, Math.max(a0 + gap / 2 + 0.001, a1 - gap / 2)) };
+    });
+  }, [items, total, c, r, gap]);
+  const active = items.find((s) => s.key === sel) ?? null;
+  const share = (v: number) => v / total;
+  const fmt = (v: number) => (formatValue ? formatValue(v, share(v)) : `${toFa(share(v) * 100)}٪`);
+  const toggle = (k: string) => setSel((x) => (x === k ? null : k));
+
+  return (
+    <div className={cn('flex flex-col items-center gap-4', className)}>
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg role="img" aria-label={props['aria-label']} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {arcs.map((s) =>
+            s.d ? (
+              <path
+                key={s.key}
+                d={s.d}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={sel === s.key ? thickness + 4 : thickness}
+                strokeOpacity={sel && sel !== s.key ? 0.3 : 1}
+                className="cursor-pointer transition-[stroke-opacity,stroke-width] duration-(--ds-duration-base)"
+                onClick={() => toggle(s.key)}
+              >
+                <title>{`${s.label}: ${toFa(share(s.value) * 100)}٪`}</title>
+              </path>
+            ) : (
+              <circle key={s.key} cx={c} cy={c} r={r} fill="none" stroke={s.color} strokeWidth={thickness} />
+            )
+          )}
+        </svg>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+          {active ? (
+            <>
+              <span className="max-w-full truncate text-caption text-fg-muted">{active.label}</span>
+              <span className="text-title font-bold text-fg tabular">{toFa(share(active.value) * 100)}٪</span>
+              {formatValue && <span className="text-micro text-fg-subtle">{formatValue(active.value, share(active.value))}</span>}
+            </>
+          ) : (
+            center
+          )}
+        </div>
+      </div>
+      {legend && (
+        <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
+          {items.map((s) => (
+            <li key={s.key}>
+              <button
+                type="button"
+                onClick={() => toggle(s.key)}
+                aria-pressed={sel === s.key}
+                className={cn(
+                  'ds-focus flex w-full min-w-0 items-center gap-2 rounded-control px-1 py-1 text-start text-caption transition-opacity',
+                  sel && sel !== s.key && 'opacity-40'
+                )}
+              >
+                <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="min-w-0 flex-1 truncate text-fg-muted">{s.label}</span>
+                <span className="shrink-0 text-end">
+                  <span className="block text-fg tabular">{toFa(share(s.value) * 100)}٪</span>
+                  {s.note && <span className="block text-micro text-fg-subtle">{s.note}</span>}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!legend && active && <span className="text-caption text-fg-muted">{fmt(active.value)}</span>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* DivergingBars — gains right, losses left, one row per item.         */
+/* ------------------------------------------------------------------ */
+
+export interface DivergingRow {
+  key: string;
+  label: ReactNode;
+  value: number;
+  /** Text at the end of the row (e.g. the formatted amount). */
+  valueLabel?: ReactNode;
+  /** Row becomes a link/button. */
+  render?: React.ReactElement;
+  leading?: ReactNode;
+}
+
+export interface DivergingBarsProps {
+  rows: DivergingRow[];
+  'aria-label': string;
+  className?: string;
+}
+
+/**
+ * Ranked gains and losses on one zero line. Green grows right, red grows
+ * left (physical, like a number line), so size and sign read at a glance.
+ */
+function DivergingBarsInner({ rows, className, ...props }: DivergingBarsProps) {
+  const maxAbs = Math.max(1e-9, ...rows.map((r) => Math.abs(r.value)));
+  return (
+    <ul aria-label={props['aria-label']} className={cn('divide-y divide-line overflow-hidden rounded-card bg-panel', className)}>
+      {rows.map((r) => {
+        const w = (Math.abs(r.value) / maxAbs) * 50;
+        const pos = r.value >= 0;
+        const body = (
+          <>
+            <span className="flex min-w-0 items-center gap-2">
+              {r.leading}
+              <span className="min-w-0 flex-1 truncate text-callout text-fg">{r.label}</span>
+              <span className="shrink-0 text-caption">{r.valueLabel}</span>
+            </span>
+            <span aria-hidden className="relative block h-2 w-full" style={{ direction: 'ltr' }}>
+              <span className="absolute inset-y-[-3px] left-1/2 w-px bg-line" />
+              <span
+                className={cn('absolute inset-y-0', pos ? 'left-1/2 rounded-e-[4px] bg-positive' : 'right-1/2 rounded-s-[4px] bg-negative')}
+                style={{ width: `${Math.max(w, 0.8)}%` }}
+              />
+            </span>
+          </>
+        );
+        return (
+          <li key={r.key}>
+            {r.render ? (
+              <ListLink render={r.render}>{body}</ListLink>
+            ) : (
+              <div className="flex flex-col gap-2 px-4 py-3">{body}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ListLink({ render, children }: { render: React.ReactElement; children: ReactNode }) {
+  const props = render.props as { className?: string };
+  return cloneElement(render, { className: cn('ds-focus flex flex-col gap-2 px-4 py-3 hover:bg-hover', props.className) } as never, children);
+}
+
 /* While the numbers are not final (see AmountPendingProvider), charts show a
    shimmer block of their own size instead of a shape that changes later. */
 
@@ -246,4 +558,27 @@ export function BarChart(props: BarChartProps) {
     return <span aria-hidden className={cn('block w-full animate-ds-shimmer rounded-card bg-hover', props.className)} style={{ height: props.height ?? 120 }} />;
   }
   return <BarChartInner {...props} />;
+}
+
+export function AreaChart(props: AreaChartProps) {
+  const pending = useAmountPending();
+  if (pending) {
+    return <span aria-hidden className={cn('block w-full animate-ds-shimmer rounded-card bg-hover', props.className)} style={{ height: props.height ?? 96 }} />;
+  }
+  return <AreaChartInner {...props} />;
+}
+
+export function DonutChart(props: DonutChartProps) {
+  const pending = useAmountPending();
+  if (pending) {
+    const size = props.size ?? 168;
+    return <span aria-hidden className={cn('mx-auto block animate-ds-shimmer rounded-full bg-hover', props.className)} style={{ width: size, height: size }} />;
+  }
+  return <DonutChartInner {...props} />;
+}
+
+export function DivergingBars(props: DivergingBarsProps) {
+  const pending = useAmountPending();
+  if (pending) return <span aria-hidden className={cn('block h-48 w-full animate-ds-shimmer rounded-card bg-hover', props.className)} />;
+  return <DivergingBarsInner {...props} />;
 }
