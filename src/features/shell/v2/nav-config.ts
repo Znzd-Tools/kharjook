@@ -71,11 +71,10 @@ export const TABS: TabConfig[] = [
     key: 'plan',
     label: 'برنامه',
     href: '/deadlines',
-    prefixes: ['/deadlines', '/forecast', '/debts', '/budget'],
+    prefixes: ['/deadlines', '/debts', '/budget'],
     title: 'برنامه',
     subNav: [
       { href: '/deadlines', label: 'سررسیدها', match: ['/deadlines'] },
-      { href: '/forecast', label: 'پیش‌بینی' },
       { href: '/debts', label: 'بدهی‌ها' },
       { href: '/budget', label: 'بودجه' },
     ],
@@ -98,7 +97,7 @@ export function tabForPath(pathname: string): TabConfig | null {
 const ROOTS = new Set([
   '/', '/transactions', '/reports', '/reports/cashflow', '/reports/assets',
   '/assets', '/wallets', '/prices', '/pnl', '/portfolio-plan',
-  '/deadlines', '/forecast', '/debts', '/budget',
+  '/deadlines', '/debts', '/budget',
 ]);
 
 export function isTabRoot(pathname: string): boolean {

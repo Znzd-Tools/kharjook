@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildDebts, simulatePayoff, summarizeDebts } from './debts';
-import { buildForecast, detectIncome, normalMonthlySpending, subscriptionDates } from './forecast';
 import { buildRebalance, buildScorecard, portfolioRisks, type HoldingRow } from './portfolio-plan';
-
-const tx = (o: Record<string, unknown>) => ({ id: Math.random().toString(36), source_amount: null, target_amount: null, amount_toman_at_time: null, ...o }) as never;
-const W = [{ id: 'w', currency: 'IRT' }] as never[];
 
 describe('debts', () => {
   const loans = [
@@ -48,46 +44,6 @@ describe('debts', () => {
     expect(base.months.get('loan:l1')).toBe(2);
     expect(extra.months.get('loan:l1')).toBe(1);
     expect(extra.debtFreeMonths).toBeLessThanOrEqual(base.debtFreeMonths);
-  });
-});
-
-describe('forecast', () => {
-  const today = { jy: 1405, jm: 8, jd: 20 };
-  const txs = [
-    tx({ type: 'INCOME', target_wallet_id: 'w', category_id: 'sal', date_string: '1405/05/25', amount_toman_at_time: 100 }),
-    tx({ type: 'INCOME', target_wallet_id: 'w', category_id: 'sal', date_string: '1405/06/25', amount_toman_at_time: 120 }),
-    tx({ type: 'INCOME', target_wallet_id: 'w', category_id: 'sal', date_string: '1405/07/25', amount_toman_at_time: 110 }),
-    tx({ type: 'INCOME', target_wallet_id: 'w', category_id: 'gift', date_string: '1405/07/02', amount_toman_at_time: 999 }),
-    tx({ id: 'paid-inst', type: 'EXPENSE', source_wallet_id: 'w', date_string: '1405/07/10', amount_toman_at_time: 300 }),
-    tx({ type: 'EXPENSE', source_wallet_id: 'w', date_string: '1405/07/11', amount_toman_at_time: 90 }),
-  ];
-
-  it('regular income = a category in 2+ of the last 3 months, median amount, usual day; one-off gifts are not income', () => {
-    const inc = detectIncome(txs, today, () => 'حقوق', W, [], 1);
-    expect(inc).toHaveLength(1);
-    expect(inc[0]).toMatchObject({ categoryId: 'sal', monthlyToman: 110, day: 25 });
-  });
-
-  it('normal spending leaves out payments of scheduled items (no double count)', () => {
-    expect(normalMonthlySpending(txs, today, new Set(['paid-inst']), W, [], 1)).toBe(30);
-  });
-
-  it('subscription dates repeat by interval; overdue counts as today', () => {
-    expect(subscriptionDates({ next_due_date_string: '1405/08/10', interval_number: 1, interval_period: 'month' }, '1405/08/20', '1405/10/20')).toEqual([
-      '1405/08/20', '1405/09/10', '1405/10/10',
-    ]);
-  });
-
-  it('finds the lowest point and the first day below zero', () => {
-    const f = buildForecast({
-      today, horizonDays: 15, startCash: 100,
-      income: [{ categoryId: 'sal', label: 'حقوق', monthlyToman: 500, day: 25 }],
-      monthlySpending: 0,
-      scheduled: [{ due: '1405/08/22', label: 'قسط', toman: 150 }],
-    });
-    expect(f.firstNegative).toBe('1405/08/22');
-    expect(f.lowest).toEqual({ date: '1405/08/22', balance: -50 });
-    expect(f.days.find((d) => d.date === '1405/08/25')!.balance).toBe(450);
   });
 });
 
