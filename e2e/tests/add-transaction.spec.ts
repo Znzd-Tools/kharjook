@@ -162,7 +162,9 @@ test('expense paid with an asset: unit price fills from the asset, saves; button
   await open(page, '/transactions/new?type=EXPENSE');
   await page.getByRole('radio', { name: 'خوراک' }).click();
   const goldChip = page.getByRole('button', { name: 'طلا', exact: true });
-  if (!(await goldChip.isVisible())) {
+  if (await goldChip.isVisible()) {
+    await goldChip.click();
+  } else {
     await page.getByRole('button', { name: /بیشتر/ }).first().click();
     await page.getByRole('dialog').getByText('طلا', { exact: true }).first().click();
   }
