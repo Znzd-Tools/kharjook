@@ -2,7 +2,8 @@ import type { Asset, AssetStats, Category, Transaction } from '@/shared/types/do
 import type { CurrencyMode } from '@/shared/types/domain';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 
-export type AssetListViewMode = 'groups' | 'all';
+/** groups / all = lists; map = treemap (size = value, color = 30-day change). */
+export type AssetListViewMode = 'groups' | 'all' | 'map';
 export type ZeroValueFilter = 'hide' | 'show';
 
 const AMOUNT_EPSILON = 1e-9;

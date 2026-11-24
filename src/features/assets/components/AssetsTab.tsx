@@ -18,13 +18,16 @@ import {
   ListRow,
   Section,
   Skeleton,
+  Treemap,
 } from '@/design-system';
 import { Coins, Landmark, Settings, Target, TrendingUp } from '@/design-system/icons';
 import type { Asset, Goal } from '@/shared/types/domain';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import { calculateAssetStats } from '@/shared/utils/calculate-asset-stats';
 import { assetDecimals, formatAssetAmount } from '@/shared/utils/format-asset-amount';
-import { formatJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { addDays, formatJalaali, todayJalaali } from '@/shared/utils/jalali';
+import { effectivePriceAt } from '@/features/reports/utils/price-history';
+import Link from 'next/link';
 import {
   computeAssetPnl,
   pnlPercent,
@@ -66,6 +69,24 @@ export function AssetsTab() {
     () => filterAssetsForList(assets, transactions, currencyMode, usdRate, zeroValueFilter),
     [assets, transactions, currencyMode, usdRate, zeroValueFilter]
   );
+
+  // Treemap: portfolio assets with value; color = 30-day price change in the
+  // display currency (dollar change shows the real move, without inflation).
+  const mapItems = useMemo(() => {
+    if (viewMode !== 'map') return [];
+    const past = formatJalaali(addDays(todayJalaali(), -30));
+    return visibleAssets
+      .filter((a) => a.include_in_balance !== false)
+      .map((a) => {
+        const st = calculateAssetStats(a, transactions, currencyMode, usdRate);
+        const now = effectivePriceAt(a, todayStr, dailyPrices, todayStr, transactions);
+        const then = effectivePriceAt(a, past, dailyPrices, todayStr, transactions);
+        const pick = (p: typeof now) => (p ? (currencyMode === 'USD' ? p.priceUsd : p.priceToman) : 0);
+        const change = now && then && pick(then) > 0 ? ((pick(now) - pick(then)) / pick(then)) * 100 : null;
+        return { key: a.id, label: a.name, value: st.currentValueToman, change, render: <Link href={`/assets/${a.id}`} /> };
+      })
+      .filter((i) => i.value > 0);
+  }, [viewMode, visibleAssets, transactions, currencyMode, usdRate, dailyPrices, todayStr]);
 
   const groupedAssets = useMemo(
     () => groupAssetsByCategory(visibleAssets, categories),
@@ -149,6 +170,7 @@ export function AssetsTab() {
             <ChipGroup aria-label="نمایش" value={[viewMode]} onValueChange={(v) => v[0] && setViewMode(v[0] as AssetListViewMode)} scroll={false}>
               <Chip value="groups">گروه‌ها</Chip>
               <Chip value="all">همه</Chip>
+              <Chip value="map">نقشه</Chip>
             </ChipGroup>
             <span className="h-5 w-px bg-line" aria-hidden />
             <ChipGroup aria-label="دارایی‌های صفر" value={[zeroValueFilter]} onValueChange={(v) => v[0] && setZeroValueFilter(v[0] as ZeroValueFilter)} scroll={false}>
@@ -170,7 +192,14 @@ export function AssetsTab() {
       </Section>
 
       {visibleAssets.length > 0 &&
-        (viewMode === 'groups' ? (
+        (viewMode === 'map' ? (
+          <Section
+            title="نقشه‌ی سبد"
+            description={`اندازه = ارزش، رنگ = تغییر قیمت ۳۰ روز (${currencyMode === 'USD' ? 'دلاری' : 'تومانی'}). روی هر خانه بزن.`}
+          >
+            <Treemap aria-label="نقشه‌ی دارایی‌های سبد" items={mapItems} height={320} />
+          </Section>
+        ) : viewMode === 'groups' ? (
           groupedAssets.map((group) => (
             <Section
               key={group.id}

@@ -3,6 +3,7 @@
 import { cloneElement, useId, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
 import { useAmountPending } from './AmountPending';
+import { squarify } from '../lib/squarify';
 
 /* ------------------------------------------------------------------ */
 /* Sparkline — trend at a glance, no axes.                             */
@@ -631,6 +632,77 @@ function CalendarHeatmapInner({ days, tone = 'negative', formatValue = String, c
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Treemap — size = value, color = change (diverging, gray midpoint).  */
+/* ------------------------------------------------------------------ */
+
+export interface TreemapItem {
+  key: string;
+  label: string;
+  value: number;
+  /** Change in percent for the color; null = no data (gray). */
+  change: number | null;
+  /** Makes the cell a link/button. */
+  render?: React.ReactElement;
+}
+
+export interface TreemapProps {
+  items: TreemapItem[];
+  height?: number;
+  /** |change| at which the color is full. Default 20 (%). */
+  fullAt?: number;
+  /** Share text shown in big cells. */
+  formatShare?: (share: number) => ReactNode;
+  'aria-label': string;
+  className?: string;
+}
+
+const pctFa = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('fa-IR', { maximumFractionDigits: 1 })}٪`;
+
+/**
+ * Squarified treemap. Diverging color: green up, red down, gray at zero or
+ * without data; the strength follows |change| up to `fullAt`. Labels only
+ * where they fit; every cell has an accessible name.
+ */
+function TreemapInner({ items, height = 280, fullAt = 20, className, ...props }: TreemapProps) {
+  const rects = useMemo(() => squarify(items), [items]);
+  const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
+  const total = items.reduce((a, i) => a + Math.max(0, i.value), 0) || 1;
+  return (
+    <div role="group" aria-label={props['aria-label']} className={cn('relative w-full overflow-hidden rounded-card bg-panel', className)} style={{ height }}>
+      {rects.map((r) => {
+        const it = byKey.get(r.key)!;
+        const c = it.change;
+        const strength = c == null || c === 0 ? 0 : Math.min(1, Math.abs(c) / fullAt);
+        const hue = c != null && c > 0 ? 'var(--color-positive)' : 'var(--color-negative)';
+        const bg = strength === 0 ? 'var(--color-sunken)' : `color-mix(in oklab, ${hue} ${Math.round(25 + strength * 60)}%, var(--color-sunken))`;
+        const big = r.w > 22 && r.h > 16;
+        const fits = r.w > 13 && r.h > 9;
+        const share = it.value / total;
+        const name = `${it.label}، ${toFa(share * 100)}٪ سبد${c != null ? `، ${pctFa(c)} در ۳۰ روز` : ''}`;
+        const body = fits ? (
+          <span className="flex h-full min-w-0 flex-col justify-between p-2 text-start">
+            <span className="truncate text-caption font-semibold text-fg">{it.label}</span>
+            <span className="flex flex-wrap items-baseline justify-between gap-x-1 text-micro">
+              {big && <span className="text-fg-muted tabular">{toFa(share * 100)}٪</span>}
+              {c != null && <span className="font-semibold text-fg tabular" dir="ltr">{pctFa(c)}</span>}
+            </span>
+          </span>
+        ) : null;
+        const style = { left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%` };
+        const cls = 'ds-focus absolute block overflow-hidden border-2 border-panel transition-[filter] hover:brightness-110';
+        return it.render ? (
+          cloneElement(it.render, { key: r.key, 'aria-label': name, className: cls, style: { ...style, backgroundColor: bg } } as never, body)
+        ) : (
+          <span key={r.key} role="img" aria-label={name} className={cls} style={{ ...style, backgroundColor: bg }}>
+            {body}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 /* While the numbers are not final (see AmountPendingProvider), charts show a
    shimmer block of their own size instead of a shape that changes later. */
 
@@ -689,4 +761,10 @@ export function CalendarHeatmap(props: CalendarHeatmapProps) {
   const pending = useAmountPending();
   if (pending) return <span aria-hidden className={cn('block h-56 w-full animate-ds-shimmer rounded-card bg-hover', props.className)} />;
   return <CalendarHeatmapInner {...props} />;
+}
+
+export function Treemap(props: TreemapProps) {
+  const pending = useAmountPending();
+  if (pending) return <span aria-hidden className={cn('block w-full animate-ds-shimmer rounded-card bg-hover', props.className)} style={{ height: props.height ?? 280 }} />;
+  return <TreemapInner {...props} />;
 }
