@@ -11,7 +11,7 @@ test('archive an asset with a balance: warns, hides it, archive page restores it
   await expect.poll(async () => (await dbRows<Row>('assets')).find((a) => a.id === 'usd')?.archived_at).not.toBeNull();
   await expect(page.getByRole('button', { name: 'بایگانی دلار' })).toHaveCount(0);
 
-  await page.getByRole('link', { name: /بایگانی/ }).first().click();
+  await page.getByRole('link', { name: /^بایگانی( \(.+\))?$/ }).or(page.getByRole('button', { name: /^بایگانی( \(.+\))?$/ })).first().click();
   await expect(page).toHaveURL(/\/manage\/archive/);
   await page.getByRole('button', { name: 'بازگردانی دلار' }).click();
   await expect.poll(async () => (await dbRows<Row>('assets')).find((a) => a.id === 'usd')?.archived_at ?? null).toBeNull();

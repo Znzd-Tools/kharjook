@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { dbRows, expect, open, test } from './fixtures';
+import { pinSeedMonth, dbRows, expect, open, test } from './fixtures';
 
 type Tx = Record<string, unknown> & { id: string; type: string };
 
@@ -13,6 +13,10 @@ async function swipeOpen(page: Page, target: Locator) {
   for (let i = 1; i <= 10; i++) await page.mouse.move(box.x + 40 + i * 24, y);
   await page.mouse.up();
 }
+
+test.beforeEach(async ({ page }) => {
+  await pinSeedMonth(page);
+});
 
 test('shows readable rows with amount and category', async ({ page }) => {
   await open(page, '/transactions');

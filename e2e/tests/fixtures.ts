@@ -19,6 +19,15 @@ export async function setRows(table: string, rows: Record<string, unknown>[]) {
   expect(res.ok).toBeTruthy();
 }
 
+/**
+ * The seed data is written for Aban 1405. Specs that depend on "this month"
+ * pin the browser clock there. Not global: pages that render today's date on
+ * the server would then not match the browser (hydration error).
+ */
+export async function pinSeedMonth(page: Page) {
+  await page.clock.setFixedTime(new Date('2026-11-15T09:00:00Z'));
+}
+
 /** Offline-safe: stub the external price API, block third-party hosts. */
 export async function stubNetwork(page: Page) {
   await page.route('**/api/prices/quotes**', (r) => r.fulfill({ json: { quotes: [] } }));
@@ -49,9 +58,6 @@ export const test = base.extend<{ autoSetup: void }>({
   autoSetup: [
     async ({ page }, use) => {
       await resetDb();
-      // The seed data is written for Aban 1405; pin "today" there so the
-      // tests do not break when the real month changes.
-      await page.clock.setFixedTime(new Date('2026-11-15T09:00:00Z'));
       await stubNetwork(page);
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message.split('\n')[0]}`));

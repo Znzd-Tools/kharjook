@@ -1,4 +1,8 @@
-import { expect, open, test } from './fixtures';
+import { pinSeedMonth, expect, open, test } from './fixtures';
+
+test.beforeEach(async ({ page }) => {
+  await pinSeedMonth(page);
+});
 
 test('second open shows cached data before the server answers', async ({ page }) => {
   await open(page, '/transactions');
