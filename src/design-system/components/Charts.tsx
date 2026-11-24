@@ -372,9 +372,17 @@ function arcPath(cx: number, cy: number, r: number, a0: number, a1: number) {
 function DonutChartInner({ segments, size = 168, thickness = 22, maxSegments = 6, center, formatValue, legend = true, className, ...props }: DonutChartProps) {
   const [sel, setSel] = useState<string | null>(null);
   const items = useMemo(() => {
+    // Two segments may not share a color (e.g. two categories saved with the
+    // same color): the later one takes the next free palette color.
+    const used = new Set<string>();
     const colored = segments
       .filter((s) => s.value > 0)
-      .map((s, i) => ({ ...s, color: s.color ?? CHART_VARS[i] ?? 'var(--color-chart-other)' }));
+      .map((s, i) => {
+        let color = s.color ?? CHART_VARS[i] ?? 'var(--color-chart-other)';
+        if (used.has(color.toLowerCase())) color = CHART_VARS.find((c) => !used.has(c)) ?? 'var(--color-chart-other)';
+        used.add(color.toLowerCase());
+        return { ...s, color };
+      });
     if (colored.length <= maxSegments) return colored;
     const sorted = [...colored].sort((a, b) => b.value - a.value);
     const keep = new Set(sorted.slice(0, maxSegments - 1).map((s) => s.key));
@@ -529,6 +537,100 @@ function ListLink({ render, children }: { render: React.ReactElement; children: 
   return cloneElement(render, { className: cn('ds-focus flex flex-col gap-2 px-4 py-3 hover:bg-hover', props.className) } as never, children);
 }
 
+/* ------------------------------------------------------------------ */
+/* CalendarHeatmap — one cell per day, darker = more.                  */
+/* ------------------------------------------------------------------ */
+
+export interface HeatDay {
+  /** Jalali "YYYY/MM/DD". */
+  key: string;
+  /** Day of month shown in the cell. */
+  day: number;
+  /** 0 = شنبه … 6 = جمعه. */
+  weekday: number;
+  value: number;
+  /** Full date text for the caption. */
+  label: string;
+}
+
+export interface CalendarHeatmapProps {
+  days: HeatDay[];
+  tone?: 'negative' | 'positive' | 'accent';
+  formatValue?: (value: number) => ReactNode;
+  'aria-label': string;
+  className?: string;
+}
+
+const WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+const HEAT_ALPHA = [0, 0.22, 0.42, 0.66, 1];
+
+/**
+ * Month calendar (week rows, Saturday first, RTL). One hue, light to dark by
+ * quartile of the non-zero days. Tap a day to read its value; the caption
+ * shows the biggest day until then.
+ */
+function CalendarHeatmapInner({ days, tone = 'negative', formatValue = String, className, ...props }: CalendarHeatmapProps) {
+  const [sel, setSel] = useState<string | null>(null);
+  const levels = useMemo(() => {
+    const vals = days.map((d) => d.value).filter((v) => v > 0).sort((a, b) => a - b);
+    const q = (p: number) => vals[Math.min(vals.length - 1, Math.floor(p * vals.length))] ?? 0;
+    const cuts = [q(0.25), q(0.5), q(0.75)];
+    return new Map(days.map((d) => [d.key, d.value <= 0 ? 0 : d.value <= cuts[0]! ? 1 : d.value <= cuts[1]! ? 2 : d.value <= cuts[2]! ? 3 : 4]));
+  }, [days]);
+  const color = STROKE[tone];
+  const biggest = days.reduce<HeatDay | null>((m, d) => (d.value > (m?.value ?? 0) ? d : m), null);
+  const shown = days.find((d) => d.key === sel) ?? null;
+  const lead = days[0]?.weekday ?? 0;
+
+  return (
+    <figure className={cn('flex flex-col gap-2', className)}>
+      <figcaption className="flex h-5 items-baseline justify-between gap-2 text-caption">
+        <span className="truncate text-fg-subtle">{shown ? shown.label : biggest ? `بیشترین: ${biggest.label}` : 'روزی ثبت نشده'}</span>
+        <span className="shrink-0 font-semibold text-fg tabular">{shown ? formatValue(shown.value) : biggest ? formatValue(biggest.value) : null}</span>
+      </figcaption>
+      <div role="group" aria-label={props['aria-label']} className="grid grid-cols-7 gap-1">
+        {WEEKDAYS.map((w) => (
+          <span key={w} aria-hidden className="text-center text-micro text-fg-subtle">
+            {w}
+          </span>
+        ))}
+        {Array.from({ length: lead }, (_, i) => (
+          <span key={`lead-${i}`} aria-hidden />
+        ))}
+        {days.map((d) => {
+          const lv = levels.get(d.key) ?? 0;
+          const on = sel === d.key;
+          return (
+            <button
+              key={d.key}
+              type="button"
+              aria-label={`${d.label}: ${d.value > 0 ? d.value : 'بدون'}`}
+              aria-pressed={on}
+              onClick={() => setSel(on ? null : d.key)}
+              className={cn(
+                'ds-focus relative aspect-square rounded-md text-micro tabular transition-shadow',
+                lv === 0 && 'bg-sunken text-fg-subtle',
+                lv >= 3 ? 'text-fg-on-accent' : lv > 0 && 'text-fg',
+                on && 'ring-2 ring-fg'
+              )}
+              style={lv > 0 ? { backgroundColor: `color-mix(in oklab, ${color} ${HEAT_ALPHA[lv]! * 100}%, transparent)` } : undefined}
+            >
+              {d.day.toLocaleString('fa-IR')}
+            </button>
+          );
+        })}
+      </div>
+      <div aria-hidden className="flex items-center justify-end gap-1 text-micro text-fg-subtle">
+        کم
+        {HEAT_ALPHA.slice(1).map((a) => (
+          <span key={a} className="size-2.5 rounded-sm" style={{ backgroundColor: `color-mix(in oklab, ${color} ${a * 100}%, transparent)` }} />
+        ))}
+        زیاد
+      </div>
+    </figure>
+  );
+}
+
 /* While the numbers are not final (see AmountPendingProvider), charts show a
    shimmer block of their own size instead of a shape that changes later. */
 
@@ -581,4 +683,10 @@ export function DivergingBars(props: DivergingBarsProps) {
   const pending = useAmountPending();
   if (pending) return <span aria-hidden className={cn('block h-48 w-full animate-ds-shimmer rounded-card bg-hover', props.className)} />;
   return <DivergingBarsInner {...props} />;
+}
+
+export function CalendarHeatmap(props: CalendarHeatmapProps) {
+  const pending = useAmountPending();
+  if (pending) return <span aria-hidden className={cn('block h-56 w-full animate-ds-shimmer rounded-card bg-hover', props.className)} />;
+  return <CalendarHeatmapInner {...props} />;
 }

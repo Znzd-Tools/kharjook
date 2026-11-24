@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rollupCategories } from '@/features/reports/utils/category-rollup';
+import { dailyCashflow, rollupCategories } from '@/features/reports/utils/category-rollup';
 import type { Category } from '@/shared/types/domain';
 import { makeTx } from '@/test/fixtures';
 
@@ -49,5 +49,24 @@ describe('rollupCategories', () => {
       currencyMode: 'TOMAN',
     });
     expect(r.total).toBe(15);
+  });
+});
+
+describe('dailyCashflow', () => {
+  const tx = (date: string, toman: number | null, wallet = 'w1') =>
+    makeTx({ type: 'EXPENSE', date_string: date, amount_toman_at_time: toman, source_wallet_id: wallet });
+  it('sums per day in the period, same rules as the report', () => {
+    const m = dailyCashflow({
+      transactions: [tx('1403/01/02', 100), tx('1403/01/02', 50), tx('1403/01/05', 20), tx('1403/02/01', 999), tx('1403/01/06', null)],
+      period,
+      kind: 'expense',
+      walletId: null,
+      currencyMode: 'TOMAN',
+    });
+    expect(Object.fromEntries(m)).toEqual({ '1403/01/02': 150, '1403/01/05': 20 });
+  });
+  it('wallet filter', () => {
+    const m = dailyCashflow({ transactions: [tx('1403/01/02', 100, 'w1'), tx('1403/01/02', 7, 'w2')], period, kind: 'expense', walletId: 'w2', currencyMode: 'TOMAN' });
+    expect(m.get('1403/01/02')).toBe(7);
   });
 });

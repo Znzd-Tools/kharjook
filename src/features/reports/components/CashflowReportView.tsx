@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Amount, Banner, Chip, ChipGroup, EmptyState, List, ListRow, Text, cn } from '@/design-system';
+import { Amount, Banner, CalendarHeatmap, Chip, ChipGroup, DonutChart, EmptyState, List, ListRow, Text, cn, type HeatDay } from '@/design-system';
 import { ChevronDown, LayoutGrid as FolderOpen } from '@/design-system/icons';
 import { useData, useUI } from '@/features/portfolio/PortfolioProvider';
 import type { CurrencyMode } from '@/shared/types/domain';
@@ -20,8 +20,10 @@ import {
   cashflowCsvFilename,
 } from '@/features/reports/utils/export-cashflow-csv';
 import { downloadCsv } from '@/shared/utils/download-csv';
-import { formatJalaali } from '@/shared/utils/jalali';
+import { addDays, formatJalaali, formatJalaaliHuman, jalaaliWeekday } from '@/shared/utils/jalali';
+import { cmpJalaali } from '@/shared/utils/period';
 import {
+  dailyCashflow,
   rollupCategories,
   type CashflowKind,
   type RollupNode,
@@ -80,6 +82,28 @@ export function CashflowReportView() {
   );
 
   const active = tab === 'income' ? incomeRollup : expenseRollup;
+
+  // Donut: top-level categories (with their children rolled in), own colors.
+  const donut = useMemo(() => {
+    const segs = active.nodes
+      .filter((n) => n.depth === 0 && n.rolled > 0)
+      .map((n) => ({ key: n.id, label: n.name, value: n.rolled, color: n.color }));
+    if (active.uncategorized.total > 0)
+      segs.push({ key: '__uncat', label: 'بدون دسته‌بندی', value: active.uncategorized.total, color: 'var(--color-chart-other)' });
+    return segs;
+  }, [active]);
+
+  // Heatmap: one cell per day, for a week or a month only.
+  const heat = useMemo<HeatDay[] | null>(() => {
+    if (period.kind !== 'month' && period.kind !== 'week') return null;
+    const byDay = dailyCashflow({ transactions, period, kind: tab, walletId, currencyMode });
+    const out: HeatDay[] = [];
+    for (let d = period.start; cmpJalaali(d, period.end) <= 0; d = addDays(d, 1)) {
+      const key = formatJalaali(d);
+      out.push({ key, day: d.jd, weekday: jalaaliWeekday(d), value: byDay.get(key) ?? 0, label: formatJalaaliHuman(d) });
+    }
+    return out;
+  }, [transactions, period, tab, walletId, currencyMode]);
 
   const exportCsv = () => {
     const walletLabel =
@@ -162,6 +186,33 @@ export function CashflowReportView() {
           <Amount value={expenseRollup.total} currency={currencyMode} size="md" compact tone="negative" />
         </button>
       </div>
+
+      {donut.length > 0 && (
+        <section aria-label="سهم دسته‌ها" className="rounded-card bg-panel p-4">
+          <DonutChart
+            aria-label={tab === 'income' ? 'سهم دسته‌های درآمد' : 'سهم دسته‌های هزینه'}
+            segments={donut}
+            center={
+              <>
+                <span className="text-micro text-fg-subtle">{tab === 'income' ? 'درآمد' : 'هزینه'}</span>
+                <Amount value={active.total} currency={currencyMode} size="sm" compact />
+              </>
+            }
+            formatValue={(v) => <Amount value={v} currency={currencyMode} size="xs" compact />}
+          />
+        </section>
+      )}
+
+      {heat && heat.some((d) => d.value > 0) && (
+        <section aria-label={tab === 'income' ? 'درآمد هر روز' : 'خرج هر روز'} className="rounded-card bg-panel p-4">
+          <CalendarHeatmap
+            aria-label={tab === 'income' ? 'درآمد هر روز' : 'خرج هر روز'}
+            days={heat}
+            tone={tab === 'income' ? 'positive' : 'negative'}
+            formatValue={(v) => <Amount value={v} currency={currencyMode} size="xs" compact />}
+          />
+        </section>
+      )}
 
       <CategoryList
         result={active}

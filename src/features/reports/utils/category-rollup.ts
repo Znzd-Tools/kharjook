@@ -264,3 +264,23 @@ export function rollupCategories(input: RollupInput): RollupResult {
     unpricedCount,
   };
 }
+
+/**
+ * Daily totals of one kind in the period, with the same rules as the
+ * category rollup (snapshot amount in the display currency, wallet filter,
+ * unpriced rows skipped). Keys are Jalali "YYYY/MM/DD".
+ */
+export function dailyCashflow(input: Omit<RollupInput, 'categories' | 'wallets'>): Map<string, number> {
+  const { transactions, period, kind, walletId, currencyMode } = input;
+  const targetType = kind === 'income' ? 'INCOME' : 'EXPENSE';
+  const out = new Map<string, number>();
+  for (const tx of transactions) {
+    if (tx.type !== targetType) continue;
+    if (!isInPeriod(tx.date_string, period)) continue;
+    const { value, walletId: txWalletId, isAsset } = txCashflow(tx, kind, currencyMode);
+    if (walletId && (isAsset || txWalletId !== walletId)) continue;
+    if (value == null || !Number.isFinite(value) || value <= 0) continue;
+    out.set(tx.date_string, (out.get(tx.date_string) ?? 0) + value);
+  }
+  return out;
+}
